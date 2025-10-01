@@ -19,7 +19,7 @@ workflows:
 
 generate_projects:
   blocks:
-    # live/aws/{account}/{region}/{project}
-    - include: "live/aws/*/*/**"
+    # terraform/live/aws/{account}/{region}/{project}
+    - include: "terraform/live/aws/*/*/**"
       exclude: "**/.terraform/**"
       workflow: "default"
