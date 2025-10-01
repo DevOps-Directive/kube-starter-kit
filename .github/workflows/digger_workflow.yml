@@ -1,0 +1,53 @@
+name: Digger Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        required: true
+      run_name:
+        required: false
+
+run-name: "${{inputs.run_name}}"
+
+env:
+  AWS_REGION: us-east-2
+
+jobs:
+  digger-job:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # required to merge PRs
+      actions: write # required for plan persistence
+      id-token: write # required for workload-identity-federation
+      pull-requests: write # required to post PR comments
+      issues: read # required to check if PR number is an issue or not
+      statuses: write # required to validate combined PR status
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::094905625236:role/github-oidc-admin
+      - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
+        run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
+      # - uses: diggerhq/digger@5fbaf81378d670c2e175a05f7d7fbd069f5f3710 # v0.6.126
+      - uses: diggerhq/digger@v0.6.126
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          digger-spec: ${{ inputs.spec }}
+          setup-terraform: true
+          terraform-version: 1.13.3
+          upload-plan-destination: aws
+          upload-plan-destination-s3-bucket: kube-starter-kit-tf-digger-plans
+
+          # setup-opentofu: true
+          # opentofu-version: 1.10.3
+          # Could set up AWS here instead... (it uses the aws setup action under the hood)
+          # setup-aws: true
+          # aws-region: ${{ env.AWS_REGION }}
+          # aws-role-to-assume: arn:aws:iam::094905625236:role/github-oidc-admin

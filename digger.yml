@@ -1,0 +1,8 @@
+# TODO: use generate_projects
+projects:
+  - name: bootstrapping
+    dir: terraform/live/aws/infrastructure/global/bootstrapping
+
+  - name: staging
+    dir: terraform/live/aws/staging/us-east-2/networking
+# Install digger app into DevOps-Directive org
