@@ -57,6 +57,7 @@ module "fck-nat" {
   name                = "nat-gw-${count.index}"
   vpc_id              = module.vpc.vpc_id
   subnet_id           = module.vpc.public_subnets[count.index]
+  instance_type       = "t4g.nano"
   ha_mode             = true
   update_route_tables = true
   route_tables_ids    = { "private" : module.vpc.private_route_table_ids[count.index] }
