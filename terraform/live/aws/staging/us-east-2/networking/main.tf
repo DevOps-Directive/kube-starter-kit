@@ -28,9 +28,12 @@ locals {
 
 provider "aws" {
   region = "us-east-2"
-
-  # TODO: chain role to deploy into staging account
+  assume_role {
+    # TODO: how to make this role chaining possible from my IAM Identity center role?
+    role_arn = "arn:aws:iam::038198578795:role/github-oidc-provider-aws-chain"
+  }
 }
+
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
