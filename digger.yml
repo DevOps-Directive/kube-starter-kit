@@ -1,8 +1,25 @@
 # TODO: use generate_projects
-projects:
-  - name: bootstrapping
-    dir: terraform/live/aws/infrastructure/global/bootstrapping
+workflows:
+  default:
+    plan:
+      steps:
+        - run: echo "Starting plan step"
+        - init
+        - plan
+    apply:
+      steps:
+        - run: echo "Starting apply step"
+        - init
+        - apply
+    workflow_configuration:
+      on_pull_request_pushed: ["digger plan"]
+      on_pull_request_closed: ["digger unlock"]
+      on_commit_to_default: ["digger unlock"]
+      skip_merge_check: true # Let Dev Apply before the branch is mergable (TODO: split out prod and enforce this)
 
-  - name: staging
-    dir: terraform/live/aws/staging/us-east-2/networking
-# Install digger app into DevOps-Directive org
+generate_projects:
+  blocks:
+    # live/aws/{account}/{region}/{project}
+    - include: "live/aws/*/*/*"
+      exclude: "**/.terraform/**"
+      workflow: "default"
