@@ -16,7 +16,4 @@ terraform {
 
 provider "aws" {
   region = "us-east-2"
-  assume_role {
-    role_arn = "arn:aws:iam::094905625236:role/github-oidc-provider-aws-chain"
-  }
 }
