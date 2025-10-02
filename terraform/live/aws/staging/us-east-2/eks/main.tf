@@ -47,10 +47,27 @@ module "eks" {
   name               = local.name
   kubernetes_version = "1.33"
 
+  access_entries = {
+    example = {
+      principal_arn = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_bf4f5a0626f509cb"
+
+      policy_associations = {
+        example = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   # Gives Terraform identity admin access to cluster which will
   # allow deploying resources (Karpenter) into the cluster
   enable_cluster_creator_admin_permissions = true
-  endpoint_public_access                   = true
+
+  enable_irsa            = true
+  endpoint_public_access = true
 
   # TODO: specify versions
   addons = {
