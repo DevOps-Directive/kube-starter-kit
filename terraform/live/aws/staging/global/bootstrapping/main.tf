@@ -45,4 +45,7 @@ module "iam_role" {
 
   policies = { AdministratorAccess = "arn:aws:iam::aws:policy/AdministratorAccess" }
 
+  tags = {
+    AllowGithubOIDCChain = "true"
+  }
 }
