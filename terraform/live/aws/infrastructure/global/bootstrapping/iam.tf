@@ -1,3 +1,4 @@
+# The only thing the OIDC role can do is assume the chain role
 module "github-oidc-provider" {
   source  = "terraform-module/github-oidc-provider/aws"
   version = "2.2.1"
