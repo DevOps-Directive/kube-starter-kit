@@ -17,7 +17,6 @@ terraform {
 provider "aws" {
   region = "us-east-2"
   assume_role {
-    # TODO: how to make this role chaining possible from my IAM Identity center role?
     role_arn = "arn:aws:iam::038198578795:role/github-oidc-provider-aws-chain"
   }
 }
@@ -32,11 +31,15 @@ module "iam_role" {
   trust_policy_permissions = {
     TrustRoleAndServiceToAssume = {
       actions = ["sts:AssumeRole"]
-      principals = [{
-        type        = "AWS"
-        identifiers = ["arn:aws:iam::094905625236:role/github-oidc-provider-aws"] # TODO: look up from remote state
-      }]
-
+      principals = [
+        {
+          type = "AWS"
+          identifiers = [
+            "arn:aws:iam::094905625236:role/github-oidc-provider-aws", # TODO: look up from remote state
+            "arn:aws:iam::094905625236:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_fa7ea65862c3f54a"
+          ]
+        }
+      ]
     }
   }
 
