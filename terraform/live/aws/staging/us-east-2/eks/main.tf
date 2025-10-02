@@ -65,7 +65,7 @@ module "eks" {
   }
 
   vpc_id     = "vpc-0955989470c913b10"
-  subnet_ids = ["subnet-010a63eb87d2020b1", "subnet-047960b613aba7131", "subnet-01e2b29b02d52e90f"]
+  subnet_ids = ["subnet-010a63eb87d2020b1", "subnet-047960b613aba7131", "subnet-02cd6c1bf461263c6"]
 
   eks_managed_node_groups = {
     karpenter = {
