@@ -10,12 +10,11 @@ on:
 
 run-name: "${{inputs.run_name}}"
 
-env:
-  AWS_REGION: us-east-2
-
 jobs:
   digger-job:
     runs-on: ubuntu-24.04
+    env:
+      AWS_REGION: us-east-2
     permissions:
       contents: write # required to merge PRs
       actions: write # required for plan persistence
