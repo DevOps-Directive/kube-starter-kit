@@ -21,8 +21,9 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::857059614049:role/github-oidc-provider-aws
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
+      # Reenable if building non-native architectures
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@1583c0f09d26c58c59d25b0eef29792b7ce99d9a # v3.11.1
       - name: Build and push Docker images
@@ -32,5 +33,6 @@ jobs:
           push: true
           tags: 857059614049.dkr.ecr.us-east-2.amazonaws.com/foo:${{ github.sha }}
           platforms: "linux/arm64" # "linux/amd64,linux/arm64"
+          provenance: false # this prevents extra manifest image in ECR
           cache-from: type=gha
           cache-to: type=gha,mode=max
