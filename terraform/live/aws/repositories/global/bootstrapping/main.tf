@@ -57,23 +57,27 @@ module "iam_policy" {
 
   policy = <<-EOF
     {
-        "Version":"2012-10-17",		 	 	 
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": [
-                    "ecr:CompleteLayerUpload",
-                    "ecr:GetAuthorizationToken",
-                    "ecr:UploadLayerPart",
-                    "ecr:InitiateLayerUpload",
-                    "ecr:BatchCheckLayerAvailability",
-                    "ecr:PutImage"
-                ],
-                "Resource": "arn:aws:ecr:us-west-2:857059614049:repository/*"
-            }
-        ]
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "ecr:GetAuthorizationToken",
+          "Resource": "*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "ecr:CompleteLayerUpload",
+            "ecr:UploadLayerPart",
+            "ecr:InitiateLayerUpload",
+            "ecr:BatchCheckLayerAvailability",
+            "ecr:PutImage"
+          ],
+          "Resource": "arn:aws:ecr:us-west-2:857059614049:repository/*"
+        }
+      ]
     }
-  EOF
+    EOF
 }
 
 module "github-oidc-provider" {
