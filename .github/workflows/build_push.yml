@@ -1,0 +1,36 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - main
+      - sp/initial-container-build-workflow
+    paths:
+      - services/**
+    tags:
+      - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
+
+jobs:
+  build-push-container-images:
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::857059614049:role/github-oidc-provider-aws
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@1583c0f09d26c58c59d25b0eef29792b7ce99d9a # v3.11.1
+      - name: Build and push Docker images
+        uses: docker/build-push-action@ccc2b40e9ea6518f9252a22a990f8e868370f62e # v6.18.0
+        with:
+          context: services/container-only/dummy
+          push: true
+          tags: 857059614049.dkr.ecr.us-east-2.amazonaws.com/foo:${{ github.sha }}
+          platforms: "linux/arm64" # "linux/amd64,linux/arm64"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
