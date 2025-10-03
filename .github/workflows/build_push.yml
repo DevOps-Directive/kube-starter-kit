@@ -22,10 +22,11 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::857059614049:role/github-oidc-provider-aws
-      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
         id: login-ecr
         with:
           mask-password: true
+          registries: "857059614049"
       # Reenable if building non-native architectures
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
