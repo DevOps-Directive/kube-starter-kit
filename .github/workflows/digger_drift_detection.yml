@@ -30,6 +30,8 @@ jobs:
         with:
           mode: drift-detection
           no-backend: true
+          setup-terraform: true
+          terraform-version: 1.13.3
           drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION_URL }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
