@@ -36,7 +36,7 @@ module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "3.1.0"
 
-  for_each        = local.repos
+  for_each        = toset(local.repos)
   repository_name = each.value
 
   repository_read_access_arns = [
