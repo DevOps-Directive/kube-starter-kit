@@ -17,10 +17,3 @@ terraform {
 provider "aws" {
   region = "us-east-2"
 }
-
-# TODO: only including for testing drift detection
-resource "null_resource" "default" {
-  provisioner "local-exec" {
-    command = "echo 'Hello World'"
-  }
-}
