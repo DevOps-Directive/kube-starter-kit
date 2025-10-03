@@ -26,7 +26,6 @@ jobs:
         id: login-ecr
         with:
           mask-password: true
-          registries: "857059614049"
       # Reenable if building non-native architectures
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
