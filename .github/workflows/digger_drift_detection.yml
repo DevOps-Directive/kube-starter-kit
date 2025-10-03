@@ -28,6 +28,8 @@ jobs:
       - name: digger drift detection
         uses: diggerhq/digger@v0.6.126
         with:
+          digger-hostname: https://ui.digger.dev
+          digger-organisation: "DevOps Directive"
           mode: drift-detection
           drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION_URL }}
         env:
