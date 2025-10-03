@@ -5,8 +5,8 @@ on:
     branches:
       - main
       - sp/initial-container-build-workflow
-    paths:
-      - services/**
+    # paths:
+    #   - services/**
     tags:
       - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
 
