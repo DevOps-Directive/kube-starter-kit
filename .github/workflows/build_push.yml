@@ -22,6 +22,10 @@ jobs:
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::857059614049:role/github-oidc-provider-aws
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
+        with:
+          mask-password: true
       # Reenable if building non-native architectures
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
@@ -32,7 +36,7 @@ jobs:
         with:
           context: services/container-only/dummy
           push: true
-          tags: 857059614049.dkr.ecr.us-east-2.amazonaws.com/foo:${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/foo:${{ github.sha }}
           platforms: "linux/arm64" # "linux/amd64,linux/arm64"
           provenance: false # this prevents extra manifest image in ECR
           cache-from: type=gha
