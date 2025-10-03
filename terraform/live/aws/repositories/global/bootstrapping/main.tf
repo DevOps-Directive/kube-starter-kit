@@ -55,29 +55,28 @@ module "iam_policy" {
   path        = "/"
   description = "Enable push access to all us-west-2 ECR repos in this AWS account"
 
+  # TODO: Could split repo specific permission by specifying
+  # "Resource": "arn:aws:ecr:us-west-2:857059614049:*/*" and splitting out ecr:GetAuthorizationToken for "Resource": "*"
+
   policy = <<-EOF
     {
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Effect": "Allow",
-          "Action": "ecr:GetAuthorizationToken",
-          "Resource": "*"
-        },
-        {
-          "Effect": "Allow",
-          "Action": [
-            "ecr:CompleteLayerUpload",
-            "ecr:UploadLayerPart",
-            "ecr:InitiateLayerUpload",
-            "ecr:BatchCheckLayerAvailability",
-            "ecr:PutImage"
-          ],
-          "Resource": "arn:aws:ecr:us-west-2:857059614049:repository/*"
-        }
-      ]
+        "Version":"2012-10-17",		 	 	 
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ecr:CompleteLayerUpload",
+                    "ecr:GetAuthorizationToken",
+                    "ecr:UploadLayerPart",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:PutImage"
+                ],
+                "Resource": "arn:aws:ecr:us-west-2:857059614049:*/*"
+            }
+        ]
     }
-    EOF
+  EOF
 }
 
 module "github-oidc-provider" {
