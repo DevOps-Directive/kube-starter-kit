@@ -16,9 +16,11 @@ terraform {
 
 locals {
   region = "us-east-2"
-  name   = "foobarbaz"
-
-  account_id = data.aws_caller_identity.current.account_id
+  repos = [
+    "foo",
+    "bar",
+    "baz"
+  ]
 }
 
 data "aws_caller_identity" "current" {}
@@ -34,7 +36,8 @@ module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "3.1.0"
 
-  repository_name = local.name
+  for_each        = local.repos
+  repository_name = each.value
 
   repository_read_access_arns = [
     "arn:aws:iam::038198578795:root", # TODO: establish better pattern for looking up account IDs
