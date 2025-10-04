@@ -23,3 +23,7 @@ generate_projects:
     - include: "terraform/live/aws/*/*/**"
       exclude: "**/.terraform/**"
       workflow: "default"
+    # terraform/live/github/{repo}
+    - include: "terraform/live/github/*/**"
+      exclude: "**/.terraform/**"
+      workflow: "default"
