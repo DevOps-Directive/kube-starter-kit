@@ -128,3 +128,14 @@ module "karpenter" {
   }
 }
 
+# Will be used as deploy key
+resource "tls_private_key" "deploy_key" {
+  algorithm = "ED25519"
+}
+
+# TODO: 
+# - Create AWS secret containing private key
+# - Set as output to module
+# - Set up ExternalSecretOperator
+# - Create ExternalSecret during gitops bootstrapping
+# - Document Bootstrapping
