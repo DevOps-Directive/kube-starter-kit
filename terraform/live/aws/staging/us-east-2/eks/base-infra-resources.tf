@@ -12,9 +12,14 @@ module "external_secrets_pod_identity" {
   external_secrets_create_permission    = true # Necessary to use https://external-secrets.io/latest/api/pushsecret/
 
   association_defaults = {
-    cluster_name    = module.eks.cluster_name
     namespace       = "external-secrets"
     service_account = "external-secrets"
+  }
+
+  associations = {
+    this = {
+      cluster_name = module.eks.cluster_name
+    }
   }
 }
 
@@ -25,9 +30,14 @@ module "aws_ebs_csi_pod_identity" {
 
   attach_aws_ebs_csi_policy = true
 
-  # associations = {
-  #   cluster_name    = module.eks.cluster_name
-  #   namespace       = "external-secrets"
-  #   service_account = "external-secrets"
-  # }
+  association_defaults = {
+    namespace       = "kube-system"
+    service_account = "ebs-csi-controller-sa"
+  }
+
+  associations = {
+    this = {
+      cluster_name = module.eks.cluster_name
+    }
+  }
 }
