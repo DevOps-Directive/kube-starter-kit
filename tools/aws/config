@@ -1,0 +1,24 @@
+[default]
+
+[profile infrastructure]
+region = us-east-2
+sso_session = primary
+sso_account_id = 094905625236
+sso_role_name = AWSAdministratorAccess
+
+[profile staging]
+region = us-east-2
+sso_session = primary
+sso_account_id = 038198578795
+sso_role_name = AWSAdministratorAccess
+
+[profile production]
+region = us-east-2
+sso_session = primary
+sso_account_id = 964263445142
+sso_role_name = AWSAdministratorAccess
+
+[sso-session primary]
+sso_start_url = https://d-9a676f52a0.awsapps.com/start/#
+sso_region = us-east-2
+sso_registration_scopes = sso:account:access

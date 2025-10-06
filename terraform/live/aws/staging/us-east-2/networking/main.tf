@@ -17,8 +17,8 @@ terraform {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name   = "infrastructure"
-  region = "us-west-2"
+  name   = "staging"
+  region = "us-east-2"
 
   # TODO: design private network CIDRs to split across VPCs
   vpc_cidr = "10.0.0.0/16"
@@ -38,7 +38,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.4.0"
 
-  name = local.name
+  name = "${local.name}-${local.region}"
   cidr = local.vpc_cidr
 
   azs             = local.azs
@@ -46,6 +46,11 @@ module "vpc" {
   public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 4)]
 
   enable_nat_gateway = false # use https://fck-nat.dev/ instead
+
+  private_subnet_tags = {
+    "karpenter.sh/discovery" = "${local.name}-${local.region}"
+
+  }
 }
 
 module "fck-nat" {

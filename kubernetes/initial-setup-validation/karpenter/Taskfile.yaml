@@ -11,3 +11,7 @@ tasks:
           --version 1.7.1 \
           --namespace kube-system \
           --values values.yaml
+
+  apply-resources:
+    cmds:
+      - kubectl apply -f ./resources
