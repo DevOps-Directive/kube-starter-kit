@@ -13,3 +13,7 @@ tasks:
           --namespace external-secrets \
           --create-namespace \
           --values values.yaml
+
+  apply-resources:
+    cmds:
+      - kubectl apply -f ./resources
