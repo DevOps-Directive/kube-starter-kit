@@ -16,6 +16,7 @@ unset-env-vars () {
   unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 }
 
+aws-sso-infrastructure () { aws-sso-login infrastructure; }
 aws-sso-staging () { aws-sso-login staging; }
 aws-sso-production () { aws-sso-login production; }
 
