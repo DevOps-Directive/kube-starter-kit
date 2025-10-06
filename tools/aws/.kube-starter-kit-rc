@@ -1,0 +1,23 @@
+aws-sso-login () {
+  profile=$1
+
+  aws sso login --profile ${profile}
+  export AWS_PROFILE=${profile}
+}
+
+aws-get-eks-creds () {
+  profile=$1
+  cluster=$2
+  aws-sso-login ${profile}
+  aws eks update-kubeconfig --name ${cluster} --user-alias ${profile}
+}
+
+unset-env-vars () {
+  unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+}
+
+aws-sso-staging () { aws-sso-login staging; }
+aws-sso-production () { aws-sso-login production; }
+
+aws-eks-staging () { aws-get-eks-creds staging staging-us-east-2 }
+aws-eks-production () { aws-get-eks-creds production production-us-east-2 } # This cluster doesnt exist yet
