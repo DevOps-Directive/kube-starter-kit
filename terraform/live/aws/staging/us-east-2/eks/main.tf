@@ -80,6 +80,8 @@ module "eks" {
     vpc-cni = {
       before_compute = true
     }
+    aws-ebs-csi-driver = {}
+
   }
 
   vpc_id     = "vpc-0955989470c913b10"
