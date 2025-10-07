@@ -32,9 +32,7 @@ jobs:
           role-to-assume: arn:aws:iam::094905625236:role/github-oidc-provider-aws
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
-      # - uses: diggerhq/digger@a547c265911e96e37a0fa7810a63a0c6d2d64c33 # contains my commits
-      - uses: sidpalas/digger@5ae0c2d03e2163cc729ed9cb1441b419fe1fc922 # with digger version
-        # - uses: diggerhq/digger@v0.6.126
+      - uses: diggerhq/digger@869b24dc6797a24927db6c80af5aaff74be3911f # v0.6.126 + digger-version input
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
