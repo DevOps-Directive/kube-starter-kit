@@ -1,0 +1,21 @@
+apiVersion: gitops.kluctl.io/v1beta1
+kind: KluctlDeployment
+metadata:
+  name: demo-app
+  namespace: kluctl-gitops
+spec:
+  interval: 5m
+  source:
+    git:
+      url: https://github.com/DevOps-Directive/kube-starter-kit.git
+      path: kubernetes/kluctl/
+  credentials:
+    git:
+      - host: github.com
+        secretRef:
+          name: deploy-key
+  target: production
+  context: default
+  # let it automatically clean up orphan KluctlDeployment resources
+  prune: true
+  delete: true
