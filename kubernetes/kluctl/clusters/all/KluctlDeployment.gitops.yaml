@@ -7,7 +7,7 @@ spec:
   interval: 5m
   source:
     git:
-      url: https://github.com/DevOps-Directive/kube-starter-kit.git
+      url: git@github.com:DevOps-Directive/kube-starter-kit.git
       path: kubernetes/kluctl/
       ref: 
         branch: sp/init-kluctl-gitops
