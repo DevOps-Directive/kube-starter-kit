@@ -1,24 +1,38 @@
-aws-sso-login () {
-  profile=$1
+aws_sso_login() {
+  local profile="$1"
 
-  aws sso login --profile ${profile}
-  export AWS_PROFILE=${profile}
+  if [ -z "$profile" ]; then
+    echo "usage: aws_sso_login <profile>" >&2
+    return 2
+  fi
+
+  # Check if valid session exists before logging in
+  if AWS_PROFILE="$profile" aws sts get-caller-identity --no-cli-pager --output json >/dev/null 2>&1; then
+    export AWS_PROFILE="$profile"
+    echo "Using existing SSO session for profile '${profile}'."
+  else
+    echo "No valid SSO session for profile '${profile}'. Logging in…"
+    aws sso login --profile "$profile"
+  fi
+  
+  # Print caller identity
+  AWS_PROFILE="$profile" aws sts get-caller-identity --no-cli-pager --output json | jq
 }
 
-aws-get-eks-creds () {
+aws_get_eks_creds () {
   profile=$1
   cluster=$2
-  aws-sso-login ${profile}
+  aws_sso_login ${profile}
   aws eks update-kubeconfig --name ${cluster} --user-alias ${profile}
 }
 
-unset-env-vars () {
+unset_env_vars () {
   unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 }
 
-aws-sso-infrastructure () { aws-sso-login infrastructure; }
-aws-sso-staging () { aws-sso-login staging; }
-aws-sso-production () { aws-sso-login production; }
+aws_sso_infrastructure () { aws_sso_login infrastructure; }
+aws_sso_staging () { aws_sso_login staging; }
+aws_sso_production () { aws_sso_login production; }
 
-aws-eks-staging () { aws-get-eks-creds staging staging-us-east-2 }
-aws-eks-production () { aws-get-eks-creds production production-us-east-2 } # This cluster doesnt exist yet
+aws_eks_staging () { aws_get_eks_creds staging staging-us-east-2 }
+aws_eks_production () { aws_get_eks_creds production production-us-east-2 } # This cluster doesnt exist yet
