@@ -12,11 +12,11 @@ deployments:
         tag: v2.27.0
   - barrier: true
   # Include things that are required on all clusters (e.g., the KluctlDeployment for the GitOps deployment itself)
-  - path: all
+  - include: all
 
   # # We use simple templating to change a dedicated deployment item per cluster
   # We dont have a KluctlDeployment to deploy here yet
   # TODO:
   #  1. create KluctlDeployment for base infra
   #  2. create KluctlDeployment for 1st party apps
-  - path: {{args.cluster_name }}
+  - path: {{args.cluster_name}}

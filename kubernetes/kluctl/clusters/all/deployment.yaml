@@ -1,0 +1,4 @@
+# deployment.yaml
+deployments:
+  - path: gitops
+  - path: infrastructure
