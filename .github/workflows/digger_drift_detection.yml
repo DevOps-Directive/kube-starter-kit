@@ -22,14 +22,14 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::094905625236:role/github-oidc-provider-aws
       - name: digger drift detection
-        uses: diggerhq/digger@869b24dc6797a24927db6c80af5aaff74be3911f # v0.6.126 + digger-version input
+        uses: diggerhq/digger@869b24dc6797a24927db6c80af5aaff74be3911f # v0.6.127 + digger-version input
         with:
           mode: drift-detection
           no-backend: true
           setup-terraform: true
           terraform-version: 1.13.3
           drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION_URL }}
-          digger-version: v0.6.126
+          digger-version: v0.6.127
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
