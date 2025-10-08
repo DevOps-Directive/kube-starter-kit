@@ -6,3 +6,7 @@ tasks:
     cmds:
       # - kluctl helm-pull
       - kluctl deploy -t staging-us-east-2 --prune
+
+  helm-pull:
+    cmds:
+      - kluctl helm-pull

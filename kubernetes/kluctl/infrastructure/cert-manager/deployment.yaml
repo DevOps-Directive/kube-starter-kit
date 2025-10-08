@@ -1,0 +1,4 @@
+deployments:
+  - path: helm
+  # - barrier: true
+  # - path: resources

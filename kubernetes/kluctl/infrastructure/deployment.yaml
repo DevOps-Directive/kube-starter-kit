@@ -3,6 +3,7 @@ deployments:
   # Install karpenter first to ensure any necessary compute
   # capacity can be provisioned for all workloads
   - barrier: true
+  - include: cert-manager
   - include: external-secrets-operator
   - include: istio
   - path: ebs-csi-driver
