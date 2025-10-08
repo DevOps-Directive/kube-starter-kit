@@ -22,5 +22,6 @@ spec:
     cluster_name: {{args.cluster_name}}
   context: default
   # let it automatically clean up orphan KluctlDeployment resources
-  prune: true
+  # prune: true
+  prune: false
   delete: true

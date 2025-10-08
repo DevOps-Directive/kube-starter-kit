@@ -21,6 +21,6 @@ spec:
     # this passes the cluster_name initially passed via `kluctl deploy -a cluster_name=xxx.example.com` into the KluctlDeployment
     cluster_name: {{args.cluster_name}}
   context: default
-  # let it automatically clean up orphan KluctlDeployment resources
-  prune: true
+  # prune: true
+  prune: false
   delete: true
