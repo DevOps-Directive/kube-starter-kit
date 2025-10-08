@@ -1,4 +1,4 @@
 deployments:
   - path: namespaces
   - barrier: true
-  - include: deployments
+  - path: deployments
