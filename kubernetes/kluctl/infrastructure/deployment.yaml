@@ -1,2 +1,3 @@
 deployments:
   - path: resources
+  - path: external-secrets-operator
