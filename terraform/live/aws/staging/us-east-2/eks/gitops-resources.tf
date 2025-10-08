@@ -3,6 +3,10 @@ resource "tls_private_key" "deploy_key" {
   algorithm = "ED25519"
 }
 
+# If secret creation fails due to secret already existing (7 day deletion buffer)
+# Use terraform import to add it to the state
+# terraform import 'module.secrets_manager_json.aws_secretsmanager_secret.this[0]' arn:aws:secretsmanager:us-east-2:038198578795:secret:staging-us-east-2-deploy-key-li1XnV
+
 module "secrets_manager_json" {
   source  = "terraform-aws-modules/secrets-manager/aws"
   version = "2.0.0"
@@ -23,7 +27,3 @@ EOKH
 
 }
 
-# TODO: 
-# - Set up ExternalSecretOperator
-# - Create ExternalSecret during gitops bootstrapping
-# - Document bootstrapping process
