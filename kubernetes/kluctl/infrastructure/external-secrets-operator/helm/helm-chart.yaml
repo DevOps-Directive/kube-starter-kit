@@ -4,5 +4,3 @@ helmChart:
   chartVersion: 0.20.2
   releaseName: external-secrets
   namespace: external-secrets
-  # TODO: remove this, add pre-pull to Taskfile, and check in charts
-  skipPrePull: true

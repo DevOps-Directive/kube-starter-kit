@@ -1,0 +1,21 @@
+version: "3"
+
+# TODO: properly install...
+vars:
+  ISTIO_PATH: "/Users/palas/development/istio-1.27.1"
+
+tasks:
+  generate-manifests:
+    cmds:
+      # revision could be "default", "canary", or specific version "1-27-1"
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl manifest generate \
+          --set profile=default \
+          --set revision="1-27-1" \
+          > ./install/istio-generated-manifests.yaml
+
+  download-gateway-api-crds:
+    cmds:
+      - |
+        curl -L https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml \
+          > install/gateway-api-crds.yaml
