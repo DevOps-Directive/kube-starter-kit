@@ -14,7 +14,8 @@ spec:
           values: ["linux"]
         - key: karpenter.k8s.aws/instance-size
           operator: In
-          values: ["nano", "micro", "small", "medium"]
+          # default istiod deployment requres 2Gi memory which wont schedule on a medium instance...
+          values: ["nano", "micro", "small", "medium", "large"]
         # - key: karpenter.sh/capacity-type
         #   operator: In
         #   values: ["spot"]

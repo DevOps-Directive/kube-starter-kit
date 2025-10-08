@@ -1,4 +1,6 @@
 deployments:
+  - path: pre-install
+  - barrier: true
   - path: install
   - barrier: true
   - path: resources

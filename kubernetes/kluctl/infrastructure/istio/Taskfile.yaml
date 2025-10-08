@@ -10,8 +10,8 @@ tasks:
       # revision could be "default", "canary", or specific version "1-27-1"
       - |
         {{.ISTIO_PATH}}/bin/istioctl manifest generate \
-          --set profile=default \
-          --set revision="1-27-1" \
+          --set profile="ambient" \
+          --set revision="default" \
           > ./install/istio-generated-manifests.yaml
 
   download-gateway-api-crds:
