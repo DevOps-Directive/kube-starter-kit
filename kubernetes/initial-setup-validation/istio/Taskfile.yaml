@@ -10,7 +10,7 @@ tasks:
     cmds:
       - |
         echo "istio binary at {{.ISTIO_PATH}}/bin"
-        echo "use export PATH={{.ISTIO_PATH}}/bin:$PATH if it isnt found"
+        echo 'use export PATH={{.ISTIO_PATH}}/bin:\$PATH if it isnt found'
         {{.ISTIO_PATH}}/bin/istioctl install --set profile=ambient --skip-confirmation
 
   generate-manifests:

@@ -11,7 +11,7 @@ tasks:
       - |
         {{.ISTIO_PATH}}/bin/istioctl manifest generate \
           --set profile="ambient" \
-          --set revision="default" \
+          --cluster-specific \
           > ./install/istio-generated-manifests.yaml
 
   download-gateway-api-crds:
