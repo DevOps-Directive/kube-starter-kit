@@ -5,7 +5,7 @@ tasks:
     desc: "Deploy kluctl gitops staging target"
     cmds:
       - echo "⚠️ DON'T FORGET TO ADD THE DEPLOY KEY TO THE REPO!!! ⚠️"
-      - kluctl deploy -t staging --prune
+      - kluctl deploy -t staging-us-east-2 --prune
 
   deploy-production-cluster:
     desc: "Deploy kluctl gitops production target"
