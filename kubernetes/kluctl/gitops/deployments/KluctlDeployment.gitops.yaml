@@ -8,7 +8,7 @@ spec:
   source:
     git:
       url: git@github.com:DevOps-Directive/kube-starter-kit.git
-      path: kubernetes/kluctl/
+      path: kubernetes/kluctl/gitops
       ref:
         branch: sp/init-kluctl-gitops
   credentials:
@@ -16,10 +16,10 @@ spec:
       - host: github.com
         secretRef:
           name: deploy-key
-  target: {{ args.cluster_name }}
+  target: {{args.cluster_name}}
   args:
     # this passes the cluster_name initially passed via `kluctl deploy -a cluster_name=xxx.example.com` into the KluctlDeployment
-    cluster_name: {{ args.cluster_name }}
+    cluster_name: {{args.cluster_name}}
   context: default
   # let it automatically clean up orphan KluctlDeployment resources
   prune: true
