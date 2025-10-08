@@ -18,4 +18,4 @@ args:
   - name: cluster_name
 
 # Without a discriminator, pruning won't work. Make sure the rendered result is unique on the target cluster
-discriminator: gitops-{{ args.cluster_name | slugify }}
+discriminator: apps-{{ args.cluster_name | slugify }}
