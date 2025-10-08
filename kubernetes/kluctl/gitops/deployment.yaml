@@ -1,4 +1,15 @@
 deployments:
   - path: namespaces
   - barrier: true
+  - git:
+      url: https://github.com/kluctl/kluctl.git
+      subDir: install/controller
+      ref:
+        tag: v2.24.1
+  - git:
+      url: https://github.com/kluctl/kluctl.git
+      subDir: install/webui
+      ref:
+        tag: v2.24.1
+  - barrier: true
   - path: deployments
