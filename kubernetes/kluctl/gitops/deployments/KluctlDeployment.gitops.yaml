@@ -9,8 +9,8 @@ spec:
     git:
       url: git@github.com:DevOps-Directive/kube-starter-kit.git
       path: kubernetes/kluctl/gitops
-      ref:
-        branch: sp/init-kluctl-gitops
+      # ref:
+      #   branch: <NON_DEFAULT_BRANCH>
   credentials:
     git:
       - host: github.com
