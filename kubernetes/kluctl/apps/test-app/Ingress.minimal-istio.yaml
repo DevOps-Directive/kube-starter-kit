@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-istio
+spec:
+  ingressClassName: istio
+  rules:
+    - host: "ingress-example-istio.com"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: nginx-clusterip
+                port:
+                  number: 8080

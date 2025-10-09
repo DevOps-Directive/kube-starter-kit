@@ -1,0 +1,9 @@
+nodeSelector:
+  karpenter.sh/controller: "true"
+dnsPolicy: Default
+settings:
+  clusterName: "staging-us-east-2" # TODO: make dynamic
+  clusterEndpoint: "https://CA3001BEEF594510CF35397C500880B4.gr7.us-east-2.eks.amazonaws.com"
+  interruptionQueue: "Karpenter-staging-us-east-2"
+webhook:
+  enabled: false

@@ -10,16 +10,17 @@ tasks:
     cmds:
       - |
         echo "istio binary at {{.ISTIO_PATH}}/bin"
-        echo "use export PATH={{.ISTIO_PATH}}/bin:$PATH if it isnt found"
-        {{.ISTIO_PATH}}/bin/istioctl install --set profile=ambient --skip-confirmation
+        echo 'use export PATH={{.ISTIO_PATH}}/bin:\$PATH if it isnt found'
+        {{.ISTIO_PATH}}/bin/istioctl install \
+          -f IstioOperatorSpec.yaml \
+          --skip-confirmation
 
   generate-manifests:
     cmds:
       # revision could be "default", "canary", or specific version "1-27-1"
       - |
         {{.ISTIO_PATH}}/bin/istioctl manifest generate \
-          --set profile=default \
-          --set revision="1-27-1" \
+          -f IstioOperatorSpec.yaml \
           > istio-generated-manifests-ambient.yaml
 
   apply-manifests:

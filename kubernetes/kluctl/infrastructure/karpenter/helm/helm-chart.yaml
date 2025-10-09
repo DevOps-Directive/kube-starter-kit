@@ -1,0 +1,5 @@
+helmChart:
+  repo: oci://public.ecr.aws/karpenter/karpenter
+  chartVersion: 1.7.1
+  releaseName: karpenter
+  namespace: kube-system

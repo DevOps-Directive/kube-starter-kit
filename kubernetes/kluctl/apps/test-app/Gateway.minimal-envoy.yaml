@@ -1,0 +1,32 @@
+# Generated with ingress2gateway print --providers=ingress-nginx -A
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: minimal-envoy
+  namespace: default
+spec:
+  gatewayClassName: envoy-gateway-class
+  listeners:
+    - hostname: ingress-example-envoy.com
+      name: ingress-example-envoy-com-http
+      port: 80
+      protocol: HTTP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: minimal-envoy
+  namespace: default
+spec:
+  hostnames:
+    - ingress-example-envoy.com
+  parentRefs:
+    - name: minimal-envoy
+  rules:
+    - backendRefs:
+        - name: nginx-clusterip
+          port: 8080
+      matches:
+        - path:
+            type: PathPrefix
+            value: /

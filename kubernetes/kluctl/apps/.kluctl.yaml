@@ -1,0 +1,21 @@
+# .kluctl.yaml
+targets:
+  - name: staging-us-east-2
+    args:
+      cluster_name: staging-us-east-2
+    # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
+    context: arn:aws:eks:us-east-2:038198578795:cluster/staging-us-east-2
+
+  # - name: production
+  #   args:
+  #     cluster_name: production
+  #   # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
+  #   context: gke_kubernetes-course-424917_us-central1-a_devops-directive-kubernetes-course-2
+
+args:
+  # This allows us to deploy the GitOps deployment to different clusters. It is used to include dedicated deployment
+  # items for the selected cluster.
+  - name: cluster_name
+
+# Without a discriminator, pruning won't work. Make sure the rendered result is unique on the target cluster
+discriminator: apps-{{ args.cluster_name | slugify }}

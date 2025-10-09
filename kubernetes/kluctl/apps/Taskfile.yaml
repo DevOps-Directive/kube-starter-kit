@@ -1,0 +1,18 @@
+version: "3"
+
+tasks:
+  deploy-staging:
+    desc: "Deploy kluctl apps staging target"
+    cmds:
+      # - kluctl helm-pull
+      - kluctl deploy -t staging-us-east-2 --prune
+
+  deploy-staging-auto-approve:
+    desc: "Deploy kluctl apps staging target"
+    cmds:
+      # - kluctl helm-pull
+      - kluctl deploy -t staging-us-east-2 -y --prune
+
+  helm-pull:
+    cmds:
+      - kluctl helm-pull
