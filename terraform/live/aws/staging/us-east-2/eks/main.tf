@@ -90,7 +90,7 @@ module "eks" {
   eks_managed_node_groups = {
     karpenter = {
       ami_type       = "BOTTLEROCKET_x86_64"
-      instance_types = ["t3.small"]
+      instance_types = ["t3.medium"]
 
       min_size     = 2
       max_size     = 3
@@ -106,4 +106,23 @@ module "eks" {
   node_security_group_tags = {
     "karpenter.sh/discovery" = local.name
   }
+
+  ######################################################
+  #
+  # By default, EKS module security groups only allow inter-node communication on unpriviledged ports (greater than 1024)
+  # If you need your pods to listen on other ports (e.g. 80, 443, etc...) you must add a rule to allow that traffic.
+  # See: https://github.com/terraform-aws-modules/terraform-aws-eks/blob/74824da9c4fe9dd0b405db70881a1158fa1af216/node_groups.tf#L112-L119
+  #
+  ######################################################
+  # node_security_group_additional_rules = {
+  #   allow_self_http = {
+  #     description = "Allow node-to-node HTTP"
+  #     protocol    = "tcp"
+  #     from_port   = "<BEGINNING_OF_RANGE>"
+  #     to_port     = "<END_OF_RANGE>"
+  #     type        = "ingress"
+  #     self        = true
+  #   }
+  # }
+  ######################################################
 }

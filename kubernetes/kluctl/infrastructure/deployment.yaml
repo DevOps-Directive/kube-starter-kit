@@ -2,8 +2,11 @@ deployments:
   - include: karpenter
   # Install karpenter first to ensure any necessary compute
   # capacity can be provisioned for all workloads
-  - barrier: true
+  # after initial install, the barrier can be removed to enable parallel applies
+  # - barrier: true
   - include: cert-manager
+  - include: envoy-gateway
   - include: external-secrets-operator
+  - path: ingress-nginx
   - include: istio
   - path: ebs-csi-driver

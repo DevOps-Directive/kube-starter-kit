@@ -1,2 +1,2 @@
 deployments:
-  - path: resources
+  - path: test-app

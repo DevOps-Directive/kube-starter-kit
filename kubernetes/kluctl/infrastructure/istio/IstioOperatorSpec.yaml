@@ -8,3 +8,9 @@ spec:
     pilot:
       env:
         ISTIOD_CUSTOM_HOST: "istiod-1-27-1.istio-system.svc,istiod-1-27-1.istio-system.svc.cluster.local"
+  components:
+    ingressGateways:
+      # Need at least one gateway controller (proxy) to use ingress resources
+      - enabled: true
+        namespace: istio-system
+        name: istio-ingressgateway

@@ -1,0 +1,5 @@
+helmChart:
+  repo: oci://docker.io/envoyproxy/gateway-helm
+  chartVersion: 1.5.3
+  releaseName: envoy-gateway
+  namespace: envoy-gateway-system
