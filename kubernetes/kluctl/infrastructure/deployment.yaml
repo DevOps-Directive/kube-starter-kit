@@ -5,9 +5,12 @@ deployments:
   # after initial install, the barrier can be removed to enable parallel applies
   # - barrier: true
   - include: cert-manager
-  # - include: envoy-gateway
+  - include: envoy-gateway
   - include: external-dns
   - include: external-secrets-operator
-  # - path: ingress-nginx
   - include: istio
   - path: ebs-csi-driver
+  # ingress-nginx is configured to use cert-manager to manage certificates (less brittle than helm hooks)
+  # after initial instal, the barrier can be removed to enable parallel applies
+  - barrier: true
+  - path: ingress-nginx

@@ -15,7 +15,7 @@ sources:
 domainFilters:
   - staging.kubestarterkit.com
 
-# logLevel: debug
+logLevel: debug
 
 txtOwnerId: staging-us-east-2
 txtPrefix: _extdns.

@@ -12,5 +12,5 @@ spec:
     ingressGateways:
       # Need at least one gateway controller (proxy) to use ingress resources
       - enabled: true
-        namespace: istio-system
+        namespace: istio-inress
         name: istio-ingressgateway

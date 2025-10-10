@@ -2,15 +2,15 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: minimal-nginx
-  # annotations:
-  #   external-dns.alpha.kubernetes.io/hostname: staging.kubestarterkit.com
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: ingress-nginx.staging.kubestarterkit.com
 spec:
   ingressClassName: nginx
   rules:
-    - host: "staging.kubestarterkit.com"
+    - host: "ingress-nginx.staging.kubestarterkit.com"
       http:
         paths:
-          - path: /ingress-nginx
+          - path: /
             pathType: Prefix
             backend:
               service:
