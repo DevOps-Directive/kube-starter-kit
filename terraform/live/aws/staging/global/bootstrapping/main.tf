@@ -46,3 +46,20 @@ module "iam_role" {
   policies = { AdministratorAccess = "arn:aws:iam::aws:policy/AdministratorAccess" }
 
 }
+
+
+module "zone" {
+  source  = "terraform-aws-modules/route53/aws"
+  version = "6.1.0"
+
+  name = "staging.kubestarterkit.com"
+
+  records = {
+    _extdns = {
+      type    = "TXT"
+      ttl     = 300
+      records = ["heritage=external-dns,external-dns/owner=staging-us-east-2"]
+    }
+
+  }
+}
