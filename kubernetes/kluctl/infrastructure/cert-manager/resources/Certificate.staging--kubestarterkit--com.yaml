@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: staging--kubestarterkit--com
+spec:
+  commonName: staging.kubestarterkit.com
+  dnsNames:
+    - staging.kubestarterkit.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod-dns
+  secretName: staging--kubestarterkit--com

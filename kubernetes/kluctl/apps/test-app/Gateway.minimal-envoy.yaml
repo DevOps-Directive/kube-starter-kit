@@ -7,7 +7,7 @@ metadata:
 spec:
   gatewayClassName: envoy-gateway-class
   listeners:
-    - hostname: ingress-example-envoy.com
+    - hostname: staging.kubestarterkit.com
       name: ingress-example-envoy-com-http
       port: 80
       protocol: HTTP
@@ -17,9 +17,11 @@ kind: HTTPRoute
 metadata:
   name: minimal-envoy
   namespace: default
+  # annotations:
+  #   external-dns.alpha.kubernetes.io/hostname: staging.kubestarterkit.com
 spec:
   hostnames:
-    - ingress-example-envoy.com
+    - staging.kubestarterkit.com
   parentRefs:
     - name: minimal-envoy
   rules:
@@ -29,4 +31,4 @@ spec:
       matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /gateway-envoy
