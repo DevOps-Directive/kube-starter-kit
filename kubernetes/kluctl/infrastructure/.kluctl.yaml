@@ -13,9 +13,13 @@ targets:
   #   context: gke_kubernetes-course-424917_us-central1-a_devops-directive-kubernetes-course-2
 
 args:
-  # This allows us to deploy the GitOps deployment to different clusters. It is used to include dedicated deployment
-  # items for the selected cluster.
   - name: cluster_name
+  - name: install_ingress_nginx
+    default: true
+  - name: install_istio
+    default: false
+  - name: install_envoy_gateway
+    default: true
 
 # Without a discriminator, pruning won't work. Make sure the rendered result is unique on the target cluster
 discriminator: infrastructure-{{ args.cluster_name | slugify }}

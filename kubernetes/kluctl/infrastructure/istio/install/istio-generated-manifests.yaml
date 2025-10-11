@@ -17594,7 +17594,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway-service-account
-  namespace: istio-system
+  namespace: istio-ingress
 
 ---
 apiVersion: v1
@@ -21404,7 +21404,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: istio-ingress
 spec:
   selector:
     matchLabels:
@@ -21429,15 +21429,12 @@ spec:
         app.kubernetes.io/name: istio-ingressgateway
         app.kubernetes.io/part-of: istio
         app.kubernetes.io/version: 1.27.1
-        chart: gateways
         helm.sh/chart: istio-ingress-1.27.1
-        heritage: Tiller
         install.operator.istio.io/owning-resource: unknown
         istio: ingressgateway
         istio.io/dataplane-mode: none
         istio.io/rev: 1-27-1
         operator.istio.io/component: IngressGateways
-        release: istio
         service.istio.io/canonical-name: istio-ingressgateway
         service.istio.io/canonical-revision: 1-27-1
         sidecar.istio.io/inject: "false"
@@ -21496,7 +21493,7 @@ spec:
         - name: ISTIO_META_WORKLOAD_NAME
           value: istio-ingressgateway
         - name: ISTIO_META_OWNER
-          value: kubernetes://apis/apps/v1/namespaces/istio-system/deployments/istio-ingressgateway
+          value: kubernetes://apis/apps/v1/namespaces/istio-ingress/deployments/istio-ingressgateway
         - name: ISTIO_META_MESH_ID
           value: cluster.local
         - name: TRUST_DOMAIN
@@ -21830,7 +21827,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: istio-ingress
 spec:
   minAvailable: 1
   selector:
@@ -21880,7 +21877,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway-sds
-  namespace: istio-system
+  namespace: istio-ingress
 rules:
 - apiGroups:
   - ""
@@ -21956,7 +21953,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway-sds
-  namespace: istio-system
+  namespace: istio-ingress
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -22007,7 +22004,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: istio-ingress
 spec:
   maxReplicas: 5
   metrics:
@@ -22075,7 +22072,7 @@ metadata:
     operator.istio.io/component: IngressGateways
     release: istio
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: istio-ingress
 spec:
   ports:
   - name: status-port
