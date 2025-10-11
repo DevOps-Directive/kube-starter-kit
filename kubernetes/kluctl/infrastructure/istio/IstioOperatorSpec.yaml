@@ -11,6 +11,7 @@ spec:
   components:
     ingressGateways:
       # Need at least one gateway controller (proxy) to use ingress resources
+      # Gateway API resources will auto-create their own proxy pod
       - enabled: true
         namespace: istio-ingress
         name: istio-ingressgateway

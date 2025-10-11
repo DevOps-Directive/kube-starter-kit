@@ -36,3 +36,9 @@ tasks:
       - |
         curl -L https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml \
           > install/gateway-api-crds.yaml
+
+  uninstall:
+    cmds:
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl uninstall --purge
+        kubectl delete namespace istio-system istio-ingress

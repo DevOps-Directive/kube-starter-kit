@@ -8,12 +8,12 @@ deployments:
   - include: envoy-gateway
     when: args.install_envoy_gateway
   - include: external-dns
-  - include: external-secrets-operator
   - include: istio
     when: args.install_istio
   - path: ebs-csi-driver
   # ingress-nginx is configured to use cert-manager to manage certificates (less brittle than helm hooks)
   # after initial instal, the barrier can be removed to enable parallel applies
   - barrier: true
+  - include: external-secrets-operator
   - path: ingress-nginx
     when: args.install_ingress_nginx
