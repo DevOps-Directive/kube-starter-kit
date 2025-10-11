@@ -3,11 +3,11 @@ kind: Ingress
 metadata:
   name: minimal-istio
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: ingress-istio.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: minimal-istio.staging.kubestarterkit.com
 spec:
   ingressClassName: istio
   rules:
-    - host: "ingress-istio.staging.kubestarterkit.com"
+    - host: minimal-istio.staging.kubestarterkit.com
       http:
         paths:
           - path: /

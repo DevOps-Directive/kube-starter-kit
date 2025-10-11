@@ -54,12 +54,13 @@ module "zone" {
 
   name = "staging.kubestarterkit.com"
 
+  # Enables external-dns to update records for staging.kubestarterkit.com
+  # Without this, it will create a record initially, but will not update/delete
   records = {
     _extdns = {
       type    = "TXT"
       ttl     = 300
       records = ["heritage=external-dns,external-dns/owner=staging-us-east-2"]
     }
-
   }
 }

@@ -9,8 +9,9 @@ sources:
   - gateway-httproute
   - gateway-tcproute
 
-# Set policy to sync if you want to clean up records when they are removed (keeps things tidy, but potentially destructive if something goes awry)
-# policy: sync
+# Use sync if you want to clean up records when they are removed (keeps things tidy, but potentially destructive if something goes awry)
+# You can omit (or use upsert-only) if you dont have dynamic records being added/removed frequently and want to be a bit safer
+policy: sync
 
 domainFilters:
   - staging.kubestarterkit.com
