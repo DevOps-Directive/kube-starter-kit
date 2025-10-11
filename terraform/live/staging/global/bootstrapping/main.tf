@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket       = "kube-starter-kit-tf-state"
-    key          = "aws/staging/global/bootstrapping.tfstate"
+    key          = "terraform/live/staging/global/bootstrapping.tfstate"
     region       = "us-east-2"
     use_lockfile = "true"
   }

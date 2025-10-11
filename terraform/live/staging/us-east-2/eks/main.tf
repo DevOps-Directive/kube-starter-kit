@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket       = "kube-starter-kit-tf-state"
-    key          = "aws/staging/us-east-2/eks.tfstate"
+    key          = "terraform/live/staging/us-east-2/eks.tfstate"
     region       = "us-east-2"
     use_lockfile = "true"
   }
