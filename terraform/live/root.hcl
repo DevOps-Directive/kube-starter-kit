@@ -9,7 +9,7 @@ remote_state {
   
   config  = {
     bucket         = "kube-starter-kit-tf-state"
-    key            = "${path_relative_to_include()}.tfstate"
+    key            = "terraform/live/${path_relative_to_include()}.tfstate"
     region         = "us-east-2"
     use_lockfile = "true"
   }
