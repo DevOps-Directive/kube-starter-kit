@@ -1,0 +1,14 @@
+version: "3"
+
+tasks:
+  bootstrap-plan:
+    cmds:
+      - cd ./global/bootstrapping && terragrunt run plan
+
+  bootstrap-apply:
+    cmds:
+      - cd ./global/bootstrapping && terragrunt run apply
+
+  plan-all:
+    cmds:
+      - terragrunt run --all plan

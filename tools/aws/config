@@ -18,6 +18,12 @@ sso_session = primary
 sso_account_id = 964263445142
 sso_role_name = AWSAdministratorAccess
 
+[profile repositories]
+region = us-east-2
+sso_session = primary
+sso_account_id = 857059614049
+sso_role_name = AWSAdministratorAccess
+
 [sso-session primary]
 sso_start_url = https://d-9a676f52a0.awsapps.com/start/#
 sso_region = us-east-2

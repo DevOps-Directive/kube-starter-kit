@@ -40,10 +40,13 @@ jobs:
           digger-spec: ${{ inputs.spec }}
           setup-terraform: true
           terraform-version: 1.13.3
+          setup-terragrunt: true
+          terragrunt-version: 0.90.0
           upload-plan-destination: aws
           upload-plan-destination-s3-bucket: kube-starter-kit-tf-digger-plans
           cache-dependencies: true
           digger-version: v0.6.127
+          reporting-strategy: "latest_run"
 
           # setup-opentofu: true
           # opentofu-version: 1.10.3

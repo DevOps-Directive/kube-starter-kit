@@ -1,11 +1,4 @@
 terraform {
-  backend "s3" {
-    bucket       = "kube-starter-kit-tf-state"
-    key          = "shared/global/terraform-bootstrapping.tfstate"
-    region       = "us-east-2"
-    use_lockfile = "true"
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -29,6 +22,17 @@ module "github-oidc-provider" {
   repositories              = ["DevOps-Directive/kube-starter-kit"]
   oidc_role_attach_policies = ["arn:aws:iam::aws:policy/AdministratorAccess"]
 }
+
+# We create the bucket manually at first and then import it here to bootstrap the backend:
+# aws s3api create-bucket \                                                     
+#   --bucket kube-starter-kit-tf-state \       
+#   --region us-east-2 \
+#   --create-bucket-configuration LocationConstraint=us-east-2
+import {
+  to = module.state-bucket.aws_s3_bucket.this[0]
+  id = "kube-starter-kit-tf-state" # TODO move to input variable
+}
+
 
 module "state-bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"

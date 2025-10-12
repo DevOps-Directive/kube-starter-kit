@@ -4,7 +4,6 @@ vars:
   ISTIO_PATH: "/Users/palas/development/istio-1.27.1"
 
 tasks:
-  # TODO: move these to gitops model
   install-istioctl:
     # https://istio.io/latest/docs/ambient/getting-started/
     cmds:

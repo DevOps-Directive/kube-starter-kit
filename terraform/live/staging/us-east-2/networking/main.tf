@@ -1,11 +1,4 @@
 terraform {
-  backend "s3" {
-    bucket       = "kube-starter-kit-tf-state"
-    key          = "staging/us-east-2/networking.tfstate"
-    region       = "us-east-2"
-    use_lockfile = "true"
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -18,7 +11,7 @@ data "aws_availability_zones" "available" {}
 
 locals {
   name   = "staging"
-  region = "us-east-2"
+  region = var.aws_region
 
   # TODO: design private network CIDRs to split across VPCs
   vpc_cidr = "10.0.0.0/16"
@@ -29,7 +22,7 @@ locals {
 provider "aws" {
   region = "us-east-2"
   assume_role {
-    role_arn = "arn:aws:iam::038198578795:role/github-oidc-provider-aws-chain"
+    role_arn = var.terraform_iam_role_arn
   }
 }
 

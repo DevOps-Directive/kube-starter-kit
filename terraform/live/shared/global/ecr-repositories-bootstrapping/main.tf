@@ -1,11 +1,4 @@
 terraform {
-  backend "s3" {
-    bucket       = "kube-starter-kit-tf-state"
-    key          = "shared/global/ecr-repositories-bootstrapping.tfstate"
-    region       = "us-east-2"
-    use_lockfile = "true"
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -14,18 +7,29 @@ terraform {
   }
 }
 
+locals {
+  aws_assume_role_name = "github-oidc-provider-aws-chain"
+}
+
 provider "aws" {
-  region = "us-east-2"
+  region = var.aws_region
   assume_role {
-    role_arn = "arn:aws:iam::857059614049:role/github-oidc-provider-aws-chain"
+    role_arn = var.terraform_iam_role_arn
   }
+}
+
+
+# We create this role manually at first and then import it here to bootstrap access
+import {
+  to = module.iam_role.aws_iam_role.this[0]
+  id = "github-oidc-provider-aws-chain"
 }
 
 module "iam_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
   version = "6.2.1"
 
-  name            = "github-oidc-provider-aws-chain"
+  name            = local.aws_assume_role_name
   use_name_prefix = false
 
   trust_policy_permissions = {
@@ -35,8 +39,8 @@ module "iam_role" {
         {
           type = "AWS"
           identifiers = [
-            "arn:aws:iam::094905625236:role/github-oidc-provider-aws",                                                                       # TODO: look up from remote state
-            "arn:aws:iam::094905625236:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_fa7ea65862c3f54a" # TODO: establish better way to look this up (or create an extra role in the infra account to chain)
+            var.github_oidc_assume_role_arn,
+            var.sso_admin_assume_role_arn
           ]
         }
       ]
