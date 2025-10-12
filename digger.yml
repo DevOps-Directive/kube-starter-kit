@@ -21,5 +21,6 @@ generate_projects:
     # terraform/live/{env}/{region}/{project}
     - include: "terraform/live/*/*/**"
       exclude: "**/.terraform/**"
+      root_dir: "terraform/live/"
       terragrunt: true
       workflow: "default"
