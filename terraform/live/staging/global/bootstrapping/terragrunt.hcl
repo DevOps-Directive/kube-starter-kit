@@ -10,6 +10,7 @@ include "root" {
 #       An alternative approach would be to provision the necessary IAM role in the target
 #       account (e.g. via control tower)
 inputs = {
+  aws_region = "us-east-2"
   github_oidc_assume_role_arn = include.root.locals.github_oidc_assume_role_arn
   sso_admin_assume_role_arn = include.root.locals.sso_admin_assume_role_arn
   terraform_iam_role_arn = "arn:aws:iam::038198578795:role/github-oidc-provider-aws-chain" # BOOTSTRAP: Set to the arn of the role that gets created
