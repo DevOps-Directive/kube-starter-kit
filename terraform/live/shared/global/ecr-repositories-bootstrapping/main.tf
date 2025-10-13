@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-locals {
-  aws_assume_role_name = "github-oidc-provider-aws-chain"
-}
-
 provider "aws" {
   region = var.aws_region
   assume_role {
@@ -18,39 +14,22 @@ provider "aws" {
   }
 }
 
+module "account-bootstrapping" {
+  source = "../../../../modules/account-bootstrapping"
+
+  aws_region                  = var.aws_region
+  terraform_iam_role_arn      = var.terraform_iam_role_arn
+  github_oidc_assume_role_arn = var.github_oidc_assume_role_arn
+  sso_admin_assume_role_arn   = var.sso_admin_assume_role_arn
+}
 
 # We create this role manually at first and then import it here to bootstrap access
 import {
-  to = module.iam_role.aws_iam_role.this[0]
+  to = module.account-bootstrapping.module.iam_role.aws_iam_role.this[0]
   id = "github-oidc-provider-aws-chain"
 }
 
-module "iam_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
-  version = "6.2.1"
-
-  name            = local.aws_assume_role_name
-  use_name_prefix = false
-
-  trust_policy_permissions = {
-    TrustRoleAndServiceToAssume = {
-      actions = ["sts:AssumeRole"]
-      principals = [
-        {
-          type = "AWS"
-          identifiers = [
-            var.github_oidc_assume_role_arn,
-            var.sso_admin_assume_role_arn
-          ]
-        }
-      ]
-    }
-  }
-
-  policies = { AdministratorAccess = "arn:aws:iam::aws:policy/AdministratorAccess" }
-
-}
-
+# This could move out of this root module if additional instances are needed are needed
 module "iam_policy" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
   version = "6.2.1"
@@ -90,4 +69,3 @@ module "github-oidc-provider" {
   repositories              = ["DevOps-Directive/kube-starter-kit"]
   oidc_role_attach_policies = [module.iam_policy.arn]
 }
-

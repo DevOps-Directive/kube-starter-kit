@@ -7,57 +7,11 @@ terraform {
   }
 }
 
-data "aws_availability_zones" "available" {}
+module "networking" {
+  source = "../../../../modules/networking"
 
-locals {
-  name   = "staging"
-  region = var.aws_region
-
-  # TODO: design private network CIDRs to split across VPCs
-  vpc_cidr = "10.0.0.0/16"
-  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+  environment_name       = var.environment_name
+  aws_region             = var.aws_region
+  terraform_iam_role_arn = var.terraform_iam_role_arn
 
 }
-
-provider "aws" {
-  region = "us-east-2"
-  assume_role {
-    role_arn = var.terraform_iam_role_arn
-  }
-}
-
-
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "6.4.0"
-
-  name = "${local.name}-${local.region}"
-  cidr = local.vpc_cidr
-
-  azs             = local.azs
-  private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k)]
-  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 4)]
-
-  enable_nat_gateway = false # use https://fck-nat.dev/ instead
-
-  private_subnet_tags = {
-    "karpenter.sh/discovery" = "${local.name}-${local.region}"
-
-  }
-}
-
-module "fck-nat" {
-  count   = 3
-  source  = "RaJiska/fck-nat/aws"
-  version = "1.4.0"
-
-  name                = "nat-gw-${count.index}"
-  vpc_id              = module.vpc.vpc_id
-  subnet_id           = module.vpc.public_subnets[count.index]
-  instance_type       = "t4g.nano" # TODO: test to see if this becomes limiting (default for this is t4g.micro...)
-  ha_mode             = true
-  update_route_tables = true
-  route_tables_ids    = { "private" : module.vpc.private_route_table_ids[count.index] }
-}
-
-# TODO: Add bastion host for private EKS connectivity

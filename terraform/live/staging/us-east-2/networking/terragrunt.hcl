@@ -10,5 +10,7 @@ dependency "staging__global__bootstrapping" {
 }
 
 inputs = {
+  environment_name = "staging"
+  aws_region = "us-east-2"
   terraform_iam_role_arn = dependency.staging__global__bootstrapping.outputs.terraform_iam_role_arn
 }

@@ -22,6 +22,8 @@ dependency "staging__us_east_2__networking" {
 
 
 inputs = {
+  environment_name= "staging"
+  aws_region = "us-east-2"
   terraform_iam_role_arn = dependency.staging__global__bootstrapping.outputs.terraform_iam_role_arn
   vpc_id = dependency.staging__us_east_2__networking.outputs.vpc_id
   private_subnets = dependency.staging__us_east_2__networking.outputs.private_subnets

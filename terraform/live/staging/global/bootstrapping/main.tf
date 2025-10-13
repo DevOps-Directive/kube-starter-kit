@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-locals {
-  aws_assume_role_name = "github-oidc-provider-aws-chain"
-}
-
 provider "aws" {
   region = var.aws_region
   assume_role {
@@ -18,33 +14,22 @@ provider "aws" {
   }
 }
 
-module "iam_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
-  version = "6.2.1"
+module "account-bootstrapping" {
+  source = "../../../../modules/account-bootstrapping"
 
-  name            = local.aws_assume_role_name
-  use_name_prefix = false
-
-  trust_policy_permissions = {
-    TrustRoleAndServiceToAssume = {
-      actions = ["sts:AssumeRole"]
-      principals = [
-        {
-          type = "AWS"
-          identifiers = [
-            var.github_oidc_assume_role_arn,
-            var.sso_admin_assume_role_arn
-          ]
-        }
-      ]
-    }
-  }
-
-  policies = { AdministratorAccess = "arn:aws:iam::aws:policy/AdministratorAccess" }
-
+  aws_region                  = var.aws_region
+  terraform_iam_role_arn      = var.terraform_iam_role_arn
+  github_oidc_assume_role_arn = var.github_oidc_assume_role_arn
+  sso_admin_assume_role_arn   = var.sso_admin_assume_role_arn
 }
 
+# We create this role manually at first and then import it here to bootstrap access
+import {
+  to = module.account-bootstrapping.module.iam_role.aws_iam_role.this[0]
+  id = "github-oidc-provider-aws-chain"
+}
 
+# This should probablty move out of this root module (But it didn't really belong with "account-bootstrapping")
 module "zone" {
   source  = "terraform-aws-modules/route53/aws"
   version = "6.1.0"
@@ -61,3 +46,4 @@ module "zone" {
     }
   }
 }
+
