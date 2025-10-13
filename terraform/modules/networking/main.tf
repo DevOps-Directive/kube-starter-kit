@@ -19,14 +19,6 @@ locals {
 
 }
 
-provider "aws" {
-  region = "us-east-2"
-  assume_role {
-    role_arn = var.terraform_iam_role_arn
-  }
-}
-
-
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.4.0"
@@ -37,8 +29,11 @@ module "vpc" {
   azs             = local.azs
   private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k)]
   public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 4)]
+  # TODO: do we want additional private subnets (e.g. database, elasticache, etc...)
 
-  enable_nat_gateway = false # use https://fck-nat.dev/ instead
+  enable_nat_gateway     = var.nat_mode != "fck_nat"
+  single_nat_gateway     = var.nat_mode == "single_nat_gateway"
+  one_nat_gateway_per_az = var.nat_mode == "one_nat_gateway_per_az"
 
   private_subnet_tags = {
     "karpenter.sh/discovery" = "${local.name}-${local.region}"
@@ -47,7 +42,7 @@ module "vpc" {
 }
 
 module "fck-nat" {
-  count   = 3
+  count   = var.nat_mode == "fck_nat" ? 3 : 0
   source  = "RaJiska/fck-nat/aws"
   version = "1.4.0"
 
@@ -61,5 +56,3 @@ module "fck-nat" {
 }
 
 # TODO: Add bastion host for private EKS connectivity
-
-# TODO: Add inputs for choosing to use managed NAT or fck-nat

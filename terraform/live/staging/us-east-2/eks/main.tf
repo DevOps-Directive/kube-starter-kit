@@ -7,6 +7,14 @@ terraform {
   }
 }
 
+
+provider "aws" {
+  region = var.aws_region
+  assume_role {
+    role_arn = var.terraform_iam_role_arn
+  }
+}
+
 module "eks-wrapper" {
   source = "../../../../modules/eks"
 
