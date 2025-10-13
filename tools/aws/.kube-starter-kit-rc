@@ -12,6 +12,7 @@ aws_sso_login() {
     echo "Using existing SSO session for profile '${profile}'."
   else
     echo "No valid SSO session for profile '${profile}'. Logging in…"
+    aws sso logout --profile "$profile"
     aws sso login --profile "$profile"
   fi
   
@@ -33,6 +34,7 @@ unset_env_vars () {
 aws_sso_infrastructure () { aws_sso_login infrastructure; }
 aws_sso_staging () { aws_sso_login staging; }
 aws_sso_production () { aws_sso_login production; }
+aws_sso_repositories () { aws_sso_login repositories; }
 
 aws_eks_staging () { aws_get_eks_creds staging staging-us-east-2 }
 aws_eks_production () { aws_get_eks_creds production production-us-east-2 } # This cluster doesnt exist yet

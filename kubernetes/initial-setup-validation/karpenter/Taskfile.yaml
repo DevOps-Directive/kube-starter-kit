@@ -1,7 +1,6 @@
 version: "3"
 
 tasks:
-  # TODO: move these to gitops model
   install:
     # NOTE: Pod Identity association created for karpenter service account in kube-system namespace
     cmds:

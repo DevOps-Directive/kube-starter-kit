@@ -1,11 +1,4 @@
 terraform {
-  backend "s3" {
-    bucket       = "kube-starter-kit-tf-state"
-    key          = "terraform/live/staging/us-east-2/eks.tfstate"
-    region       = "us-east-2"
-    use_lockfile = "true"
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -15,9 +8,9 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-2"
+  region = var.aws_region
   assume_role {
-    role_arn = "arn:aws:iam::038198578795:role/github-oidc-provider-aws-chain"
+    role_arn = var.terraform_iam_role_arn
   }
 }
 
@@ -28,7 +21,6 @@ data "aws_availability_zones" "available" {
     values = ["opt-in-not-required"]
   }
 }
-
 
 
 locals {
@@ -84,8 +76,8 @@ module "eks" {
 
   }
 
-  vpc_id     = "vpc-0955989470c913b10"
-  subnet_ids = ["subnet-010a63eb87d2020b1", "subnet-047960b613aba7131", "subnet-02cd6c1bf461263c6"]
+  vpc_id     = var.vpc_id
+  subnet_ids = var.private_subnets
 
   eks_managed_node_groups = {
     karpenter = {

@@ -28,6 +28,8 @@ jobs:
           no-backend: true
           setup-terraform: true
           terraform-version: 1.13.3
+          setup-terragrunt: true
+          terragrunt-version: 0.90.0
           drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION_URL }}
           digger-version: v0.6.127
         env:

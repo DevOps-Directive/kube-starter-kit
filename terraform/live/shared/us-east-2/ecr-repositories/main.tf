@@ -1,11 +1,4 @@
 terraform {
-  backend "s3" {
-    bucket       = "kube-starter-kit-tf-state"
-    key          = "staging/global/bootstrapping.tfstate"
-    region       = "us-east-2"
-    use_lockfile = "true"
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -15,7 +8,7 @@ terraform {
 }
 
 locals {
-  region = "us-east-2"
+  region = var.aws_region
   repos = [
     "foo",
     "bar",
