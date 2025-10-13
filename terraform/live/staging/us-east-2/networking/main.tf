@@ -15,14 +15,3 @@ module "networking" {
   terraform_iam_role_arn = var.terraform_iam_role_arn
 
 }
-
-moved {
-  from = module.vpc
-  to   = module.networking.module.vpc
-}
-
-
-moved {
-  from = module.fck-nat
-  to   = module.networking.module.fck-nat
-}

@@ -29,11 +29,6 @@ import {
   id = "github-oidc-provider-aws-chain"
 }
 
-moved {
-  from = module.iam_role
-  to   = module.account-bootstrapping.module.iam_role
-}
-
 # This could move out of this root module if additional instances are needed are needed
 module "iam_policy" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-policy"

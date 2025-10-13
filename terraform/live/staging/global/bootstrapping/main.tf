@@ -29,11 +29,6 @@ import {
   id = "github-oidc-provider-aws-chain"
 }
 
-moved {
-  from = module.iam_role
-  to   = module.account-bootstrapping.module.iam_role
-}
-
 # This should probablty move out of this root module (But it didn't really belong with "account-bootstrapping")
 module "zone" {
   source  = "terraform-aws-modules/route53/aws"
