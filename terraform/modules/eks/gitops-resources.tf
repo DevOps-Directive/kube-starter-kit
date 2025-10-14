@@ -12,7 +12,7 @@ module "secrets_manager_json" {
   version = "2.0.0"
 
   # Secret
-  name                    = "staging-us-east-2-deploy-key"
+  name                    = "${local.name}-deploy-key"
   description             = "Deploy Key for GitOps Controller"
   recovery_window_in_days = 7 # TODO: Lengthen?
 

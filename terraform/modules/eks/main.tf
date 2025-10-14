@@ -17,7 +17,7 @@ data "aws_availability_zones" "available" {
 
 
 locals {
-  name               = "staging-us-east-2"
+  name               = "${var.environment_name}-${var.aws_region}"
   kubernetes_version = "1.33"
   region             = var.aws_region
   azs                = slice(data.aws_availability_zones.available.names, 0, 3)
@@ -72,9 +72,9 @@ module "eks" {
   subnet_ids = var.private_subnets
 
   eks_managed_node_groups = {
-    karpenter = {
-      ami_type       = "BOTTLEROCKET_x86_64"
-      instance_types = ["t3.medium"]
+    base = {
+      ami_type       = "AL2023_x86_64_STANDARD" # Alternative option: BOTTLEROCKET_x86_64
+      instance_types = ["t3.medium"]            # TODO: Make this an input
 
       min_size     = 2
       max_size     = 3

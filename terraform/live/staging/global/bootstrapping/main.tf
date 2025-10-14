@@ -23,7 +23,8 @@ module "account-bootstrapping" {
   sso_admin_assume_role_arn   = var.sso_admin_assume_role_arn
 }
 
-# We create this role manually at first and then import it here to bootstrap access
+# We create the bucket manually at first and then import it here to bootstrap the backend.
+# See: terraform/bootstrap/Taskfile.yaml
 import {
   to = module.account-bootstrapping.module.iam_role.aws_iam_role.this[0]
   id = "github-oidc-provider-aws-chain"
