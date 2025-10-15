@@ -3,7 +3,7 @@ module "external_secrets_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.0.0"
 
-  name = "external-secrets"
+  name = "${module.eks.cluster_name}-external-secrets"
 
   attach_external_secrets_policy = true
   # NOTE: These could be limited to a subset of secrets using a name prefix or tag condition
@@ -27,7 +27,7 @@ module "aws_ebs_csi_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.0.0"
 
-  name = "aws-ebs-csi"
+  name = "${module.eks.cluster_name}-aws-ebs-csi"
 
   attach_aws_ebs_csi_policy = true
 
@@ -47,7 +47,7 @@ module "external_dns_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.0.0"
 
-  name = "external-dns"
+  name = "${module.eks.cluster_name}-external-dns"
 
   attach_external_dns_policy    = true
   external_dns_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z050555111MWRE6F1GP9M"] # staging.kubestarterkit.com (TODO: make this dynamic)
@@ -69,7 +69,7 @@ module "cert_manager_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.0.0"
 
-  name = "cert-manager"
+  name = "${module.eks.cluster_name}-cert-manager"
 
   attach_cert_manager_policy    = true
   cert_manager_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z050555111MWRE6F1GP9M"] # staging.kubestarterkit.com (TODO: make this dynamic)
