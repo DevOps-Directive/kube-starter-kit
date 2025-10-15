@@ -50,7 +50,7 @@ module "external_dns_pod_identity" {
   name = "${module.eks.cluster_name}-external-dns"
 
   attach_external_dns_policy    = true
-  external_dns_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z050555111MWRE6F1GP9M"] # staging.kubestarterkit.com (TODO: make this dynamic)
+  external_dns_hosted_zone_arns = [var.route53_zone_arn]
 
   association_defaults = {
     namespace       = "external-dns"

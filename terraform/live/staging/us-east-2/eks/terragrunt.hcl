@@ -29,6 +29,7 @@ dependency "staging__us_east_2__networking" {
 }
 
 inputs = {
+  route53_zone_arn = dependency.staging__global__bootstrapping.outputs.zone_arn
   vpc_id = dependency.staging__us_east_2__networking.outputs.vpc_id
   private_subnets = dependency.staging__us_east_2__networking.outputs.private_subnets
 }

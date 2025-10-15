@@ -26,6 +26,7 @@ module "eks-wrapper" {
 
   aws_region             = var.aws_region
   terraform_iam_role_arn = var.terraform_iam_role_arn
+  route53_zone_arn       = var.route53_zone_arn
   vpc_id                 = var.vpc_id
   private_subnets        = var.private_subnets
   sso_admin_role_arn     = var.sso_admin_role_arn
