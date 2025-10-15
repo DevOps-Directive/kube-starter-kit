@@ -32,11 +32,11 @@ module "eks" {
   kubernetes_version = "1.33"
 
   access_entries = {
-    example = {
+    sso_admin = {
       principal_arn = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_bf4f5a0626f509cb"
 
       policy_associations = {
-        example = {
+        cluster_admin = {
           policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
           access_scope = {
             type = "cluster"
@@ -75,6 +75,8 @@ module "eks" {
     base = {
       ami_type       = "AL2023_x86_64_STANDARD" # Alternative option: BOTTLEROCKET_x86_64
       instance_types = ["t3.medium"]            # TODO: Make this an input
+
+      # TODO: Pin version + add input to avoid unexpected upgrade?
 
       min_size     = 2
       max_size     = 3
