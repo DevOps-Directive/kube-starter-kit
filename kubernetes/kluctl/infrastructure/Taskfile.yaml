@@ -4,12 +4,12 @@ tasks:
   deploy-staging:
     desc: "Deploy kluctl infrastructure staging target"
     cmds:
-      - kluctl deploy -t staging-us-east-2 --prune
+      - kluctl deploy -t staging --prune
 
   deploy-staging-auto-approve:
     desc: "Deploy kluctl infrastructure staging target"
     cmds:
-      - kluctl deploy -t staging-us-east-2 -y --prune
+      - kluctl deploy -t staging -y --prune
 
   helm-pull:
     cmds:

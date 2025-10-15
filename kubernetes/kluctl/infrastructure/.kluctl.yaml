@@ -1,10 +1,10 @@
 # .kluctl.yaml
 targets:
-  - name: staging-us-east-2
+  - name: staging
     args:
-      cluster_name: staging-us-east-2
+      cluster_name: staging
     # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
-    context: arn:aws:eks:us-east-2:038198578795:cluster/staging-us-east-2
+    context: staging
 
   # - name: production
   #   args:

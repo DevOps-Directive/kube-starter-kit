@@ -1,4 +1,4 @@
-
+# NOTE:  These could be moved to the account level and shared across clusters
 module "external_secrets_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.0.0"

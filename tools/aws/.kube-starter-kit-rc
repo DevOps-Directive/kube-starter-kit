@@ -24,7 +24,7 @@ aws_get_eks_creds () {
   profile=$1
   cluster=$2
   aws_sso_login ${profile}
-  aws eks update-kubeconfig --name ${cluster} --user-alias ${profile}
+  aws eks update-kubeconfig --name ${cluster}
 }
 
 unset_env_vars () {
@@ -36,5 +36,5 @@ aws_sso_staging () { aws_sso_login staging; }
 aws_sso_production () { aws_sso_login production; }
 aws_sso_repositories () { aws_sso_login repositories; }
 
-aws_eks_staging () { aws_get_eks_creds staging staging-us-east-2 }
-aws_eks_production () { aws_get_eks_creds production production-us-east-2 } # This cluster doesnt exist yet
+aws_eks_staging () { aws_get_eks_creds staging ksk-use2-staging-eks }
+aws_eks_production () { aws_get_eks_creds production ksk-use2-production-eks } # This cluster doesnt exist yet
