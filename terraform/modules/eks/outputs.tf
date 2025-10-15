@@ -13,3 +13,7 @@ output "eks_cluster_endpoint" {
 output "karpenter_interruption_queue" {
   value = module.karpenter.queue_name
 }
+
+output "karpenter_node_role_name" {
+  value = local.karpenter_node_role_name
+}

@@ -10,7 +10,7 @@ module "karpenter" {
 
   # Name needs to match role name passed to the EC2NodeClass
   node_iam_role_use_name_prefix   = false
-  node_iam_role_name              = "KarpenterNodeRole-${local.name}"
+  node_iam_role_name              = local.karpenter_node_role_name
   create_pod_identity_association = true
 
   # Used to attach additional IAM policies to the Karpenter node IAM role

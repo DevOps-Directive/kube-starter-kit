@@ -14,8 +14,7 @@ locals {
   vpc_cidr = "10.0.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  vpc_name = "${var.environment_name}-${var.aws_region}"
-
+  vpc_name = module.this.id
 }
 
 module "vpc" {
@@ -36,8 +35,7 @@ module "vpc" {
   one_nat_gateway_per_az = var.nat_mode == "one_nat_gateway_per_az"
 
   private_subnet_tags = {
-    "karpenter.sh/discovery" = "${var.environment_name}-${var.aws_region}"
-
+    "karpenter.sh/discovery" = module.this.id
   }
 }
 
@@ -57,7 +55,7 @@ module "fck-nat" {
   source  = "RaJiska/fck-nat/aws"
   version = "1.4.0"
 
-  name                = "nat-gw-${local.vpc_name}-${count.index}"
+  name                = "${local.vpc_name}-nat-gw-${count.index}"
   vpc_id              = module.vpc.vpc_id
   subnet_id           = module.vpc.public_subnets[count.index]
   instance_type       = "t4g.nano" # TODO: test to see if this becomes limiting (default for this is t4g.micro...)

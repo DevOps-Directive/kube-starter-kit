@@ -17,22 +17,22 @@ data "aws_availability_zones" "available" {
 
 
 locals {
-  name               = "${var.environment_name}-${var.aws_region}"
-  kubernetes_version = "1.33"
-  region             = var.aws_region
-  azs                = slice(data.aws_availability_zones.available.names, 0, 3)
-
+  kubernetes_version       = "1.33"
+  region                   = var.aws_region
+  azs                      = slice(data.aws_availability_zones.available.names, 0, 3)
+  karpenter_node_role_name = "${module.this.id}-KarpenterNodeRole"
 }
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "21.3.1"
 
-  name               = local.name
+  name               = module.this.id
   kubernetes_version = "1.33"
 
   access_entries = {
     sso_admin = {
+      # TODO: make this configurable
       principal_arn = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_bf4f5a0626f509cb"
 
       policy_associations = {
@@ -90,7 +90,7 @@ module "eks" {
   }
 
   node_security_group_tags = {
-    "karpenter.sh/discovery" = local.name
+    "karpenter.sh/discovery" = module.this.id
   }
 
   ######################################################

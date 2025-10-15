@@ -7,7 +7,6 @@ terraform {
   }
 }
 
-
 provider "aws" {
   region = var.aws_region
   assume_role {
@@ -15,13 +14,20 @@ provider "aws" {
   }
 }
 
+module "label" {
+  source  = "cloudposse/label/null"
+  version = "0.25.0"
+  name    = "eks"
+  context = module.this.context
+}
+
 module "eks-wrapper" {
   source = "../../../../modules/eks"
 
-  environment_name       = var.environment_name
   aws_region             = var.aws_region
   terraform_iam_role_arn = var.terraform_iam_role_arn
   vpc_id                 = var.vpc_id
   private_subnets        = var.private_subnets
-
+  sso_admin_role_arn     = var.sso_admin_role_arn
+  context                = module.label.context
 }
