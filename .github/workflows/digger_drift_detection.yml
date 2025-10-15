@@ -20,7 +20,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::094905625236:role/github-oidc-provider-aws
+          role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
       - name: digger drift detection
         uses: diggerhq/digger@869b24dc6797a24927db6c80af5aaff74be3911f # v0.6.127 + digger-version input
         with:

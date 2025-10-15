@@ -7,15 +7,11 @@ terraform {
   }
 }
 
-locals {
-  aws_assume_role_name = "github-oidc-provider-aws-chain"
-}
-
 module "iam_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
   version = "6.2.1"
 
-  name            = local.aws_assume_role_name
+  name            = "${module.this.id}-admin"
   use_name_prefix = false
 
   trust_policy_permissions = {

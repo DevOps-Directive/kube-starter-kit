@@ -21,13 +21,14 @@ module "account-bootstrapping" {
   terraform_iam_role_arn      = var.terraform_iam_role_arn
   github_oidc_assume_role_arn = var.github_oidc_assume_role_arn
   sso_admin_assume_role_arn   = var.sso_admin_assume_role_arn
+  context                     = module.this.context
 }
 
 # We create the bucket manually at first and then import it here to bootstrap the backend.
 # See: terraform/bootstrap/Taskfile.yaml
 import {
   to = module.account-bootstrapping.module.iam_role.aws_iam_role.this[0]
-  id = "github-oidc-provider-aws-chain"
+  id = "${module.this.id}-admin"
 }
 
 # This should probablty move out of this root module (But it didn't really belong with "account-bootstrapping")
@@ -47,4 +48,5 @@ module "zone" {
     }
   }
 }
+
 

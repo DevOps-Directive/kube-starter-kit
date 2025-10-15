@@ -9,3 +9,7 @@ output "github_oidc_assume_role_arn" {
 output "sso_admin_assume_role_arn" {
   value = "arn:aws:iam::094905625236:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_fa7ea65862c3f54a"
 }
+
+output "tags" {
+  value = module.label.tags
+}

@@ -21,7 +21,7 @@ data "aws_caller_identity" "current" {}
 provider "aws" {
   region = local.region
   assume_role {
-    role_arn = "arn:aws:iam::857059614049:role/github-oidc-provider-aws-chain"
+    role_arn = var.terraform_iam_role_arn
   }
 }
 
@@ -33,8 +33,9 @@ module "ecr" {
   repository_name = each.value
 
   repository_read_access_arns = [
-    "arn:aws:iam::038198578795:root", # TODO: establish better pattern for looking up account IDs
-    "arn:aws:iam::964263445142:root",
+    # TODO: establish a better pattern for looking up these account IDs
+    "arn:aws:iam::038198578795:root", # Staging 
+    "arn:aws:iam::964263445142:root", # Production
   ]
   create_lifecycle_policy = true
   repository_lifecycle_policy = jsonencode({
