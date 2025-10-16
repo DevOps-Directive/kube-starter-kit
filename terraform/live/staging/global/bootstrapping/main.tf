@@ -42,9 +42,11 @@ module "zone" {
   # Without this, it will create a record initially, but will not update/delete
   records = {
     _extdns = {
-      type    = "TXT"
-      ttl     = 300
-      records = ["heritage=external-dns,external-dns/owner=staging-us-east-2"]
+      type = "TXT"
+      ttl  = 300
+      # You could update this (and the corresponding value in the external-dns helm values to
+      # restrict record ownership to a single external-dns instance
+      records = ["heritage=external-dns,external-dns/owner=external-dns"]
     }
   }
 }
