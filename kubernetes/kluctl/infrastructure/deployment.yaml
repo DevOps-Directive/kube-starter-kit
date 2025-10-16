@@ -5,6 +5,7 @@ deployments:
   # after initial install, the barrier can be removed to enable parallel applies
   # - barrier: true
   - include: cert-manager
+  - include: cloudnative-pg
   - include: envoy-gateway
     when: args.install_envoy_gateway
   - include: external-dns
