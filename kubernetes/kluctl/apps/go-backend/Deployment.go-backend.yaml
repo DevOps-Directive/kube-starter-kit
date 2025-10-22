@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:e9bfe5bcdc7dc5abb542ff665ff3895e01deb851
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:ec005d686cb683eaadf3edcfba6fb3d3c624d623
           env:
             - name: DATABASE_URL
               # TODO: Load password from secret
