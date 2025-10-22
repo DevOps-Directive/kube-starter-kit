@@ -3,7 +3,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: minimal-envoy
-  namespace: default
+  namespace: apps
 spec:
   gatewayClassName: envoy-gateway-class
   listeners:
@@ -26,7 +26,7 @@ spec:
     - name: minimal-envoy
   rules:
     - backendRefs:
-        - name: nginx-clusterip
+        - name: go-backend
           port: 8080
       matches:
         - path:

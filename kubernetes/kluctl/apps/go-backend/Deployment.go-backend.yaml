@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-backend
+  template:
+    metadata:
+      labels:
+        app: go-backend
+    spec:
+      containers:
+        - name: go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:e9bfe5bcdc7dc5abb542ff665ff3895e01deb851
+          env:
+            - name: DATABASE_URL
+              # TODO: Load password from secret
+              value: "postgresql://app:0K8xJ9mKqljmwUHpIX5jpuoZHFmJVNnYvoOHOxai04GYUE0mPXp9MXbaRnJGc37C@go-backend-pg-rw.apps.svc.cluster.local:5432/app"

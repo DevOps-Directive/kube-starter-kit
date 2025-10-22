@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -74,7 +75,7 @@ func main() {
 		log.Println("Request received!")
 
 		// Simulate slow processing (e.g. DB latency, complex work)
-		sleep := 10 * time.Second
+		sleep := time.Duration(rand.Intn(2)) * time.Second
 		log.Printf("Simulating %v work...", sleep)
 		select {
 		case <-time.After(sleep):
@@ -92,7 +93,7 @@ func main() {
 			return
 		}
 
-		_, _ = fmt.Fprintf(w, "Random number: %.6f\n", random)
+		_, _ = fmt.Fprintf(w, "Sleep Duration: %v, Random number: %.6f\n", sleep, random)
 		log.Printf("Served / in %v\n", time.Since(start))
 	})
 

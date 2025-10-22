@@ -1,2 +1,4 @@
 deployments:
-  - path: test-app
+  - path: pre-deploy
+  - barrier: true
+  - path: go-backend
