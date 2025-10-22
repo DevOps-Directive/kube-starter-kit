@@ -21,7 +21,7 @@ module "iam_policy" {
                     "ecr:BatchCheckLayerAvailability",
                     "ecr:PutImage"
                 ],
-                "Resource": "arn:aws:ecr:us-west-2:857059614049:repository/*"
+                "Resource": "arn:aws:ecr:us-east-2:857059614049:repository/*"
             }
         ]
     }
