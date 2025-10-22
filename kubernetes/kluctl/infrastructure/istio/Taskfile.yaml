@@ -1,0 +1,44 @@
+version: "3"
+
+# TODO: properly install...
+vars:
+  ISTIO_PATH: "/Users/palas/development/istio-1.27.1"
+
+tasks:
+  generate-manifests:
+    cmds:
+      # revision could be "default", "canary", or specific version "1-27-1"
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl manifest generate \
+          -f IstioOperatorSpec.yaml \
+          --cluster-specific \
+          > ./install/istio-generated-manifests.yaml
+
+      # When installing this version ztunnel never comes up healthy...
+      # istioctl install ends up with dnsPolicy: ClusterFirst, but that is the default value which should be used in either case... 🤔
+
+      # issue with certificate DnsName when using generate manifests:
+      # istiod-default.istio-system.svc vs istiod-pilot.istio-system.svc
+      # 2025-10-08T15:23:33.937171Z     warn   xds::client:xds{id=10}   XDS client connection error: gRPC connection error connecting to https://istiod-default.istio-system.svc:15012: status: Unknown, message: "client error (Connect)", source: invalid peer certificate: certificate not valid for name "istiod-default.istio-system.svc"; certificate is only valid for DnsName("istio-pilot.istio-system.svc"), DnsName("istiod-remote.istio-system.svc") or DnsName("istiod.istio-system.svc"), retrying in 10.24s
+
+      # Maybe revision didnt get passed to ztunnel... trying with no revision!
+      # ...or pass a revision to both...
+
+  generate-revision-tag:
+    # The generated mutating webhook seems to only act on pods... (e.g. for sidecar injection)
+    cmds:
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl tag generate default --revision 1-27-1 \
+          > ./install/istio-generated-revision-tag.yaml
+
+  download-gateway-api-crds:
+    cmds:
+      - |
+        curl -L https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml \
+          > install/gateway-api-crds.yaml
+
+  uninstall:
+    cmds:
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl uninstall --purge
+        kubectl delete namespace istio-system istio-ingress

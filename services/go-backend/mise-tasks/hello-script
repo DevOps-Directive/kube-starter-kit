@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#MISE description="hello world"
+echo "hello from script task"

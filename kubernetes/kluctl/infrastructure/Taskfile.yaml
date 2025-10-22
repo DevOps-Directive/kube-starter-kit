@@ -1,0 +1,16 @@
+version: "3"
+
+tasks:
+  deploy-staging:
+    desc: "Deploy kluctl infrastructure staging target"
+    cmds:
+      - kluctl deploy -t staging --prune
+
+  deploy-staging-auto-approve:
+    desc: "Deploy kluctl infrastructure staging target"
+    cmds:
+      - kluctl deploy -t staging -y --prune
+
+  helm-pull:
+    cmds:
+      - kluctl helm-pull

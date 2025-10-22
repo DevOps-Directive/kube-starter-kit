@@ -1,0 +1,13 @@
+# controller:
+#   admissionWebhooks:
+#     annotations:
+#       # HACK: helm hook jobs have ttl of 0 seconds and get deleted before kluctl verifies readiness
+#       kluctl.io/is-ready: true
+
+controller:
+  admissionWebhooks:
+    enabled: true
+    certManager:
+      enabled: true
+    patch:
+      enabled: true

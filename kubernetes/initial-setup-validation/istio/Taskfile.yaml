@@ -1,0 +1,69 @@
+version: "3"
+
+vars:
+  ISTIO_PATH: "/Users/palas/development/istio-1.27.1"
+
+tasks:
+  install-istioctl:
+    # https://istio.io/latest/docs/ambient/getting-started/
+    cmds:
+      - |
+        echo "istio binary at {{.ISTIO_PATH}}/bin"
+        echo 'use export PATH={{.ISTIO_PATH}}/bin:\$PATH if it isnt found'
+        {{.ISTIO_PATH}}/bin/istioctl install \
+          -f IstioOperatorSpec.yaml \
+          --skip-confirmation
+
+  generate-manifests:
+    cmds:
+      # revision could be "default", "canary", or specific version "1-27-1"
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl manifest generate \
+          -f IstioOperatorSpec.yaml \
+          > istio-generated-manifests-ambient.yaml
+
+  apply-manifests:
+    cmds:
+      - |
+        kubectl create namespace istio-system
+        kubectl apply -f istio-generated-manifests-ambient.yaml
+
+  uninstall:
+    cmds:
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl uninstall --purge
+        kubectl delete namespace istio-system istio-ingress
+
+  apply-gateway-api-crds:
+    cmds:
+      - |
+        kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+        kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+
+  apply-bookinfo:
+    cmds:
+      - |
+        kubectl apply -f {{.ISTIO_PATH}}/samples/bookinfo/platform/kube/bookinfo.yaml
+        kubectl apply -f {{.ISTIO_PATH}}/samples/bookinfo/platform/kube/bookinfo-versions.yaml
+        kubectl apply -f {{.ISTIO_PATH}}/samples/bookinfo/gateway-api/bookinfo-gateway.yaml
+        kubectl annotate gateway bookinfo-gateway networking.istio.io/service-type=ClusterIP --namespace=default
+        kubectl label namespace default istio.io/dataplane-mode=ambient
+        kubectl apply -f {{.ISTIO_PATH}}/samples/addons/prometheus.yaml
+        kubectl apply -f {{.ISTIO_PATH}}/samples/addons/kiali.yaml
+
+  delete-bookinfo:
+    cmds:
+      - |
+        kubectl delete -f {{.ISTIO_PATH}}/samples/bookinfo/platform/kube/bookinfo.yaml
+        kubectl delete -f {{.ISTIO_PATH}}/samples/bookinfo/platform/kube/bookinfo-versions.yaml
+        kubectl delete -f {{.ISTIO_PATH}}/samples/bookinfo/gateway-api/bookinfo-gateway.yaml
+
+  port-forward-app:
+    cmds:
+      - |
+        kubectl port-forward svc/bookinfo-gateway-istio 8080:80
+
+  port-forward-kiali:
+    cmds:
+      - |
+        {{.ISTIO_PATH}}/bin/istioctl dashboard kiali

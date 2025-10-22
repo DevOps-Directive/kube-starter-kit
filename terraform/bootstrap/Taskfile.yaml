@@ -1,0 +1,71 @@
+version: "3"
+
+tasks:
+  create-state-bucket:
+    desc: Create an S3 bucket for Terraform state
+    cmds:
+      - cmd: |
+          set -euo pipefail
+          if [ -z "{{.BUCKET_NAME}}" ] || [ -z "{{.AWS_REGION}}" ]; then
+            echo "Usage: task create-state-bucket BUCKET_NAME=my-tf-state-bucket AWS_REGION=us-east-2" && exit 1
+          fi
+
+          echo "BUCKET_NAME: {{ .BUCKET_NAME }}"
+          echo "AWS_REGION: {{ .AWS_REGION }}"
+
+          if [ "{{ .AWS_REGION }}" = "us-east-1" ]; then
+            aws s3api create-bucket \
+              --bucket "{{ .BUCKET_NAME }}" \
+              --region "{{ .AWS_REGION }}"
+          else
+            aws s3api create-bucket \
+              --bucket "{{ .BUCKET_NAME }}" \
+              --region "{{ .AWS_REGION }}" \
+              --create-bucket-configuration LocationConstraint="{{ .AWS_REGION }}"
+          fi
+
+  get-sso-role-arn:
+    cmds:
+      - cmd: |
+          set -euo pipefail
+          ROLE_NAME="$(aws sts get-caller-identity --query 'Arn' --output text | awk -F'/' '{print $2}')"
+          SSO_ROLE_ARN="$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text)"
+          echo ${SSO_ROLE_ARN}
+
+  create-terraform-iam-role-in-target-account:
+    desc: Create an IAM role that is assumable from infrastructure SSO role
+    cmds:
+      - silent: true
+        cmd: |
+          set -euo pipefail
+          if [ -z "{{.ROLE_NAME}}" ] || [ -z "{{.INFRASTRUCTURE_SSO_ROLE_ARN}}" ]; then
+            cat <<'EOF'
+          Usage:
+            task create-terraform-iam-role-in-target-account \
+              ROLE_NAME=my-admin-role \
+              INFRASTRUCTURE_SSO_ROLE_ARN=arn:aws:iam::<ACCOUNT_ID>:role/aws-reserved/sso.amazonaws.com/...
+
+          To retrieve the appropriate role arn:
+            1. Authenticate with the SSO admin role for the infrastructure account (where the TF state bucket lives) (e.g. `aws_sso_infrastructure`)
+            2. Run `task get-sso-role-arn`
+            3. Then authenticate with the SSO admin role for the target account you are bootstrapping before re-running this task
+
+          EOF
+            exit 1
+          fi
+
+          echo "ROLE_NAME: {{.ROLE_NAME}}"
+          echo "INFRASTRUCTURE_SSO_ROLE_ARN: {{.INFRASTRUCTURE_SSO_ROLE_ARN}}"
+
+          tmpfile=$(mktemp)
+          jq --arg arn "{{.INFRASTRUCTURE_SSO_ROLE_ARN}}" '
+            .Statement[0].Principal.AWS = [$arn]
+          ' trust-policy.json.TEMPLATE > "$tmpfile"
+
+          aws iam create-role \
+            --role-name {{.ROLE_NAME}} \
+            --assume-role-policy-document file://$tmpfile
+
+          aws iam attach-role-policy \
+            --role-name {{.ROLE_NAME}} \
+            --policy-arn arn:aws:iam::aws:policy/AdministratorAccess

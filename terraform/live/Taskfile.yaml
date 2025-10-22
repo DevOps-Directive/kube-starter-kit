@@ -1,0 +1,54 @@
+version: "3"
+
+tasks:
+  bootstrapping-01-instructions:
+    cmds:
+      - |
+        echo "⚠️⚠️⚠️ MANUAL STEP ⚠️⚠️⚠️"
+        echo "1. Assume a role containing admin permissions in the TARGET account"
+        echo "    e.g. aws_sso_respositories OR aws_sso_staging"
+
+  bootstrapping-02-init-plan:
+    cmds:
+      - |
+        export IS_BOOTSTRAP=true
+        cd ./shared/global/ecr-repositories-bootstrapping
+        terragrunt init
+        terragrunt run plan
+
+  bootstrapping-03-apply:
+    cmds:
+      - |
+        export IS_BOOTSTRAP=true
+        cd ./shared/global/ecr-repositories-bootstrapping
+        terragrunt run apply
+      - |
+        echo "⚠️⚠️⚠️ MANUAL STEP ⚠️⚠️⚠️"
+        echo "1. Take the output role ARN from this module and copy/paste it in the terragrunt.hcl"
+        echo "2. Assume a role containing admin permissions in the INFRASTRUCTURE account"
+        echo "   This role should be able to access the state bucket and assume the role we just created"
+        echo "   e.g. aws_sso_infrastructure"
+
+  bootstrapping-04-migrate-state:
+    cmds:
+      - |
+        export IS_BOOTSTRAP=false
+        cd ./shared/global/ecr-repositories-bootstrapping
+        terragrunt init --migrate-state
+        terragrunt run plan
+
+  bootstrapping-05-plan-dependent-units:
+    cmds:
+      - |
+        export IS_BOOTSTRAP=false
+        cd ./shared/global/ecr-repositories-bootstrapping
+        terragrunt run plan --graph
+
+  bootstrapping-06-apply-dependent-units:
+    cmds:
+      - |
+        export IS_BOOTSTRAP=false
+        cd ./shared/global/ecr-repositories-bootstrapping
+        terragrunt run apply --graph
+
+### ALT Clickops to provision role and then import it

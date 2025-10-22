@@ -10,12 +10,11 @@ on:
 
 run-name: "${{inputs.run_name}}"
 
-env:
-  AWS_REGION: us-east-2
-
 jobs:
   digger-job:
     runs-on: ubuntu-24.04
+    env:
+      AWS_REGION: us-east-2
     permissions:
       contents: write # required to merge PRs
       actions: write # required for plan persistence
@@ -30,12 +29,10 @@ jobs:
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::094905625236:role/github-oidc-provider-aws
+          role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
-      # - uses: diggerhq/digger@a547c265911e96e37a0fa7810a63a0c6d2d64c33 # contains my commits
-      - uses: sidpalas/digger@5ae0c2d03e2163cc729ed9cb1441b419fe1fc922 # with digger version
-        # - uses: diggerhq/digger@v0.6.126
+      - uses: diggerhq/digger@869b24dc6797a24927db6c80af5aaff74be3911f # v0.6.127 + digger-version input
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,10 +40,13 @@ jobs:
           digger-spec: ${{ inputs.spec }}
           setup-terraform: true
           terraform-version: 1.13.3
+          setup-terragrunt: true
+          terragrunt-version: 0.90.0
           upload-plan-destination: aws
-          upload-plan-destination-s3-bucket: kube-starter-kit-tf-digger-plans
+          upload-plan-destination-s3-bucket: ksk-gbl-infra-bootstrap-digger-plans
           cache-dependencies: true
-          digger-version: v0.6.126
+          digger-version: v0.6.127
+          reporting-strategy: "latest_run"
 
           # setup-opentofu: true
           # opentofu-version: 1.10.3

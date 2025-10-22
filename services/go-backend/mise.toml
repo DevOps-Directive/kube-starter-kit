@@ -1,0 +1,17 @@
+[tools]
+# Inherits from ancestor mise.toml files
+
+[tasks]
+run-postgres = "docker compose up db"
+
+run-service = "DATABASE_URL=postgres://postgres:password@localhost:5432/postgres go run ./cmd"
+
+[tasks.hello]
+description = "say hello inline task"
+run = """
+#!/usr/bin/env bash
+echo "hello from mise"
+"""
+
+[tasks.build-image]
+run = "docker build ."
