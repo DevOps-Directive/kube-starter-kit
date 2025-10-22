@@ -9,6 +9,7 @@ workflows:
       steps:
         - run: echo "Starting apply step"
         - init
+        # can change back to `- apply` after https://github.com/diggerhq/digger/pull/2332 is merged
         - run: terragrunt apply -lock-timeout=3m -auto-approve -non-interactive $DIGGER_PLANFILE
     workflow_configuration:
       on_pull_request_pushed: ["digger plan"]
