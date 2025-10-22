@@ -11,7 +11,8 @@ locals {
   region = var.aws_region
   repos = [
     "services/container-only-dummy",
-    "services/go-backend"
+    "services/go-backend",
+    "services/go-backend/migrations"
   ]
 }
 
