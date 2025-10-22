@@ -41,3 +41,6 @@ backend.tf
 .terragrunt-cache
 
 *.DS_STORE
+
+# Temporarily ignoring this test region to avoid digger execution
+terraform/live/staging/us-east-1

@@ -10,9 +10,7 @@ terraform {
 locals {
   region = var.aws_region
   repos = [
-    "foo",
-    "bar",
-    "baz"
+    "services/go-backend"
   ]
 }
 
