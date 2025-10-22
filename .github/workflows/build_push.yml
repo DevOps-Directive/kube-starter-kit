@@ -26,7 +26,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           aws-region: us-east-2
-          role-to-assume: arn:aws:iam::857059614049:role/github-oidc-provider-aws
+          role-to-assume: arn:aws:iam::857059614049:role/ksk-gbl-ecr-bootstrap-github-oidc
       - uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
         id: login-ecr
         with:
