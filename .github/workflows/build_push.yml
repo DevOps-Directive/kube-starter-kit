@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - sp/db-migrator
     paths:
       - services/**
     tags:
@@ -20,6 +21,7 @@ jobs:
         service:
           - services/container-only-dummy
           - services/go-backend
+          - services/go-backend/migrations
       fail-fast: false # don't fail all container builds due to a one build failure
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
