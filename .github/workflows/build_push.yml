@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - sp/db-migrator
     paths:
       - services/**
     tags:
