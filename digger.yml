@@ -9,7 +9,7 @@ workflows:
       steps:
         - run: echo "Starting apply step"
         - init
-        - apply
+        - run: terragrunt apply -lock-timeout=3m -auto-approve -non-interactive $DIGGER_PLANFILE
     workflow_configuration:
       on_pull_request_pushed: ["digger plan"]
       on_pull_request_closed: ["digger unlock"]
