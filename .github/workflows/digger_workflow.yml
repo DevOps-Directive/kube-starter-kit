@@ -43,7 +43,7 @@ jobs:
           setup-terragrunt: true
           terragrunt-version: 0.90.0
           upload-plan-destination: aws
-          upload-plan-destination-s3-bucket: kube-starter-kit-tf-digger-plans
+          upload-plan-destination-s3-bucket: ksk-gbl-infra-bootstrap-digger-plans
           cache-dependencies: true
           digger-version: v0.6.127
           reporting-strategy: "latest_run"
