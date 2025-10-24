@@ -33,9 +33,6 @@ jobs:
       services: ${{ steps.set-output.outputs.services }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
-        with:
-          # Setting fetch-depth: 0 ensure tags are fetched (so git describe works properly)
-          fetch-depth: 0
         # TODO: add back
         # if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
       - name: Paths Changes Filter
@@ -74,6 +71,9 @@ jobs:
       fail-fast: false # don't fail all container builds due to a one build failure
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          # Setting fetch-depth: 0 ensure tags are fetched (so git describe works properly)
+          fetch-depth: 0
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           aws-region: us-east-2
