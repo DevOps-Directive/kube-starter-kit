@@ -13,8 +13,9 @@ deployments:
     when: args.install_istio
   - path: ebs-csi-driver
   # ingress-nginx is configured to use cert-manager to manage certificates (less brittle than helm hooks)
-  # after initial instal, the barrier can be removed to enable parallel applies
-  - barrier: true
+  # after initial install, the barrier can be removed to enable parallel applies
+  # - barrier: true
   - include: external-secrets-operator
   - path: ingress-nginx
     when: args.install_ingress_nginx
+  - include: kargo
