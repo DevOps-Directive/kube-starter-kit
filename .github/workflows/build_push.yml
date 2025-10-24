@@ -60,6 +60,7 @@ jobs:
 
   build-push-container-images:
     runs-on: ubuntu-24.04
+    needs: filter
     if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
     permissions:
       contents: read
