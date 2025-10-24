@@ -3,7 +3,7 @@ version: "3"
 vars:
   IMAGE_REPO: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend
   IMAGE_TAG: foobarbaz
-  SERVICE_RELEASE_TAG: services/go-backend
+  SERVICE_RELEASE_TAG: services/go-backend/migrations
 
 includes:
   tools:
