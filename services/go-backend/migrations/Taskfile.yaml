@@ -7,5 +7,5 @@ vars:
 
 includes:
   tools:
-    taskfile: ../../tools/Taskfile.yaml
-    dir: ../../tools
+    taskfile: ../../../tools/Taskfile.yaml
+    dir: ../../../tools
