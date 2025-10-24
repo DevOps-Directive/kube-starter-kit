@@ -8,7 +8,7 @@ services/go-backend: &go_backend
   - ".github/workflows/build_push.yml" # build on change to this workflow
   - ".github/utils/file-filters.yaml" # build on filter change
 
-services/other/api-golang-migrator:
+services/go-backend/migrator:
   - *go_backend # db migrations tied to service
 
 services/container-only-dummy:
