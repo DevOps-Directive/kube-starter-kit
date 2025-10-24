@@ -1,0 +1,13 @@
+# This is used by the action https://github.com/dorny/paths-filter
+
+# This is effectively serving as a naive target determinator (see: https://blog.swgillespie.me/posts/monorepo-ingredients/)
+
+# ---- services ---------------------------------------------------------------
+services/go-backend: &go_backend
+  - "services/go-backend/**"
+
+services/other/api-golang-migrator:
+  - *go_backend # db migrations tied to service
+
+services/container-only-dummy:
+  - "services/container-only-dummy/**"

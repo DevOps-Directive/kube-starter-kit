@@ -1,0 +1,11 @@
+version: "3"
+
+vars:
+  IMAGE_REPO: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend
+  IMAGE_TAG: foobarbaz
+  SERVICE_RELEASE_TAG: services/go-backend
+
+includes:
+  tools:
+    taskfile: ../../tools/Taskfile.yaml
+    dir: ../../tools

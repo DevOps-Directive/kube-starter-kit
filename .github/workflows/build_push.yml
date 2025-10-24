@@ -8,19 +8,62 @@ on:
       - services/**
     tags:
       - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build"
+        type: choice
+        required: true
+        options:
+          - services/go-backend
+      version:
+        description: "Version/tag to use (optional; defaults generating with git describe)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
+  filter:
+    runs-on: ubuntu-24.04
+    outputs:
+      services: ${{ steps.set-output.outputs.services }}
+      environment: ${{ steps.set-output.outputs.environment }}
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+      - name: Paths Changes Filter
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: .github/utils/file-filters.yaml
+      - name: Set Output
+        id: set-output
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo 'services=["${{ inputs.service }}"]' >> "$GITHUB_OUTPUT"
+
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"        # e.g. service-a@1.2.3
+            svc="${tag%%@*}"
+            echo "services=[\"$svc\"]" >> "$GITHUB_OUTPUT"
+
+          else # push to main
+            echo 'services=${{ steps.filter.outputs.changes }}' >> "$GITHUB_OUTPUT"
+          fi
+
   build-push-container-images:
     runs-on: ubuntu-24.04
+    if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
     permissions:
       contents: read
       id-token: write
     strategy:
       matrix:
-        service:
-          - services/container-only-dummy
-          - services/go-backend
-          - services/go-backend/migrations
+        service: ${{ fromJson(needs.filter.outputs.services) }}
       fail-fast: false # don't fail all container builds due to a one build failure
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
@@ -37,12 +80,33 @@ jobs:
       #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@1583c0f09d26c58c59d25b0eef29792b7ce99d9a # v3.11.1
+      - name: Compute image tag
+        id: image-tag
+        working-directory: ${{ matrix.service }}
+        env:
+          INPUT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
+          SERVICE: ${{ matrix.service }}
+        shell: bash
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            version=$INPUT_VERSION
+            image_tag=$(task tools:manual-version-tag -- "$INPUT_VERSION")
+          elif [[ "$ENVIRONMENT" == "production" ]]; then
+            version=$(task tools:generate-version -- "$SERVICE")
+            image_tag=$(task tools:generate-version-tag -- "$SERVICE")
+          else
+            version=$(task tools:generate-extended-version -- "$SERVICE")
+            image_tag=$(task tools:generate-extended-version-tag -- "$SERVICE")
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
       - name: Build and push Docker images
         uses: docker/build-push-action@ccc2b40e9ea6518f9252a22a990f8e868370f62e # v6.18.0
         with:
           context: ${{ matrix.service }}
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}:${{ github.sha }}
+          tags: ${{ steps.image-tag.outputs.image_tag }}
           platforms: "linux/amd64" # linux/arm64
           provenance: false # this prevents extra manifest image in ECR
           cache-from: type=gha
