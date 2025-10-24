@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - services/**
+      - sp/validate-image-tagging
+    # TODO: Add this back
+    # paths:
+    #   - services/**
     tags:
       - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
   workflow_dispatch:
@@ -29,7 +31,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       services: ${{ steps.set-output.outputs.services }}
-      environment: ${{ steps.set-output.outputs.environment }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
         if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
