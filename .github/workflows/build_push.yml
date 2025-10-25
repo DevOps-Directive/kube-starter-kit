@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - services/**
+      - sp/validate-image-tagging
+    # TODO: Add this back
+    # paths:
+    #   - services/**
     tags:
       - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
   workflow_dispatch:
@@ -29,14 +31,15 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       services: ${{ steps.set-output.outputs.services }}
-      environment: ${{ steps.set-output.outputs.environment }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
-        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+        # TODO: add back
+        # if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
       - name: Paths Changes Filter
         id: filter
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+        # TODO: add back
+        # if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           filters: .github/utils/file-filters.yaml
@@ -57,6 +60,7 @@ jobs:
 
   build-push-container-images:
     runs-on: ubuntu-24.04
+    needs: filter
     if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
     permissions:
       contents: read
@@ -67,6 +71,9 @@ jobs:
       fail-fast: false # don't fail all container builds due to a one build failure
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          # Setting fetch-depth: 0 ensure tags are fetched (so git describe works properly)
+          fetch-depth: 0
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           aws-region: us-east-2
@@ -80,6 +87,12 @@ jobs:
       #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@1583c0f09d26c58c59d25b0eef29792b7ce99d9a # v3.11.1
+      - name: install task
+        uses: supplypike/setup-bin@1fafb085795af4a3f183502f3a9dffa8f7b83217 # v5.0.0
+        with:
+          uri: "https://github.com/go-task/task/releases/download/v3.44.0/task_linux_amd64.tar.gz"
+          name: task
+          version: "v3.44.0"
       - name: Compute image tag
         id: image-tag
         working-directory: ${{ matrix.service }}
