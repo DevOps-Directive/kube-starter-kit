@@ -1,0 +1,13 @@
+apiVersion: v2
+appVersion: v1.8.0
+description: Kargo
+maintainers:
+- email: kent@akuity.io
+  name: Kent Rancourt
+- email: hoon@akuity.io
+  name: Sunghoon Kang
+name: kargo
+sources:
+- https://github.com/akuity/kargo
+type: application
+version: 1.8.0
