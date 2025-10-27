@@ -1,0 +1,34 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: update-image
+  namespace: kube-starter-kit
+spec:
+  steps:
+    - config:
+        checkout:
+          - branch: main
+            path: ./src
+        repoURL: ${{ vars.repoURL }}
+      uses: git-clone
+    - as: update-image
+      config:
+        path: ./src/kubernetes/kluctl/apps/go-backend/Deployment.go-backend.yaml
+        updates:
+          - key: spec.template.spec.containers.0.image
+            value: ${{ vars.image }}:${{ imageFrom( vars.image ).Tag }}
+      uses: yaml-update
+    - as: commit
+      config:
+        message: ${{ task.outputs['update-image'].commitMessage }}
+        path: ./src
+      uses: git-commit
+    - config:
+        path: ./src
+        targetBranch: kargo-testing
+      uses: git-push
+  vars:
+    - name: repoURL
+      value: git@github.com:DevOps-Directive/kube-starter-kit.git
+    - name: image
+      value: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend

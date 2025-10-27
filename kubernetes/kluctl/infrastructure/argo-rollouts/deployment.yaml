@@ -1,0 +1,6 @@
+deployments:
+  - path: pre-install
+  - barrier: true
+  - path: install
+
+overrideNamespace: argo-rollouts # Install manifest doesnt specify namespace for deployment, service, etc...

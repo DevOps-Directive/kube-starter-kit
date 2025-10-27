@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kargo-api-ingress-cert
+  namespace: kargo
+spec:
+  # The Secret where the TLS keypair will be stored
+  secretName: kargo-api-ingress-cert
+
+  # Optional: Let's Encrypt certs are max 90d; set explicit values if you like
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days before expiry
+
+  # Your domain(s) here (add/remove as needed)
+  dnsNames:
+    - kargo.staging.kubestarterkit.com
+    # - "*.kargo.example.com"   # uncomment for wildcard
+
+  issuerRef:
+    name: letsencrypt-prod-dns
+    kind: ClusterIssuer
