@@ -23,7 +23,7 @@ generate_projects:
     - include: "terraform/live/*/*/**"
       exclude: "**/.terraform/**"
       root_dir: "terraform/live/"
-      terragrunt: true
+      # terragrunt: true
       workflow: "default"
       include_patterns:
         - terraform/modules/**
