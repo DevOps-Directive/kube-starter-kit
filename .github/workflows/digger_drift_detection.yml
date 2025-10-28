@@ -33,7 +33,7 @@ jobs:
           terragrunt-version: 0.90.0
           # If slack notifification url is set, github issue mode wont work: https://github.com/diggerhq/digger/blob/2ef0ab1a588f9dc359961881f5e2d3fbec7f6c7f/cli/pkg/drift/provider.go#L16-L28
           # drift-detection-slack-notification-url: ${{ secrets.DRIFT_DETECTION_SLACK_NOTIFICATION_URL }}
-          digger-version: v0.6.127
+          digger-version: v0.6.129
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
