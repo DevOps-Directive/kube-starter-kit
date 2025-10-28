@@ -26,5 +26,5 @@ generate_projects:
       terragrunt: true
       workflow: "default"
       include_patterns:
-        - terraform/modules/**
+        - ../../../../modules/**
         - digger.yml # Updating this file will force a plan for all projects...
