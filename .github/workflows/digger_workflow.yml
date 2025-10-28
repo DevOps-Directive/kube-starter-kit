@@ -32,7 +32,7 @@ jobs:
           role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
-      - uses: diggerhq/digger@2ef0ab1a588f9dc359961881f5e2d3fbec7f6c7f # v0.6.127 + digger-version input
+      - uses: diggerhq/digger@2ef0ab1a588f9dc359961881f5e2d3fbec7f6c7f # v0.6.129
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
