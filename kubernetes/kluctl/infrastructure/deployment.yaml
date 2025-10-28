@@ -18,4 +18,5 @@ deployments:
   - include: external-secrets-operator
   - path: ingress-nginx
     when: args.install_ingress_nginx
+  - include: argo-rollouts
   - include: kargo

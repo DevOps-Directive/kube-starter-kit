@@ -71,12 +71,35 @@ module "cert_manager_pod_identity" {
 
   name = "${module.eks.cluster_name}-cert-manager"
 
-  attach_cert_manager_policy    = true
-  cert_manager_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z050555111MWRE6F1GP9M"] # staging.kubestarterkit.com (TODO: make this dynamic)
+  attach_cert_manager_policy = true
+  # TODO: automate passing this in with terragrunt
+  cert_manager_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z03296182WJPLRR9N0K21"] # staging.kubestarterkit.com (TODO: make this dynamic)
 
   association_defaults = {
     namespace       = "cert-manager"
     service_account = "cert-manager"
+  }
+
+  associations = {
+    this = {
+      cluster_name = module.eks.cluster_name
+    }
+  }
+}
+
+module "kargo_pod_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  version = "2.0.0"
+
+  name = "${module.eks.cluster_name}-kargo"
+
+  additional_policy_arns = {
+    AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  }
+
+  association_defaults = {
+    namespace       = "kargo"
+    service_account = "kargo-controller"
   }
 
   associations = {

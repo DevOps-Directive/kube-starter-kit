@@ -1,0 +1,10 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: no-op
+  namespace: kube-starter-kit
+spec:
+  steps:
+    - config:
+        url: https://google.com
+      uses: http
