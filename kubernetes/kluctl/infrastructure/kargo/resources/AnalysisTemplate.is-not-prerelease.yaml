@@ -15,6 +15,7 @@ spec:
             template:
               spec:
                 containers:
+                  # TODO: move to promotion (via http endpoint) OR build verification script into container image
                   - args:
                       - |
                         set -euo pipefail
