@@ -6,7 +6,7 @@ destinations:
     url: https://prometheus-prod-13-prod-us-east-0.grafana.net./api/prom/push
     auth:
       type: basic
-      usernameKey: prometheusUsername # Had to store in secret because of validation between this and opencost helm chart
+      usernameKey: prometheusUsername # Note: If retrieving password from a secret, username must be retrieved as well
       passwordKey: token
     secret:
       create: false
