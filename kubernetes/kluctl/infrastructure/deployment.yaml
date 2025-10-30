@@ -8,10 +8,11 @@ deployments:
   - include: cloudnative-pg
   - include: envoy-gateway
     when: args.install_envoy_gateway
+  - path: ebs-csi-driver
   - include: external-dns
+  - path: grafana
   - include: istio
     when: args.install_istio
-  - path: ebs-csi-driver
   - path: reloader
   # ingress-nginx is configured to use cert-manager to manage certificates (less brittle than helm hooks)
   # after initial install, the barrier can be removed to enable parallel applies
