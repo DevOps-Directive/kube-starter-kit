@@ -14,6 +14,18 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	// OpenTelemetry imports
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+
+	// pgx v5 instrumentation
+	"github.com/exaring/otelpgx"
 )
 
 const (
@@ -37,11 +49,25 @@ func main() {
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// --- DB pool
+	// --- OpenTelemetry (traces via OTLP/gRPC)
+	shutdownOTel, err := initOTel(rootCtx, "go-backend")
+	if err != nil {
+		log.Fatalf("init OTel: %v", err)
+	}
+	defer func() { _ = shutdownOTel(context.Background()) }()
+
+	// --- DB pool (pgx + OTel)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	dbpool, err := pgxpool.New(ctx, dsn)
+	cfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		log.Fatalf("parse pgx config: %v", err)
+	}
+	// Attach OTel tracer so queries become child spans of r.Context()
+	cfg.ConnConfig.Tracer = otelpgx.NewTracer()
+
+	dbpool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v", err)
 	}
@@ -75,11 +101,10 @@ func main() {
 		log.Println("Request received!")
 
 		// Simulate slow processing (e.g. DB latency, complex work)
-		sleep := time.Duration(rand.Intn(2)) * time.Second
+		sleep := time.Duration(rand.Intn(1)) * time.Second
 		log.Printf("Simulating %v work...", sleep)
 		select {
 		case <-time.After(sleep):
-			// Proceed normally after sleep
 		case <-r.Context().Done():
 			log.Println("Request cancelled before sleep finished")
 			http.Error(w, "Request cancelled.", http.StatusRequestTimeout)
@@ -87,6 +112,7 @@ func main() {
 		}
 
 		var random float64
+		// IMPORTANT: using r.Context() so DB spans nest under the HTTP span.
 		if err := dbpool.QueryRow(r.Context(), "SELECT random() AS random").Scan(&random); err != nil {
 			http.Error(w, "database query failed", http.StatusInternalServerError)
 			log.Printf("ERROR: query failed: %v\n", err)
@@ -99,12 +125,17 @@ func main() {
 
 	// --- Keep in-flight requests alive across SIGTERM using BaseContext
 	ongoingCtx, stopOngoingGracefully := context.WithCancel(context.Background())
+
+	// Wrap mux with otelhttp to create/continue request spans and extract W3C context
+	// You can customize span names via otelhttp.WithSpanNameFormatter if desired.
+	otelHandler := otelhttp.NewHandler(mux, "http.server")
+
 	server := &http.Server{
 		Addr: ":" + port,
 		// Requests inherit this context instead of being tied to rootCtx,
 		// so they aren't cancelled immediately on SIGTERM.
-		BaseContext: func(_ net.Listener) context.Context { return ongoingCtx },
-		Handler:           mux,
+		BaseContext:       func(_ net.Listener) context.Context { return ongoingCtx },
+		Handler:           otelHandler,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -156,4 +187,46 @@ func getenv(k, def string) string {
 		return v
 	}
 	return def
+}
+
+// initOTel configures tracing to export to an OTLP/gRPC collector.
+// Set OTEL_EXPORTER_OTLP_ENDPOINT=host:4317 (no scheme). Uses plaintext by default.
+func initOTel(ctx context.Context, serviceName string) (func(context.Context) error, error) {
+	endpoint := getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
+
+	exp, err := otlptracegrpc.New(
+		ctx,
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(), // plaintext inside cluster; remove if you terminate TLS on collector
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create OTLP exporter: %w", err)
+	}
+
+	res, err := resource.New(
+		ctx,
+		resource.WithSchemaURL(semconv.SchemaURL),
+		resource.WithAttributes(
+			semconv.ServiceName(serviceName),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create resource: %w", err)
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(res),
+		// Respect OTEL_TRACES_SAMPLER env if set; default ParentBased(AlwaysOn)
+	)
+
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
+
+	return tp.Shutdown, nil
 }
