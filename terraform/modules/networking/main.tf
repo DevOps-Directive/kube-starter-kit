@@ -93,6 +93,37 @@ module "planetscale_vpce" {
   }
 }
 
+# TODO: set up grafana VPC Endpoints
+# module "grafana_vpce_sg" {
+#   source  = "terraform-aws-modules/security-group/aws//modules/https-443"
+#   version = "5.3.0"
+
+#   name        = "${module.this.id}-grafana-vpce"
+#   description = "Ingress 443 from VPC to PlanetScale PrivateLink"
+#   vpc_id      = module.vpc.vpc_id
+
+#   ingress_cidr_blocks = [module.vpc.vpc_cidr_block] # could instead allow ingress via specific SGs
+# }
+
+# module "grafana_vpce" {
+#   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
+#   version = "6.4.0"
+
+#   vpc_id             = module.vpc.vpc_id
+#   security_group_ids = [module.grafana_vpce_sg.security_group_id]
+
+#   endpoints = {
+#     grafana = {
+#       # TODO: Move this to variable
+#       # TODO: use a for_each because each service needs its own vpce "com.amazonaws.vpce.us-east-2.vpce-svc-071e7d98821c1698b" # loki 
+#       service_name        = "com.amazonaws.vpce.us-east-2.vpce-svc-0d13a270cd91a0a3a" # prometheus
+#       tags                = { Name = "grafana-vpc-endpoint" }
+#       private_dns_enabled = true
+#       subnet_ids          = module.vpc.private_subnets
+#     }
+#   }
+# }
+
 # Do we want to add randomness to the naming avoid collisions?
 # resource "random_id" "server" {
 #   # keepers = {
