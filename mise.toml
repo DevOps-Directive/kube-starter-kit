@@ -1,0 +1,11 @@
+# https://mise.jdx.dev/tasks/monorepo.html
+# MISE_EXPERIMENTAL=1 set in zshrc
+experimental_monorepo_root = true
+
+[tools]
+yq = "4"
+jq = "1"
+
+[tasks.list]
+description = "List all available tasks"
+run = "mise task --all"
