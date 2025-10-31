@@ -4,10 +4,8 @@ on:
   push:
     branches:
       - main
-      - sp/task-to-mise
-    # TODO: Add this back
-    # paths:
-    #   - services/**
+    paths:
+      - services/**
     tags:
       - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
   workflow_dispatch:
