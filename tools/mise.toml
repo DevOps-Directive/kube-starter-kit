@@ -128,3 +128,31 @@ SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
 VERSION="$(mise run --interleave :generate-extended-version "$SVC")"
 echo "${IMAGE_REPO}:${VERSION}"
 '''
+
+[tasks.manual-version-tag]
+description = "Combine the image repo with the input version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> IMAGE_TAG=<image_tag> mise run //tools:manual-version-tag
+  IMAGE_REPO=<repo>                       mise run //tools:manual-version-tag <image_tag>
+
+where:
+  IMAGE_REPO           Target image repository (e.g., <account_id>.dkr.ecr.us-east-2.amazonaws.com/services/go-backend)
+  IMAGE_TAG            The version tag to apply to the image
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+unset IMAGE_TAG
+
+IMAGE_TAG="${1:-${IMAGE_TAG:-}}"
+[[ -n "$IMAGE_TAG" ]] || { usage; exit 2; }
+
+echo "${IMAGE_REPO}:${IMAGE_TAG}"
+'''
