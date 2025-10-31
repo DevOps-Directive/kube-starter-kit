@@ -1,0 +1,71 @@
+# mise.toml
+
+[tasks.bootstrapping-01-instructions]
+description = "Manual step: assume admin role in TARGET account"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "⚠️⚠️⚠️ MANUAL STEP ⚠️⚠️⚠️"
+echo "1. Assume a role containing admin permissions in the TARGET account"
+echo "   e.g. aws_sso_respositories OR aws_sso_staging"
+'''
+
+[tasks.bootstrapping-02-init-plan]
+description = "Bootstrap init + plan in shared/global/ecr-repositories-bootstrapping (IS_BOOTSTRAP=true)"
+dir = "shared/global/ecr-repositories-bootstrapping"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+export IS_BOOTSTRAP=true
+terragrunt init
+terragrunt run plan
+'''
+
+[tasks.bootstrapping-03-apply]
+description = "Bootstrap apply in shared/global/ecr-repositories-bootstrapping (IS_BOOTSTRAP=true) + manual instructions"
+dir = "shared/global/ecr-repositories-bootstrapping"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+export IS_BOOTSTRAP=true
+terragrunt run apply
+
+echo "⚠️⚠️⚠️ MANUAL STEP ⚠️⚠️⚠️"
+echo "1. Take the output role ARN from this module and copy/paste it in the terragrunt.hcl"
+echo "2. Assume a role containing admin permissions in the INFRASTRUCTURE account"
+echo "   This role should be able to access the state bucket and assume the role we just created"
+echo "   e.g. aws_sso_infrastructure"
+'''
+
+[tasks.bootstrapping-04-migrate-state]
+description = "Migrate state (init --migrate-state) then plan (IS_BOOTSTRAP=false)"
+dir = "shared/global/ecr-repositories-bootstrapping"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+export IS_BOOTSTRAP=false
+terragrunt init --migrate-state
+terragrunt run plan
+'''
+
+[tasks.bootstrapping-05-plan-dependent-units]
+description = "Plan dependent units with graph (IS_BOOTSTRAP=false)"
+dir = "shared/global/ecr-repositories-bootstrapping"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+export IS_BOOTSTRAP=false
+terragrunt run plan --graph
+'''
+
+[tasks.bootstrapping-06-apply-dependent-units]
+description = "Apply dependent units with graph (IS_BOOTSTRAP=false)"
+dir = "shared/global/ecr-repositories-bootstrapping"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+export IS_BOOTSTRAP=false
+terragrunt run apply --graph
+'''
+
+# ALT: ClickOps to provision role and then import it

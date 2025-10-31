@@ -12,11 +12,20 @@ spec:
     metadata:
       labels:
         app: go-backend
+      # annotations:
+      #   instrumentation.opentelemetry.io/inject-go: "honeycomb/otel-autoinstrumentation"
+      #   # Go Requires an additional annotation to the path of the binary on the container
+      #   instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/bin/server"
     spec:
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:ec005d686cb683eaadf3edcfba6fb3d3c624d623
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:foo
           env:
             - name: DATABASE_URL
               # TODO: Load password from secret
               value: "postgresql://app:0K8xJ9mKqljmwUHpIX5jpuoZHFmJVNnYvoOHOxai04GYUE0mPXp9MXbaRnJGc37C@go-backend-pg-rw.apps.svc.cluster.local:5432/app"
+            # TODO: load from configmap/secret
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT # gRPC
+              value: grafana-k8s-monitoring-alloy-receiver.monitoring:4317
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=staging"
