@@ -1,7 +1,7 @@
 # kube-starter-kit
 
 Dependencies:
-- AWS CLI
+- AWS CLI (with session-manager-plugin)
 - Terraform / OpenTofu
 - Terragrunt
 - Kubectl

@@ -10,7 +10,9 @@ deployments:
     when: args.install_envoy_gateway
   - path: ebs-csi-driver
   - include: external-dns
-  - path: grafana
+  # Number of metrics series exploded...
+  # - path: grafana
+  - path: groundcover
   - include: istio
     when: args.install_istio
   - path: reloader

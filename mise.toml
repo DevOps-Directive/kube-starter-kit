@@ -18,6 +18,8 @@ experimental_monorepo_root = true
 [tools]
 yq = "4"
 jq = "1"
+aws-cli = "2"
+"aqua:aws/session-manager-plugin" = "1"
 
 [tasks.mise-list-all]
 description = "[Mise Task All] Filter mise tasks with grep; empty string shows all"
