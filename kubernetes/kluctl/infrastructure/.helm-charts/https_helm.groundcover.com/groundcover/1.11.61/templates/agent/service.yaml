@@ -1,0 +1,81 @@
+{{ if .Values.global.agent.enabled }}
+{{- $sensorValues := deepCopy .Values.agent.sensor -}}
+{{- if .Values.agent.alligator -}}
+{{ $sensorValues = mergeOverwrite $sensorValues .Values.agent.alligator }}
+{{- end -}}
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.agent.additionalAnnotations }}
+{{ toYaml .Values.agent.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: sensor
+    app.kubernetes.io/name: sensor
+    {{- if .Values.agent.additionalLabels }}
+{{ toYaml .Values.agent.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "sensor.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/name: sensor
+    app.kubernetes.io/part-of: '{{ include "groundcover.labels.partOf" . }}'
+  ports: {{ include "groundcover.sensor.service.ingestion-ports" (merge (dict "sensorValues" $sensorValues) .) | nindent 2 }}
+  {{- if $sensorValues.setLocalTrafficPolicy }}
+  internalTrafficPolicy: Local
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.agent.additionalAnnotations }}
+{{ toYaml .Values.agent.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: alligator
+    app.kubernetes.io/name: alligator
+    {{- if .Values.agent.additionalLabels }}
+{{ toYaml .Values.agent.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "alligator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ExternalName
+  externalName: {{ include "sensor.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- if and (eq "true" (include "groundcover.sensor.receivers.remotewrite.enabled" (dict "sensorValues" $sensorValues))) (include "groundcover.sensor.receivers.remotewrite.port" (dict "sensorValues" $sensorValues)) $sensorValues.ingestionEnabled}}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.agent.additionalAnnotations }}
+{{ toYaml .Values.agent.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: sensor
+    app.kubernetes.io/name: sensor
+    {{- if .Values.agent.additionalLabels }}
+{{ toYaml .Values.agent.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "sensor.metric-ingestor-hostname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/name: sensor
+    app.kubernetes.io/part-of: '{{ include "groundcover.labels.partOf" . }}'
+  ports:
+  - protocol: TCP
+    name: metric-ingestor
+    port: {{ include "groundcover.sensor.receivers.remotewrite.port" (dict "sensorValues" $sensorValues) }}
+    targetPort: {{ include "groundcover.sensor.receivers.remotewrite.port" (dict "sensorValues" $sensorValues) }}
+{{- end }}
+{{- end }}

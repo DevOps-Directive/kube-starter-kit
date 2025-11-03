@@ -1,0 +1,671 @@
+{{ if .Values.global.integrations.agent.enabled }}
+apiVersion: v1
+data:
+  config.yaml: |
+    LogLevel: 4
+    ClusterId: {{ include "groundcover.clusterId" . }}
+    ApiKey: 
+    Env:
+    IsBackend: {{ .Values.global.backend.enabled }}
+    RunningNamespace:
+    {{- if .Values.integrationsAgent }}
+    {{- if .Values.integrationsAgent.targets }}
+    Targets:
+    {{- if .Values.integrationsAgent.targets.rdsEnhanced }}
+    {{- range .Values.integrationsAgent.targets.rdsEnhanced }}
+    - Type: "rds_enhanced"
+      Name: "{{ .name }}"
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      Region: "{{ .region }}"
+      {{- if .roleArn }}
+      AwsRoleArn: "{{ .roleArn }}"
+      {{- end }}
+      {{- if .dbInstanceIdentifiers }}
+      AwsRdsDBInstanceIdentifiers:
+      {{- range .dbInstanceIdentifiers }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      Exporters:
+        - "prometheus"
+     {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.targets.awsBillingSQS }}
+    {{- range .Values.integrationsAgent.targets.awsBillingSQS }}
+    - Type: "awsbilling_sqs"
+      Name: "{{ .name }}"
+      {{- if .stsRegion }}
+      AwsStsRegion: "{{ .stsRegion }}"
+      {{- end }}
+      Region: "{{ .region }}"
+      {{- if .outChannelSize }}
+      OutChanSize: {{ .outChannelSize }}
+      {{- end }}
+      {{- if .rowsBatchSize }}
+      AwsBillingRowsBatchSize: {{ .rowsBatchSize }}
+      {{- end }}
+      AwsSqsWatchTopicUrl: "{{ .sqsTopicUrl }}"
+      AwsRoleArn: "{{ .roleArn }}"
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      Exporters:
+        - "awsbilling_http_json"
+    {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.targets.awsInventory }}
+    {{- range .Values.integrationsAgent.targets.awsInventory }}
+    - Type: "aws_inventory"
+      Name: "{{ .name }}"
+      {{- if .stsRegion }}
+      AwsStsRegion: "{{ .stsRegion }}"
+      {{- end }}
+      {{- if .regions }}
+      Regions:
+      {{- range .regions }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .roleArn }}
+      AwsRoleArn: "{{ .roleArn }}"
+      {{- end }}
+      {{- if .roleArns }}
+      AwsRoleArns:
+      {{- range .roleArns }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .namespaces }}
+      AwsNamespaces:
+      {{- range .namespaces }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      Exporters:
+        - "prometheus"
+    {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.targets.cloudwatch }}
+    {{- range .Values.integrationsAgent.targets.cloudwatch }}
+    - Type: "cloudwatch"
+      Name: "{{ .name }}"
+      AwsStsRegion: "{{ .stsRegion }}"
+      AwsRoleArn: "{{ .roleArn }}"
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      Regions:
+      {{- range .regions }}
+        - "{{ . }}"
+      {{- end }}
+      {{- if .apiConcurrencyLimits }}
+      AwsAPIConcurrencyLimits: {{ toYaml .apiConcurrencyLimits | nindent 8 }}
+      {{- end }}
+      {{- if .withContextTagsOnInfoMetrics }}
+      AwsWithContextTagsOnInfoMetrics: {{ .withContextTagsOnInfoMetrics }}
+      {{- end }}
+      {{- if .withInventoryDiscovery }}
+      AwsWithInventoryDiscovery: {{ .withInventoryDiscovery }}
+      {{- end }}
+      AwsNamespaces:
+      {{- range .namespaces }}
+        - "{{ . }}"
+      {{- end }}
+      {{- if .metrics }}
+      AwsMetrics:
+      {{- range $index, $namespaceMetrics := .metrics }}
+        - Namespace: "{{$namespaceMetrics.namespace}}"
+          Metrics:
+        {{- range $namespaceMetrics.metrics }}
+          - Name: "{{ .name }}"
+            Statistics:
+            {{- range .statistics }}
+            - "{{ . }}"
+          {{- end }}
+          {{- if .allowInactive }}
+            AllowInactive: {{ .allowInactive }}
+          {{- end }}
+          {{- if .exclude }}
+            Exclude: {{ .exclude }}
+          {{- end }}
+          {{- if .nullAsZero }}
+            NullAsZero: {{ .nullAsZero }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+      Exporters:
+        - "prometheus"
+    {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.targets.gcpmetrics }}
+    {{- range .Values.integrationsAgent.targets.gcpmetrics }}
+    - Type: gcpmetrics
+      Name: "{{ .name }}"
+      GcpTargetServiceAccount: "{{ .targetServiceAccount }}"
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      {{- if .regions }}
+      Regions:
+      {{- range .regions }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      GcpProjectIds:
+      {{- range .projectIds }}
+        - "{{ . }}"
+      {{- end }}
+      GcpMetricPrefixes:
+      {{- range .metricPrefixes }}
+        - "{{ . }}"
+      {{- end }}
+      Exporters:
+        - "prometheus"
+    {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.targets.azuremetrics }}
+    {{- range .Values.integrationsAgent.targets.azuremetrics }}
+    - Type: azuremetrics
+      Name: "{{ .name }}"
+      {{- if .regions }}
+      Regions:
+      {{- range .regions }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      AzureSubscriptions:
+      {{- range .subscriptionIds }}
+        - "{{ . }}"
+      {{- end }}
+      {{- if .resourceTypes }}
+      AzureResourceTypes:
+      {{- range .resourceTypes }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .metrics }}
+      AzureMetrics:
+        {{- range $index, $resourceTypeMetrics := .metrics }}
+        - ResourceType: "{{$resourceTypeMetrics.resourceType}}"
+          Aggregations:
+          {{- range $resourceTypeMetrics.aggregations }}
+          - "{{ . }}"
+          {{- end }}
+          Metrics:
+          {{- range $resourceTypeMetrics.metrics }}
+          - Name: "{{ .name }}"
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      Exporters:
+        - "prometheus"
+    {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.targets.dynamodb }}
+    {{- range .Values.integrationsAgent.targets.dynamodb }}
+    - Type: dynamodb
+      Name: "{{ .name }}"
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      Region: "{{ .region }}"
+      {{- if .roleArn }}
+      AwsRoleArn: "{{ .roleArn }}"
+      {{- end }}
+      {{- if .tableNames }}
+      AwsDynamoDBTableNames:
+      {{- range .tableNames }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      Exporters:
+        - "prometheus"
+        - "prometheus_internal"
+    {{- range .additionalExporters }}
+        - "{{ . }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+
+    {{- if .Values.integrationsAgent.targets.clickhouseQueryLog }}
+    {{- range .Values.integrationsAgent.targets.clickhouseQueryLog }}
+    - Type: "clickhouse_query_log"
+      Name: "{{ .name }}"
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      {{- if .connectionString }}
+      ConnectionString: "{{ .connectionString }}"
+      {{- end }}
+      {{- if .host }}
+      Host: "{{ .host }}"
+      {{- end }}
+      {{- if .port }}
+      Port: {{ .port }}
+      {{- end }}
+      {{- if .username }}
+      Username: "{{ .username }}"
+      {{- end }}
+      {{- if hasKey . "password" }}
+      Password: "{{ .password }}"
+      {{- end }}
+      {{- if .passwordFromSecret }}
+      PasswordFromSecret: 
+        {{- toYaml .passwordFromSecret | nindent 8 }}
+      {{- end }}
+      {{- if .secure }}
+      Secure: {{ .secure }}
+      {{- end }}
+      {{- if .skipVerify }}
+      SkipVerify: {{ .skipVerify }}
+      {{- end }}
+      {{- if .dialTimeout }}
+      DialTimeout: "{{ .dialTimeout }}"
+      {{- end }}
+      {{- if .database }}
+      Database: "{{ .database }}"
+      {{- end }}
+      {{- if hasKey . "clusterMode" }}
+      ClusterMode: {{ .clusterMode }}
+      {{- end }}
+      {{- if .clusterName }}
+      ClusterName: "{{ .clusterName }}"
+      {{- end }}
+      {{- if .queryFilters }}
+      QueryFilters:
+      {{- range .queryFilters }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .queryLimit }}
+      QueryLimit: {{ .queryLimit }}
+      {{- end }}
+      Exporters:
+      - "otlp_http_traces"
+      {{- range .additionalExporters }}
+        - "{{ . }}"
+      {{- end }}
+    {{- end }}
+    {{- end }}
+
+    {{- if .Values.integrationsAgent.targets.clickhouseQueryToTraceLog }}
+    {{- range .Values.integrationsAgent.targets.clickhouseQueryToTraceLog }}
+    - Type: "clickhouse_query_to_trace"
+      {{- if .queryName }}
+      QueryName: "{{ .queryName }}"
+      {{- end }}
+      {{- if .query }}
+      Query: "{{ .query }}"
+      {{- end }}
+      {{- if .tableName }}
+      TableName: "{{ .tableName }}"
+      {{- end }}
+      Name: "{{ .name }}"
+      {{- if .interval }}
+      Interval: "{{ .interval }}"
+      {{- end }}
+      {{- if .extraLabels }}
+      ExtraLabels:
+      {{- range $key, $value := .extraLabels }}
+        {{ $key }}: "{{ $value }}"
+      {{- end }}
+      {{- end }}
+      {{- if .dropLabels }}
+      DropLabels:
+      {{- range $label := .dropLabels }}
+        - "{{ $label }}"
+      {{- end }}
+      {{- end }}
+      {{- if eq .enabled false }}
+      Enabled: {{ .enabled }}
+      {{- end }}
+      {{- if .connectionString }}
+      ConnectionString: "{{ .connectionString }}"
+      {{- end }}
+      {{- if .host }}
+      Host: "{{ .host }}"
+      {{- end }}
+      {{- if .port }}
+      Port: {{ .port }}
+      {{- end }}
+      {{- if .username }}
+      Username: "{{ .username }}"
+      {{- end }}
+      {{- if hasKey . "password" }}
+      Password: "{{ .password }}"
+      {{- end }}
+      {{- if .passwordFromSecret }}
+      PasswordFromSecret: 
+        {{- toYaml .passwordFromSecret | nindent 8 }}
+      {{- end }}
+      {{- if .secure }}
+      Secure: {{ .secure }}
+      {{- end }}
+      {{- if .skipVerify }}
+      SkipVerify: {{ .skipVerify }}
+      {{- end }}
+      {{- if .dialTimeout }}
+      DialTimeout: "{{ .dialTimeout }}"
+      {{- end }}
+      {{- if .database }}
+      Database: "{{ .database }}"
+      {{- end }}
+      {{- if hasKey . "clusterMode" }}
+      ClusterMode: {{ .clusterMode }}
+      {{- end }}
+      {{- if .clusterName }}
+      ClusterName: "{{ .clusterName }}"
+      {{- end }}
+      {{- if .queryFilters }}
+      QueryFilters:
+      {{- range .queryFilters }}
+        - "{{ . }}"
+      {{- end }}
+      {{- end }}
+      {{- if .queryLimit }}
+      QueryLimit: {{ .queryLimit }}
+      {{- end }}
+      Exporters:
+      - "otlp_http_traces"
+      {{- range .additionalExporters }}
+        - "{{ . }}"
+      {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+
+    Exporters:
+    - Type: "prometheus"
+      Name: "prometheus"
+      Url: {{ include "metrics-ingester.cluster.http.base.url" . }}
+      TlsSkipVerify: {{ .Values.global.ingestion.tls_skip_verify }}
+      {{- if .Values.integrationsAgent.exporters }}
+      {{- if .Values.integrationsAgent.exporters.prometheus }}
+      RequestTimeout: {{ .Values.integrationsAgent.exporters.prometheus.requestTimeout }}
+      {{- if .Values.integrationsAgent.exporters.prometheus.batchSize }}
+      BatchSize: {{ .Values.integrationsAgent.exporters.prometheus.batchSize }}
+      {{- end }}
+      {{- if .Values.integrationsAgent.exporters.prometheus.maxRetries }}
+      MaxRetries: {{ .Values.integrationsAgent.exporters.prometheus.maxRetries }}
+      {{- end }}
+      {{- if .Values.integrationsAgent.exporters.prometheus.maxDelay }}
+      MaxDelay: {{ .Values.integrationsAgent.exporters.prometheus.maxDelay }}
+      {{- end }}
+      {{- if .Values.integrationsAgent.exporters.prometheus.baseDelay }}
+      BaseDelay: {{ .Values.integrationsAgent.exporters.prometheus.baseDelay }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      MetricsMetadata:
+        Url: {{ include "vector.json.table.write.metrics_metadata.url" . }}
+        {{- if .Values.integrationsAgent.exporters }}
+        {{- if .Values.integrationsAgent.exporters.prometheus }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.compress }}
+        Compress: {{ .Values.integrationsAgent.exporters.prometheus.metadata.compress }}
+        {{- end }}
+        TlsSkipVerify: {{ .Values.global.ingestion.tls_skip_verify }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.maxRetries }}
+        MaxRetries: {{ .Values.integrationsAgent.exporters.prometheus.metadata.maxRetries }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.maxDelay }}
+        MaxDelay: {{ .Values.integrationsAgent.exporters.prometheus.metadata.maxDelay }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.baseDelay }}
+        BaseDelay: {{ .Values.integrationsAgent.exporters.prometheus.metadata.baseDelay }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.cacheSize }}
+        CacheSize: {{ .Values.integrationsAgent.exporters.prometheus.metadata.cacheSize }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.cacheTTL }}
+        CacheTTL: {{ .Values.integrationsAgent.exporters.prometheus.metadata.cacheTTL }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.maxBatchSize }}
+        MaxBatchSize: {{ .Values.integrationsAgent.exporters.prometheus.metadata.maxBatchSize }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.bufferSize }}
+        BufferSize: {{ .Values.integrationsAgent.exporters.prometheus.metadata.bufferSize }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.writeInterval }}
+        WriteInterval: {{ .Values.integrationsAgent.exporters.prometheus.metadata.writeInterval }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.exporters.prometheus.metadata.maxBatchWait }}
+        MaxBatchWait: {{ .Values.integrationsAgent.exporters.prometheus.metadata.maxBatchWait }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+    - Type: "awsbilling_http_json"
+      Name: "awsbilling_http_json"
+      Url: {{ include "vector.json.table.write.aws_billing_report.url" . }}
+      TlsSkipVerify: {{ .Values.global.ingestion.tls_skip_verify }}
+      {{- if .Values.integrationsAgent.exporters }}
+      {{- if .Values.integrationsAgent.exporters.httpJsonAwsBilling }}
+      RequestTimeout: {{ .Values.integrationsAgent.exporters.httpJsonAwsBilling.requestTimeout }}
+      {{- if .Values.integrationsAgent.exporters.httpJsonAwsBilling.maxRetries }}
+      MaxRetries: {{ .Values.integrationsAgent.exporters.httpJsonAwsBilling.maxRetries }}
+      {{- end }}
+      {{- if .Values.integrationsAgent.exporters.httpJsonAwsBilling.maxDelay }}
+      MaxDelay: {{ .Values.integrationsAgent.exporters.httpJsonAwsBilling.maxDelay }}
+      {{- end }}
+      {{- if .Values.integrationsAgent.exporters.httpJsonAwsBilling.baseDelay }}
+      BaseDelay: {{ .Values.integrationsAgent.exporters.httpJsonAwsBilling.baseDelay }}
+      {{- end }}
+      {{- if .Values.integrationsAgent.exporters.httpJsonAwsBilling.compress }}
+      Compress: {{ .Values.integrationsAgent.exporters.httpJsonAwsBilling.compress }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+
+    - Type: "otlp_http_traces"
+      Name: "otlp_http_traces"
+      TlsSkipVerify: {{ .Values.global.ingestion.tls_skip_verify }}
+      Url: {{ include "opentelemetry-collector.otlptraces.http.url" . }} 
+      {{- if .Values.integrationsAgent.exporters.clickhouseQueryLog }}
+      {{- if .Values.integrationsAgent.exporters.clickhouseQueryLog.requestTimeout }}
+      RequestTimeout: {{ .Values.integrationsAgent.exporters.clickhouseQueryLog.requestTimeout }}
+      {{- end }}
+    {{- end }}
+
+
+    {{- if .Values.integrationsAgent.inventory }}
+    {{- if .Values.integrationsAgent.inventory.aws }}
+    Inventory:
+      AWS:
+        CacheTTL: {{ .Values.integrationsAgent.inventory.aws.cacheTTL }}
+        APIConcurrencyLimit: {{ .Values.integrationsAgent.inventory.aws.apiConcurrencyLimit }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.integrationsAgent.rateLimits }}
+    RateLimits:
+      {{- if .Values.integrationsAgent.rateLimits.cloudwatchListMetrics }}
+      CloudwatchListMetrics:
+        Count: {{ .Values.integrationsAgent.rateLimits.cloudwatchListMetrics.count }}
+        Duration: {{ .Values.integrationsAgent.rateLimits.cloudwatchListMetrics.duration }}
+      {{- end }}
+    {{- end }}
+
+    Pprof:
+      enabled: {{ include "telemetry.enabled" . }}
+      cpuSamplingDuration: {{ .Values.integrationsAgent.pprof.cpuSamplingDuration }}
+      httpUploader:
+        enabled: {{ eq .Values.integrationsAgent.pprof.uploaderType "http" }}
+        pushURL: {{ printf "%s/upload/pprof" (include "telemetry.metrics.base.url" .) }}
+      pyroscopeUploader:
+        enabled: {{ eq .Values.integrationsAgent.pprof.uploaderType "pyroscope" }}
+        pushURL: {{ include "telemetry.metrics.base.url" . }}
+      backoffTicker:
+        interval: {{ .Values.integrationsAgent.pprof.backoffTicker.interval }}
+        exponent: {{ .Values.integrationsAgent.pprof.backoffTicker.exponent }}
+      memoryTicker:
+        enabled: {{ .Values.integrationsAgent.pprof.memoryTicker.enabled }}
+        interval: {{ .Values.integrationsAgent.pprof.memoryTicker.interval }}
+        jumpSizeInBytes: {{ .Values.integrationsAgent.pprof.memoryTicker.jumpSizeInBytes }}
+        windowSize: {{ .Values.integrationsAgent.pprof.memoryTicker.windowSize }}
+        initialWait: {{ .Values.integrationsAgent.pprof.memoryTicker.initialWait }}
+      cpuTicker:
+        enabled: {{ .Values.integrationsAgent.pprof.cpuTicker.enabled }}
+        interval: {{ .Values.integrationsAgent.pprof.cpuTicker.interval }}
+        jumpSizeInMCPU: {{ .Values.integrationsAgent.pprof.cpuTicker.jumpSizeInMCPU }}
+        windowSize: {{ .Values.integrationsAgent.pprof.cpuTicker.windowSize }}
+        initialWait: {{ .Values.integrationsAgent.pprof.cpuTicker.initialWait }}    
+      
+    dynamicConfiguration:
+      enabled: {{ .Values.global.fleetmanager.enabled }}
+      url: {{ include "fleet-manager.url" . }}
+      requestIntervalEnabled: {{ .Values.fleetClientConfig.requestIntervalEnabled }}
+      maximumInitialJitter: {{ .Values.fleetClientConfig.maximumInitialJitter }}
+      requestInterval: {{ .Values.fleetClientConfig.requestInterval }}
+      initialUpdateTimeout: {{ .Values.fleetClientConfig.initialUpdateTimeout }}
+      
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if .Values.integrationsAgent.additionalLabels }}
+{{ toYaml .Values.integrationsAgent.additionalLabels | indent 4 }}
+    {{- end }}
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.integrationsAgent.additionalAnnotations }}
+{{ toYaml .Values.integrationsAgent.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: integrations-agent-config
+  namespace: {{ .Release.Namespace }}
+{{- end }}

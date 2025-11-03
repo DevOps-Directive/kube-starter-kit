@@ -1,0 +1,156 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.portal.additionalAnnotations }}
+{{ toYaml .Values.portal.additionalAnnotations | indent 4 }}
+    {{- end }}    
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: portal
+    app.kubernetes.io/name: portal
+    {{- if .Values.portal.additionalLabels }}
+{{ toYaml .Values.portal.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "portal.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: portal
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        checksum/config: {{ include (print $.Template.BasePath "/backend/portal/config/configMap.yaml") . | sha256sum }}
+        {{- if .Values.portal.additionalAnnotations }}
+{{ toYaml .Values.portal.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.portal.podAnnotations }}
+{{ toYaml .Values.portal.podAnnotations | indent 8 }}
+        {{- end }}
+      labels:
+        app: portal
+        app.kubernetes.io/name: portal
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.portal.additionalLabels }}
+{{ toYaml .Values.portal.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.portal.podLabels }}
+{{ toYaml .Values.portal.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+{{- if .Values.portal.tolerations }}
+      tolerations:
+{{ toYaml .Values.portal.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.portal.affinity }}
+      affinity:
+{{ toYaml .Values.portal.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.portal.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.portal.nodeSelector | indent 8 }}
+{{- end }}
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+      serviceAccountName: {{ include "portal.fullname" . }}
+      containers:
+      - env:
+        - name: GC_GROUNDCOVERVERSION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['groundcover_version']
+        - name: GC_MONITORSMANAGER_ENABLED
+          value: "true"
+        - name: GC_MONITORSMANAGER_URL
+          value: {{ template "monitors-manager.httpEndpoint" . }}
+        - name: GC_MONITORSMANAGER_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: {{ template "monitors-manager.secret.userKey" . }}
+              name: {{ template "monitors-manager.secretName" . }}
+        - name: GC_MONITORSMANAGER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: {{ template "monitors-manager.secret.passwordKey" . }}
+              name: {{ template "monitors-manager.secretName" . }}
+        - name: GC_WORKFLOWS_ENABLED
+          value: {{ .Values.global.workflows.enabled | toString | quote }}
+        - name: GC_WORKFLOWS_URL
+          value: {{ template "keep.base.url" . }}
+        - name: GC_WORKFLOWS_APIKEY
+          valueFrom:
+            secretKeyRef:
+              optional: true
+              key: "admin-api-key"
+              name: "keep-credentials"
+{{ if eq .Values.router.mode "cloud" }}
+        - name: GC_ROUTER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: {{ template "groundcover.apikeySecretKey" . }}
+              name: {{ template "groundcover.apikeySecretName" . }}
+        {{- if eq (include "telemetry.enabled" .) "true" }}
+        - name: GC_TRACING_HEADERS_APIKEY
+          valueFrom:
+            secretKeyRef:
+              key: {{ template "groundcover.apikeySecretKey" . }}
+              name: {{ template "groundcover.apikeySecretName" . }}
+        {{- end }}
+        - name: GC_CLICKHOUSE_PASS
+          valueFrom:
+            secretKeyRef:
+              key: '{{ include "clickhouse.secretKey" . }}'
+              name: '{{ include "clickhouse.secretName" . }}'
+{{ end }}
+{{ with .Values.portal.env }}
+            {{- tpl (toYaml .) $ | nindent 8 }}
+{{ end }}
+        envFrom:
+          - secretRef:
+              name: {{include "groundcover.config.secretName" .}}
+        image: {{ tpl .Values.portal.image.repository . }}:{{ tpl .Values.portal.image.tag . }}
+        imagePullPolicy: Always
+        name: {{ include "portal.fullname" . }}
+        ports:
+        - containerPort: 5555
+          name: grpc-portal
+          protocol: TCP
+        - containerPort: 9102
+          name: portal-metrics
+        - containerPort: 9999
+          name: portal-http
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: portal-http
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /health
+            port: portal-http
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5  
+        resources:
+{{- toYaml .Values.portal.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /config
+          name: portal-config-volume
+{{- if .Values.portal.priorityClassName }}
+      priorityClassName: {{ .Values.portal.priorityClassName }}
+{{- end }}
+      volumes:
+      - configMap:
+          name: {{ include "portal.fullname" . }}-config
+        name: portal-config-volume
+{{ end -}}

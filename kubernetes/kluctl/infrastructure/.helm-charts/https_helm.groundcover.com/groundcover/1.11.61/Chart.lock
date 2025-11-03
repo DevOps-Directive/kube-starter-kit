@@ -1,0 +1,42 @@
+dependencies:
+- name: router
+  repository: ""
+  version: '>0.0.0'
+- name: victoria-metrics-single
+  repository: https://victoriametrics.github.io/helm-charts
+  version: 0.9.15
+- name: victoria-metrics-agent
+  repository: ""
+  version: 0.9.17
+- name: victoria-metrics-agent
+  repository: ""
+  version: 0.9.17
+- name: victoria-metrics-operator
+  repository: https://victoriametrics.github.io/helm-charts
+  version: 0.49.1
+- name: victoria-metrics-agent
+  repository: ""
+  version: 0.9.17
+- name: clickhouse
+  repository: ""
+  version: 6.3.1
+- name: opentelemetry-collector
+  repository: https://open-telemetry.github.io/opentelemetry-helm-charts
+  version: 0.122.0
+- name: kube-state-metrics
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 5.15.2
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 7.2.0
+- name: incloud-ingress
+  repository: ""
+  version: '>0.0.0'
+- name: backend
+  repository: ""
+  version: '>=0.0.0'
+- name: vector
+  repository: https://helm.vector.dev
+  version: 0.37.0
+digest: sha256:3cc79388e7bd22b0d2203977c6969d4705edcabbe2ea116fcb19fde17448a759
+generated: "2025-09-15T15:19:22.998601455Z"

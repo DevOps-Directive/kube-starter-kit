@@ -1,0 +1,103 @@
+{{- if .Values.onprem.enabled -}}
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: key-auth
+  labels:
+    {{- include "router.labels" . | nindent 4 }}
+config:
+  key_names:
+    - token
+    - apikey
+    - X-ClickHouse-Key
+    - X-Amz-Firehose-Access-Key
+    - Authorization
+  key_in_body: false
+  key_in_header: true
+  key_in_query: true
+  hide_credentials: false
+  run_on_preflight: true
+plugin: key-auth
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: clickhouse-ds-rewrite
+  labels:
+    {{- include "router.labels" . | nindent 4 }}
+config:
+  replace:
+    uri: /datasources/clickhouse
+  remove:
+    headers:
+      - "X-ClickHouse-Key"
+      - "X-ClickHouse-User"
+plugin: request-transformer
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: grafana-rewrite
+  labels:
+    {{- include "router.labels" . | nindent 4 }}
+config:
+  replace:
+    uri: '/grafana/api/$(uri_captures[1])'
+plugin: request-transformer
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: apikey-presence-check
+  labels:
+    {{- include "router.labels" . | nindent 4 }}
+config:
+  access:
+  - |
+    -- Main validation logic
+    local authHeader = kong.request.get_header("Authorization")
+    if not authHeader or authHeader == "" then
+      return kong.response.exit(400, { message = "Missing Authorization header" })
+    end
+
+    -- Check if the header starts with "Bearer "
+    if not string.match(authHeader, "^Bearer %S+$") then
+      return kong.response.exit(400, { message = "Invalid Authorization header format. Must be Bearer token." })
+    end
+
+    -- Extract the token part
+    local token = string.sub(authHeader, 8) -- Skip "Bearer "
+
+    -- Constants
+    local expectedTokenLength = 40
+    local serviceAccountPrefix = "gcsa_"
+
+    -- 1. Length Check
+    if #token ~= expectedTokenLength then
+      return kong.response.exit(400, { message = "Invalid token length (" .. #token .. ", expected " .. expectedTokenLength .. ")" })
+    end
+
+    -- 2. Prefix Check
+    if not string.match(token, "^" .. serviceAccountPrefix) then
+      return kong.response.exit(400, { message = "Invalid token prefix. Expected '" .. serviceAccountPrefix .. "'" })
+    end
+
+    -- If all checks pass, the request proceeds
+plugin: pre-function
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: api-rate-limit
+  labels:
+    {{- include "router.labels" . | nindent 4 }}
+config:
+  limit_by: header
+  header_name: Authorization
+  second: 30
+  minute: 200
+  policy: local
+  fault_tolerant: true
+plugin: rate-limiting
+{{- end -}}

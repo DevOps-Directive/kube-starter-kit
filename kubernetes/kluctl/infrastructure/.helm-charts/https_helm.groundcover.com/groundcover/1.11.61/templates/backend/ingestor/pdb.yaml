@@ -1,0 +1,15 @@
+{{ if and .Values.global.ingestor.enabled .Values.global.backend.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ingestor
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "groundcover.labels" $ | nindent 4 }}
+spec:
+  maxUnavailable: {{ .Values.ingestor.pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: ingestor
+---
+{{- end }}

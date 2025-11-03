@@ -1,0 +1,15 @@
+{{- if and .Values.global.ingress.enabled (or (eq .Values.global.ingress.className "traefik") (eq .Values.global.ingress.classType "traefik")) }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-prefix
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "keep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: networking
+spec:
+  stripPrefix:
+    prefixes:
+      - {{ .Values.global.ingress.backendPrefix }}
+      - {{ .Values.global.ingress.websocketPrefix }}
+{{- end }}

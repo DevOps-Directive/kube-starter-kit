@@ -1,0 +1,43 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: v1
+data:
+  alerting_overrides.yaml: |
+    apiVersion: 1
+{{ if .Values.global.workflows.enabled }}
+    contactPoints:
+{{- range (index .Values "monitors-manager" "alertingOverrides" "contactPoints") }}
+      - name: {{ .name }}
+        receivers:
+{{- range .receivers }}
+          - uid: {{ .uid }}
+            type: {{ .type }}
+            settings:
+              url: {{ tpl (.settings.url | toString) $ | quote }}
+              httpMethod: {{ .settings.httpMethod | quote }}
+              authorization_scheme: {{ .settings.authorization_scheme }}
+              authorization_credentials: {{ .settings.authorization_credentials }}
+{{- end }}
+{{- end }}
+    policies:
+{{- range (index .Values "monitors-manager" "alertingOverrides" "policies") }}
+      - receiver: {{ .receiver }}
+        group_by:
+{{- range .group_by }}
+          - '{{ . }}'
+{{- end }}
+        group_wait: {{ .group_wait }}
+        group_interval: {{ .group_interval }}
+        repeat_interval: {{ .repeat_interval }}
+{{- end }}
+{{ else }}
+    policies: 
+      - receiver: grafana-default-email
+        group_by: ["grafana_folder","alertname"]
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+{{ end }}
+kind: ConfigMap
+metadata:
+  name: alerting-overrides-config
+{{- end }}

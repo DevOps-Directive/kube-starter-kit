@@ -1,0 +1,20 @@
+{{- if .Values.database.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "keep.name" . }}-database
+  labels:
+    {{- include "keep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+    keep-component: database
+spec:
+  type: {{ .Values.database.service.type }}
+  ports:
+    - port: {{ index .Values.database .Values.database.type "port" }}
+      targetPort: {{ index .Values.database .Values.database.type "port" }}
+      protocol: TCP
+      name: {{ .Values.database.type }}
+  selector:
+    {{- include "keep.selectorLabels" . | nindent 4 }}
+    keep-component: database
+{{- end }}

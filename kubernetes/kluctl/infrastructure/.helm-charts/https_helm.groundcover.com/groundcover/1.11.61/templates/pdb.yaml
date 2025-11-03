@@ -1,0 +1,53 @@
+{{- if .Values.global.ingestion.pdbs.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: metrics-ingestion-pipeline
+  namespace: {{ .namespace | default $.Release.Namespace }}
+  labels:
+  {{- include "groundcover.labels" $ | nindent 4 }}
+spec:
+  maxUnavailable: {{ ternary "1%" "50%" .Values.global.backend.enabled }}
+  selector:
+    matchLabels:
+      app.groundcover.com/pipeline: "metrics"
+---
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vector
+  namespace: {{ .namespace | default $.Release.Namespace }}
+  labels:
+  {{- include "groundcover.labels" $ | nindent 4 }}
+spec:
+  maxUnavailable: {{ ternary "1%" "50%" .Values.global.backend.enabled }}
+  selector:
+    matchLabels:
+      app.groundcover.com/component: "vector"
+{{- end }}
+
+{{- range $name, $pdb := .Values.groundcover.podDisruptionBudget }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  namespace: {{ .namespace | default $.Release.Namespace }}
+  labels:
+  {{- include "groundcover.labels" $ | nindent 4 }}
+spec:
+  {{- with .minAvailable }}
+  minAvailable: {{ . }}
+  {{- end }}
+  {{- with .maxUnavailable }}
+  maxUnavailable: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- range $key, $value := .selector.matchLabels }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+---
+{{- end }}
+

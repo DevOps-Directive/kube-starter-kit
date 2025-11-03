@@ -1,0 +1,20 @@
+{{- if .Values.onprem.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "router.proxy.service.name" . }}
+  labels:
+    {{- include "router.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ get (urlParse (include "kong.proxy.url" .)) "host" }} 
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 443
+{{- end -}}

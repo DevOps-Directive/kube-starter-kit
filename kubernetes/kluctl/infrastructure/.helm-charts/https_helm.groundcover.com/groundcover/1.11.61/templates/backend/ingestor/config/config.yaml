@@ -1,0 +1,23 @@
+{{ if and .Values.global.ingestor.enabled .Values.global.backend.enabled }}
+{{- $sensorValues := deepCopy .Values.ingestor -}}
+{{- $sensorValues = mergeOverwrite $sensorValues (default (dict) .Values.global.ingestor) -}}
+{{- $sensorValues = set $sensorValues "serviceName" "ingestor" -}}
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yaml: |
+{{ include "groundcover.sensor.config" (merge (dict "sensorValues" $sensorValues) .) | indent 4 }}
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if .Values.ingestor.additionalLabels }}
+{{ toYaml .Values.ingestor.additionalLabels | indent 4 }}
+    {{- end }}
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.ingestor.additionalAnnotations }}
+{{ toYaml .Values.ingestor.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: ingestor-config
+  namespace: {{ .Release.Namespace }}
+{{ end }}

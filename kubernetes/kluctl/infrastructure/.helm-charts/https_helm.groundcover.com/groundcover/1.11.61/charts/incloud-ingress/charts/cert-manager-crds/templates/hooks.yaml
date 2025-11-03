@@ -1,0 +1,35 @@
+
+{{- if .Values.upgradeCRDs }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "cert-manager-crds.fullname" . }}
+  annotations:
+  {{- include "cert-manager-crds.job.annotations" . | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      name: {{ include "cert-manager-crds.fullname" . }}
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: {{ .Values.imagePullSecrets | toJson }}
+      serviceAccountName: {{ include "cert-manager-crds.fullname" . }}
+      containers:
+      - name: apply-crds
+        imagePullPolicy: IfNotPresent
+        image: {{ include "cert-manager-crds.job.image" . }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl apply -f /crds/*.yaml
+        volumeMounts:
+          - name: crds
+            mountPath: /crds
+      volumes:
+        - name: crds
+          configMap:
+            name: {{ include "cert-manager-crds.fullname" . }}
+{{- end }}

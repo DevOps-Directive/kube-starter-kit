@@ -1,0 +1,111 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+  name: db-manager-config
+  namespace: {{ .Release.Namespace }}
+
+data:
+  config.yaml: |-
+
+    LogLevel: 4
+
+    startuptimeout: 1m0s
+
+    GroundcoverVersion: "OVERRIDEN"
+    {{- if .Values.tags.incloud }}
+    StopMigrationOnFailure: true
+    {{- else }}
+    StopMigrationOnFailure:
+    {{- end }}
+    Incluster: true
+    Namespace: {{ .Release.Namespace }}
+    DropPartitionInterval: 6h
+    DropPartitionTimeout: 5m
+    httpPort: 8888
+    tableDataRetention:
+      Traces:
+        retention: {{ include "traces.retention"  . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.traces.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "traces.custom_retention_overrides" . | indent 8 }}
+      Traces_Interactions:
+        retention: {{ include "traces.retention" . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.traces.cold_move_duration }}
+        custom_retention_overrides:
+      Logs:
+        retention: {{ include "logs.retention" . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.logs.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "logs.custom_retention_overrides" . | indent 8 }}
+      Entities:
+        retention: {{ include "entities.retention" . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.entities.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "entities.custom_retention_overrides" . | indent 8 }}
+      Events:
+        retention: {{ include "events.retention" . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.events.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "events.custom_retention_overrides" . | indent 8 }}
+      Measurements:
+        retention: {{ include "measurements.retention" . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.measurements.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "measurements.custom_retention_overrides" . | indent 8 }}
+      Monitor_State:
+        retention: {{ include "monitors.evaluation.retention" .}}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.monitors.evaluation.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "monitors.evaluation.custom_retention_overrides" . | indent 8 }}
+      Monitor_Instance:
+        retention: {{ include "monitors.instance.retention" .}}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.monitors.instance.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "monitors.instance.custom_retention_overrides" . | indent 8 }}
+      Sources:
+        retention: {{ include "sources.retention" .  }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.sources.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "sources.custom_retention_overrides" . | indent 8 }}
+      Metrics_Metadata:
+        retention: {{ include "metrics_metadata.retention" . }}
+        cold_volume: {{ .Values.clickhouse.coldVolume }}
+        cold_move_duration: {{ .Values.global.metricsMetadata.cold_move_duration }}
+        custom_retention_overrides:
+          {{- include "metrics_metadata.custom_retention_overrides" . | indent 8 }}
+    DataMigration:
+      BackfillBatchDuration:
+        Traces: 1m
+        Logs: 1m
+        Entities: 1h
+        Events: 1h
+      BackfillBatchMaxExecutionTime: 5m
+      BackfillBatchDeleteInterval: 60
+    ClickHouse:
+      Pass: "OVERRIDEN"
+      User: "manager"
+      Host: {{ include "clickhouse.shard0Name" . }}
+      Database: {{ include "clickhouse.database" . }}
+      HTTPPort: {{ .Values.global.clickhouse.containerPorts.http | int }}
+      NativePort: {{ .Values.global.clickhouse.containerPorts.tcp | int }}
+    ExtraShards:
+      {{- (include "clickhouse.extraShardsList" .) | nindent 6  }}
+    ObjectStorageQueues:
+      {{- toYaml .Values.dbManager.objectStorageQueues | nindent 6 }}
+    CloudPricing:
+      Enabled: {{ .Values.dbManager.cloudPricing.enabled }}
+      PricingFileURL: {{ .Values.dbManager.cloudPricing.pricingFileURL }}
+      RefreshInterval: {{ .Values.dbManager.cloudPricing.refreshInterval }}
+{{- end -}}

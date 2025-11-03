@@ -1,0 +1,180 @@
+{{ if and .Values.global.ingestor.enabled .Values.global.backend.enabled }}
+{{- $sensorValues := deepCopy .Values.ingestor -}}
+{{- $sensorValues = mergeOverwrite $sensorValues (default (dict) .Values.global.ingestor) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.ingestor.additionalAnnotations }}
+{{ toYaml .Values.ingestor.additionalAnnotations | indent 4 }}
+    {{- end }}    
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: ingestor
+    app.kubernetes.io/name: ingestor
+    {{- if .Values.ingestor.additionalLabels }}
+{{ toYaml .Values.ingestor.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "ingestor.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ default 2 .Values.ingestor.replicas }}
+  selector:
+    matchLabels:
+      app: ingestor
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        checksum/config: {{ include (print $.Template.BasePath "/backend/ingestor/config/config.yaml") . | sha256sum }}
+        {{- if .Values.ingestor.additionalAnnotations }}
+{{ toYaml .Values.ingestor.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.ingestor.podAnnotations }}
+{{ toYaml .Values.ingestor.podAnnotations | indent 8 }}
+        {{- end }}
+      labels:
+        app: ingestor
+        app.kubernetes.io/name: ingestor
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.ingestor.additionalLabels }}
+{{ toYaml .Values.ingestor.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.ingestor.podLabels }}
+{{ toYaml .Values.ingestor.podLabels | indent 8 }}
+        {{- end }}
+    spec: 
+{{- if .Values.ingestor.tolerations }}
+      tolerations:
+{{ toYaml .Values.ingestor.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.ingestor.affinity }}
+      affinity:
+{{ toYaml .Values.ingestor.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.ingestor.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.ingestor.nodeSelector | indent 8 }}
+{{- end }}
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+{{- if .Values.ingestor.topologySpreadConstraints }}
+      topologySpreadConstraints:
+{{ toYaml .Values.ingestor.topologySpreadConstraints | indent 8 }}
+{{- end }}
+      containers:
+      - env:
+        - name: GC_RUNNINGNAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GC_GROUNDCOVERVERSION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['groundcover_version']    
+        {{- with .Values.ingestor.env }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        {{- with .Values.ingestor.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{include "groundcover.config.secretName" .}}
+        image: {{ tpl .Values.ingestor.image.repository . }}:{{ tpl .Values.ingestor.image.tag . }}
+        imagePullPolicy: Always
+        name: ingestor     
+        ports:
+        - containerPort: {{ (include "ingestor.monitoring.port" .) | int }}
+          name: prom-metrics
+        {{- include "groundcover.sensor.deployment.ingestion-ports" (merge (dict "sensorValues" $sensorValues) .) | nindent 8 }}
+        {{- if .Values.global.debug.enabled }}
+        - containerPort: 4040
+          name: dlv-tcp
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.ingestor.healthProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /health
+            port: health-http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          failureThreshold: 20
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /health
+            port: health-http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          failureThreshold: 20
+        {{- end }}
+        {{- if .Values.ingestor.lifecycleHooks }}
+        lifecycle:
+{{- toYaml .Values.ingestor.lifecycleHooks | nindent 10 }}
+        {{- end }}
+        resources:
+{{- toYaml .Values.ingestor.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /config
+          name: ingestor-config-volume
+{{- if .Values.ingestor.priorityClassName }}
+      priorityClassName: {{ .Values.ingestor.priorityClassName }}
+{{- end }}
+      initContainers:
+      - name: check-metrics-ingestor-ready
+        env:
+        {{- with .Values.agent.initContainers.checkMetrics.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }}      
+        args:
+        - |
+            while [ $(curl -H "apikey:$API_KEY" \
+            {{- if .Values.global.ingestion.tls_skip_verify }}
+              -k \
+            {{- end }}
+              -sw '%{http_code}' {{ include "metrics-ingester.write.http.url" . }} -o /dev/null) -ne 204 ];
+            do 
+              echo 'Waiting for metrics ingestion endpoint...'; 
+              sleep 2; 
+            done; 
+            echo metrics ingestion endpoint is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      - name: check-ingestion-endpoint-ready
+        env:
+        {{- with .Values.agent.initContainers.checkIngestion.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }}    
+        args:
+        - | 
+            while [ $(curl -H "apikey:$API_KEY" \
+            {{- if .Values.global.ingestion.tls_skip_verify }}
+              -k \
+            {{- end }}
+              -sw '%{http_code}' {{ include "ingestion.health.http.url" . }} -o /dev/null) -ne 200 ]
+            do
+              echo 'Waiting for ingestion endpoint...';
+              sleep 2;
+            done;
+            echo ingestion endpoint is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      volumes:
+      - configMap:
+          name: ingestor-config
+        name: ingestor-config-volume
+{{ end -}}

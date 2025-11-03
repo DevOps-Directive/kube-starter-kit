@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-config-map
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: vector
+    app.kubernetes.io/name: vector
+data:
+  vector.yaml: |
+    {{- include "vector.config.customConfig" . | nindent 4}}

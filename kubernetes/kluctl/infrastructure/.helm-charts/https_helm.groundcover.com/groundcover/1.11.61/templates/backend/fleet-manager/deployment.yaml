@@ -1,0 +1,150 @@
+{{ if and .Values.global.fleetmanager.enabled .Values.global.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.fleetManager.additionalAnnotations }}
+{{ toYaml .Values.fleetManager.additionalAnnotations | indent 4 }}
+    {{- end }}    
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: fleet-manager
+    {{- if .Values.fleetManager.additionalLabels }}
+{{ toYaml .Values.fleetManager.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "fleet-manager.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ default 2 .Values.fleetManager.replicas }}
+  selector:
+    matchLabels:
+      app: fleet-manager
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        checksum/config: {{ include (print $.Template.BasePath "/backend/fleet-manager/config/config.yaml") . | sha256sum }}
+        {{- if .Values.fleetManager.additionalAnnotations }}
+{{ toYaml .Values.fleetManager.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.fleetManager.podAnnotations }}
+{{ toYaml .Values.fleetManager.podAnnotations | indent 8 }}
+        {{- end }}
+      labels:
+        app: fleet-manager
+        app.kubernetes.io/name: fleet-manager
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.fleetManager.additionalLabels }}
+{{ toYaml .Values.fleetManager.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.fleetManager.podLabels }}
+{{ toYaml .Values.fleetManager.podLabels | indent 8 }}
+        {{- end }}
+    spec: 
+{{- if .Values.fleetManager.tolerations }}
+      tolerations:
+{{ toYaml .Values.fleetManager.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.fleetManager.affinity }}
+      affinity:
+{{ toYaml .Values.fleetManager.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.fleetManager.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.fleetManager.nodeSelector | indent 8 }}
+{{- end }}
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+{{- if .Values.fleetManager.topologySpreadConstraints }}
+      topologySpreadConstraints:
+{{ toYaml .Values.fleetManager.topologySpreadConstraints | indent 8 }}
+{{- end }}
+      containers:
+      - env:
+        - name: GC_RUNNINGNAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GC_GROUNDCOVERVERSION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['groundcover_version']    
+        - name: GC_CONFIGMANAGER_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "postgresql.secretName" . }}
+              key: {{ include "postgresql.adminPasswordKey" . }}          
+        {{- with .Values.fleetManager.env }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        {{- with .Values.fleetManager.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{include "groundcover.config.secretName" .}}
+        image: {{ tpl .Values.fleetManager.image.repository . }}:{{ tpl .Values.fleetManager.image.tag . }}
+        imagePullPolicy: Always
+        name: fleet-manager     
+        ports:
+        - containerPort: {{ .Values.fleetManager.manageHttpPort }}
+          name: manage-http
+        - containerPort: {{ .Values.fleetManager.healthProbePort }}
+          name: health-http
+        - containerPort: 9102
+          name: fleet-metrics
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /health
+            port: health-http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          failureThreshold: 20
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /health
+            port: health-http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          failureThreshold: 20
+        resources:
+{{- toYaml .Values.fleetManager.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /config
+          name: fleet-manager-config-volume
+{{- if .Values.fleetManager.priorityClassName }}
+      priorityClassName: {{ .Values.fleetManager.priorityClassName }}
+{{- end }}
+      initContainers:
+      - name: wait-for-db
+        image: {{ include "postgresql.image" . }}
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "postgresql.secretName" . }}
+              key: {{ include "postgresql.adminPasswordKey" . }}
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - |
+          pg_isready \
+            -U "postgres" \
+            -d "dbname=postgres" \
+            -h {{ splitList ":" (include "postgresql.base.url" .) | first }} \
+            -p {{ splitList ":" (include "postgresql.base.url" .) | last }}
+      volumes:
+      - configMap:
+          name: fleet-manager-config
+        name: fleet-manager-config-volume
+{{ end -}}

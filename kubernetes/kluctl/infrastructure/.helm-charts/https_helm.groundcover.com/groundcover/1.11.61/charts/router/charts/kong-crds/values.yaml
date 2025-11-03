@@ -1,0 +1,14 @@
+upgradeCRDs: true
+
+image:
+  repository: bitnami/kubectl
+  pullPolicy: IfNotPresent
+  tag: latest
+
+imagePullSecrets: []
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

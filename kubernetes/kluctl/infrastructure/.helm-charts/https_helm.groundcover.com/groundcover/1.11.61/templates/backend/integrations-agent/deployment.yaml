@@ -1,0 +1,153 @@
+{{ if .Values.global.integrations.agent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.integrationsAgent.additionalAnnotations }}
+{{ toYaml .Values.integrationsAgent.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: integrations-agent
+    app.kubernetes.io/name: integrations-agent
+    {{- if .Values.integrationsAgent.additionalLabels }}
+{{ toYaml .Values.integrationsAgent.additionalLabels | indent 4 }}
+    {{- end }}
+  name: integrations-agent
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: integrations-agent
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        checksum/config: {{ include (print $.Template.BasePath "/backend/integrations-agent/config/config.yaml") . | sha256sum }}
+        {{- if .Values.integrationsAgent.additionalAnnotations }}
+{{ toYaml .Values.integrationsAgent.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.podAnnotations }}
+{{ toYaml .Values.integrationsAgent.podAnnotations | indent 8 }}
+        {{- end }}
+      labels:
+        app: integrations-agent
+        app.kubernetes.io/name: integrations-agent
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.integrationsAgent.additionalLabels }}
+{{ toYaml .Values.integrationsAgent.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.integrationsAgent.podLabels }}
+{{ toYaml .Values.integrationsAgent.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+{{- if .Values.integrationsAgent.tolerations }}
+      tolerations:
+{{ toYaml .Values.integrationsAgent.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.integrationsAgent.affinity }}
+      affinity:
+{{ toYaml .Values.integrationsAgent.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.integrationsAgent.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.integrationsAgent.nodeSelector | indent 8 }}
+{{- end }}
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+      containers:
+      - env:
+        - name: GC_RUNNINGNAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GC_GROUNDCOVERVERSION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['groundcover_version']              
+        {{- with .Values.integrationsAgent.env }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        {{- with .Values.integrationsAgent.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{include "groundcover.config.secretName" .}}
+        image: {{ tpl .Values.integrationsAgent.image.repository . }}:{{ tpl .Values.integrationsAgent.image.tag . }}
+        imagePullPolicy: Always
+        name: integrations-agent
+        ports:
+        - containerPort: 9102
+          name: agent-metrics
+        - containerPort: 8888
+          name: agent-http 
+        readinessProbe:
+          {{ toYaml .Values.integrationsAgent.readinessProbe | nindent 10 }}
+        livenessProbe:
+          {{ toYaml .Values.integrationsAgent.livenessProbe | nindent 10 }}
+        resources:
+{{- toYaml .Values.integrationsAgent.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /config
+          name: integrations-agent-config-volume
+        {{- with .Values.integrationsAgent.extraVolumeMounts }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      initContainers:
+      - name: check-ingestion-endpoint-ready
+        env:
+        {{- with .Values.integrationsAgent.initContainers.checkIngestion.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }}     
+        args:
+        - |
+            while [ $(curl -H "apikey:$API_KEY" \
+            {{- if .Values.global.ingestion.tls_skip_verify }}
+              -k \
+            {{- end }}
+              -sw '%{http_code}' {{ include "ingestion.health.http.url" . }} -o /dev/null) -ne 200 ];
+            do
+              echo 'Waiting for ingestion endpoint...';
+              sleep 2;
+            done;
+            echo ingestion endpoint is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      - name: check-metrics-ingestor-ready
+        env:
+        {{- with .Values.integrationsAgent.initContainers.checkMetrics.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }} 
+        args:
+        - |
+            while [ $(curl -H "apikey:$API_KEY" \
+            {{- if .Values.global.ingestion.tls_skip_verify }}
+              -k \
+            {{- end }}
+              -sw '%{http_code}' {{ include "metrics-ingester.write.http.url" . }} -o /dev/null) -ne 204 ];
+            do
+              echo 'Waiting for VictoriaMetrics Agent...';
+              sleep 2;
+            done;
+            echo VictoriaMetrics Agent is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      serviceAccountName: integrations-agent
+{{- if .Values.integrationsAgent.priorityClassName }}
+      priorityClassName: {{ .Values.integrationsAgent.priorityClassName }}
+{{- end }}
+      volumes:
+      - configMap:
+          name: integrations-agent-config
+        name: integrations-agent-config-volume
+      {{- with .Values.integrationsAgent.extraVolumes }}
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+{{ end }}

@@ -1,0 +1,22 @@
+apiVersion: v2
+appVersion: 1.11.61
+dependencies:
+- condition: onprem.enabled
+  import-values:
+  - child: serviceAccount
+    parent: global.grafana.serviceAccount
+  name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 7.2.0
+- condition: onprem.enabled
+  name: kong
+  repository: https://charts.konghq.com
+  version: 2.32.0
+- condition: onprem.enabled
+  name: kong-crds
+  repository: file://../../../kong-crds
+  version: 2.32.0
+description: groundcover's router helm chart
+name: router
+type: application
+version: 1.11.61

@@ -1,0 +1,106 @@
+{{ if .Values.global.agent.enabled }}
+apiVersion: v1
+data:
+  config.yaml: |
+    LogLevel: 4
+    concurrency: 10
+    productchansize: 20480
+    k8sloadtimeout: 2m0s
+    resyncDuration: 5m
+    groundcoverVersion: ""
+    podsResyncDuration: 5m
+    unavailableDeploymentPollInterval: 10s
+    summarizerActiveTtl: 45s
+    pushsummaries: true
+    productmetricsflushmintotalcounter:
+      deployment_event: 1
+      unavailable_deployment: 1
+
+    deploymenteventhandler:
+      samplesthreshold: 100
+      issuesthreshold: 100
+      interval: 60s
+      samplingmode: 0 # DontSample
+      aggregationCacheSize: 1024
+
+    unavailabledeploymenthandler:
+      samplesthreshold: 100
+      issuesthreshold: 100
+      interval: 60s
+      samplingmode: 1 # DefaultSample
+      aggregationCacheSize: 1024
+    
+    VictoriaMetrics:
+      url: {{ include "metrics-ingester.cluster.http.base.url" . }}
+      TLSSkipVerify: true
+
+    KubeStateMetricsScrape:
+      url: {{ include "kube-state-metrics.url" . }}
+      TLSSkipVerify: true
+      scrapeInterval: 15s
+      scrapeTimeout: 10s
+
+    runningNamespace: ""
+    clusterDiscoveryInterval: {{ .Values.k8sWatcher.clusterDiscoveryInterval }}
+    clusterId: {{ include "groundcover.clusterId" . }}
+    region: {{ .Values.region }}
+    env: {{ include "groundcover.env" . }}
+    tracesNamespaceFilters: {{ toYaml .Values.tracesNamespaceFilters | nindent 6 }}
+    tracesWorkloadFilters: {{ toYaml .Values.tracesWorkloadFilters | nindent 6 }}
+    commitHashKeyName: {{ .Values.commitHashKeyName }}
+    repositoryUrlKeyName: {{ .Values.repositoryUrlKeyName }}
+    otelPreprocess: true
+    otelTracesAsLogs: true
+    customOtlpEndpoint:
+      endpoint: {{ include "ingestion.custom.otlp.http.url" . }}
+      insecureSkipVerify: {{ .Values.global.ingestion.tls_skip_verify }}
+      writeTimeout: 10s
+      batchSize: 350
+      concurrency: 15
+      flushInterval: 1s
+    tracesOtlpEndpoint:
+      endpoint: {{ include "ingestion.traces.otlp.http.url" . }}
+      insecureSkipVerify: {{ .Values.global.ingestion.tls_skip_verify }}
+      writeTimeout: 10s
+    Pprof:
+      enabled: {{ include "telemetry.enabled" . }}
+      cpuSamplingDuration: {{ .Values.k8sWatcher.pprof.cpuSamplingDuration }}
+      httpUploader:
+        enabled: {{ eq .Values.k8sWatcher.pprof.uploaderType "http" }}
+        pushURL: {{ printf "%s/upload/pprof" (include "telemetry.metrics.base.url" .) }}
+      pyroscopeUploader:
+        enabled: {{ eq .Values.k8sWatcher.pprof.uploaderType "pyroscope" }}
+        pushURL: {{ include "telemetry.metrics.base.url" . }}
+      backoffTicker:
+        interval: {{ .Values.k8sWatcher.pprof.backoffTicker.interval }}
+        exponent: {{ .Values.k8sWatcher.pprof.backoffTicker.exponent }}
+      memoryTicker:
+        enabled: {{ .Values.k8sWatcher.pprof.memoryTicker.enabled }}
+        interval: {{ .Values.k8sWatcher.pprof.memoryTicker.interval }}
+        jumpSizeInBytes: {{ .Values.k8sWatcher.pprof.memoryTicker.jumpSizeInBytes }}
+        windowSize: {{ .Values.k8sWatcher.pprof.memoryTicker.windowSize }}
+        initialWait: {{ .Values.k8sWatcher.pprof.memoryTicker.initialWait }}
+      cpuTicker:
+        enabled: {{ .Values.k8sWatcher.pprof.cpuTicker.enabled }}
+        interval: {{ .Values.k8sWatcher.pprof.cpuTicker.interval }}
+        jumpSizeInMCPU: {{ .Values.k8sWatcher.pprof.cpuTicker.jumpSizeInMCPU }}
+        windowSize: {{ .Values.k8sWatcher.pprof.cpuTicker.windowSize }}
+        initialWait: {{ .Values.k8sWatcher.pprof.cpuTicker.initialWait }}    
+    Watch:
+    {{- .Values.k8sWatcher.watch | toYaml | nindent 6 }}
+
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if .Values.k8sWatcher.additionalLabels }}
+{{ toYaml .Values.k8sWatcher.additionalLabels | indent 4 }}
+    {{- end }}
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.k8sWatcher.additionalAnnotations }}
+{{ toYaml .Values.k8sWatcher.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: k8s-watcher-config
+  namespace: {{ .Release.Namespace }}
+{{ end }}

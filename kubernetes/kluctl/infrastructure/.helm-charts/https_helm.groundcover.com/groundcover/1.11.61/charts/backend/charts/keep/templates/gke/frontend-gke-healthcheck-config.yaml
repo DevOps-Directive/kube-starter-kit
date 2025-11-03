@@ -1,0 +1,16 @@
+{{- if .Values.isGKE -}}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "keep.fullname" . }}-frontend-backendconfig
+  namespace: {{ .Release.Namespace }}
+spec:
+  healthCheck:
+    checkIntervalSec: {{ .Values.frontend.backendConfig.healthCheck.checkIntervalSec }}
+    timeoutSec: {{ .Values.frontend.backendConfig.healthCheck.timeoutSec }}
+    healthyThreshold: {{ .Values.frontend.backendConfig.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.frontend.backendConfig.healthCheck.unhealthyThreshold }}
+    requestPath: {{ .Values.frontend.backendConfig.healthCheck.path }}
+    port: {{ .Values.frontend.backendConfig.healthCheck.port }}
+    type: {{ .Values.frontend.backendConfig.healthCheck.type }}
+{{- end }}
