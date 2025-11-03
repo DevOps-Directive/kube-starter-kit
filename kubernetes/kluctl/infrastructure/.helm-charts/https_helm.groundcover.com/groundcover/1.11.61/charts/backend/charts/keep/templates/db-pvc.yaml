@@ -1,0 +1,31 @@
+{{- if and .Values.database.enabled .Values.database.pvc.enabled -}}
+{{- $fullName := include "keep.fullname" . -}}
+{{- $pvcName := printf "%s-pvc" $fullName -}}
+{{- $existingPvc := lookup "v1" "PersistentVolumeClaim" .Release.Namespace $pvcName -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $pvcName }}
+  annotations:
+    {{- if .Values.database.pvc.retain }}
+    helm.sh/resource-policy: keep
+    {{- end }}
+  labels:
+    {{- include "keep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  {{- if $existingPvc }}
+  # Use existing PVC spec
+  {{- toYaml $existingPvc.spec | nindent 2 }}
+  {{- else }}
+  # Define new PVC spec
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.database.pvc.storageClass }}
+  storageClassName: {{ .Values.database.pvc.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.database.pvc.size }}
+  {{- end }}
+{{- end }}

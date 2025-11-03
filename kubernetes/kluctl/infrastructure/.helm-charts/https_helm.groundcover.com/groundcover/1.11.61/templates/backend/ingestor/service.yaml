@@ -1,0 +1,57 @@
+{{ if and .Values.global.ingestor.enabled .Values.global.backend.enabled }}
+{{- $sensorValues := deepCopy .Values.ingestor -}}
+{{- $sensorValues = mergeOverwrite $sensorValues (default (dict) .Values.global.ingestor) -}}
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.ingestor.additionalAnnotations }}
+{{ toYaml .Values.ingestor.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: ingestor
+    app.kubernetes.io/name: ingestor
+    {{- if .Values.ingestor.additionalLabels }}
+{{ toYaml .Values.ingestor.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "ingestor.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/name: ingestor
+    app.kubernetes.io/part-of: '{{ include "groundcover.labels.partOf" . }}'
+  ports: {{ include "groundcover.sensor.service.ingestion-ports" (merge (dict "sensorValues" $sensorValues) .) | nindent 2 }}
+  {{- if $sensorValues.setLocalTrafficPolicy }}
+  internalTrafficPolicy: Local
+  {{- end }}
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    konghq.com/protocol: grpc
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.ingestor.additionalAnnotations }}
+{{ toYaml .Values.ingestor.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: ingestor
+    app.kubernetes.io/name: ingestor
+    {{- if .Values.ingestor.additionalLabels }}
+{{ toYaml .Values.ingestor.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "ingestor.fullname" . }}-grpc
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/name: ingestor
+    app.kubernetes.io/part-of: '{{ include "groundcover.labels.partOf" . }}'
+  ports: {{ include "groundcover.sensor.service.ingestion-ports" (merge (dict "sensorValues" $sensorValues) .) | nindent 2 }}
+  {{- if $sensorValues.setLocalTrafficPolicy }}
+  internalTrafficPolicy: Local
+  {{- end }}
+{{ end -}}

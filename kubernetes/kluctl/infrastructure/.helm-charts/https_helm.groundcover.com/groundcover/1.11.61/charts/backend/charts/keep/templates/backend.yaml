@@ -1,0 +1,184 @@
+{{- if .Values.backend.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "keep.fullname" . }}-backend
+  labels:
+    {{- include "keep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    keep-component: backend
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "keep.selectorLabels" . | nindent 6 }}
+      keep-component: backend
+  template:
+    metadata:
+      {{- if .Values.backend.podAnnotations }}
+      annotations:
+        {{- range $key, $value := .Values.backend.podAnnotations }}
+        {{- if kindIs "string" $value }}
+        {{ $key }}: {{ tpl $value $ | quote }}
+        {{- else }}
+        {{ $key }}: {{ $value | toYaml | nindent 8 }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
+      labels:
+        {{- include "keep.labels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+        keep-component: backend
+    spec:
+      {{- with .Values.backend.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "keep.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.backend.securityContext | nindent 12 }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          {{- if .Values.backend.command }}
+          command: {{ toYaml .Values.backend.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.backend.args }}
+          args: {{ toYaml .Values.backend.args | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+              protocol: TCP
+          env:
+            - name: KEEP_API_URL
+              value: {{ include "keep.keepApiUrl" . | quote }}
+            {{- range .Values.backend.env }}
+            - name: {{ .name }}
+              {{- if .secretKeyRef }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl (.secretKeyRef.secretName | toString) $ }}
+                  key: {{ tpl (.secretKeyRef.secretKey | toString) $ }}
+              {{- else if .configMapKeyRef }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ tpl (.configMapKeyRef.name | toString) $ }}
+                  key: {{ tpl (.configMapKeyRef.key | toString) $ }}
+              {{- else if .fieldRef }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+              {{- else }}
+              value: {{ tpl (.value | toString) $ | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if .Values.backend.openAiApi.enabled }}
+            - name: OPENAI_API_KEY
+              value: {{ .Values.backend.openAiApi.openAiApiKey | default "" | quote }}
+            {{- end }}
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- if .Values.backend.databaseConnectionStringFromSecret.enabled }}
+            - name: DATABASE_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.databaseConnectionStringFromSecret.secretName }}
+                  key: {{ .Values.backend.databaseConnectionStringFromSecret.secretKey }}
+            {{- end }}
+          {{- if or .Values.backend.envFromSecret (or .Values.backend.envRenderSecret .Values.backend.envFromSecrets) .Values.backend.envFromConfigMaps }}
+          envFrom:
+            {{- if .Values.backend.envFromSecret }}
+            - secretRef:
+                name: {{ tpl .Values.backend.envFromSecret . }}
+            {{- end }}
+            {{- if .Values.backend.envRenderSecret }}
+            - secretRef:
+                name: {{ include "keep.fullname" . }}-backend-env
+            {{- end }}
+            {{- range .Values.backend.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl .name $ }}
+                optional: {{ .optional | default false }}
+              {{- if .prefix }}
+              prefix: {{ tpl .prefix $ }}
+              {{- end }}
+            {{- end }}
+            {{- range .Values.backend.envFromConfigMaps }}
+            - configMapRef:
+                name: {{ tpl .name $ }}
+                optional: {{ .optional | default false }}
+              {{- if .prefix }}
+              prefix: {{ tpl .prefix $ }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: state-volume
+              mountPath: /state
+              readOnly: false
+            {{- with .Values.backend.extraVolumeMounts }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- if .Values.backend.healthCheck.enabled }}
+          {{- toYaml .Values.backend.healthCheck.probes | nindent 10 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      initContainers:
+        {{- if .Values.backend.waitForDatabase.enabled }}
+        - name: wait-for-database
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ include "keep.findBackendEnvVar" (list "DATABASE_NAME" .) | default "keep-database" }} {{ .Values.backend.waitForDatabase.port }}; do sleep 1; done;']
+        {{- end }}
+        {{- range .Values.backend.extraInitContainers }}
+        - name: {{ .name }}
+          image: {{ tpl .image $ }}
+          {{- with .imagePullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
+          {{- with .command }}
+          command: {{ tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with .args }}
+          args: {{ tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          {{- with .env }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .volumeMounts }}
+          volumeMounts: {{ toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: state-volume
+          emptyDir: {}
+        {{- with .Values.backend.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}

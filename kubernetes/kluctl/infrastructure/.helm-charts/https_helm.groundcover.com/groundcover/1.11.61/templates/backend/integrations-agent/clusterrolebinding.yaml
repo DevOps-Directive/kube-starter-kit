@@ -1,0 +1,40 @@
+{{- $hasClickhouseSecrets := false }}
+{{- $hasAuthorizedSecrets := false }}
+{{- if .Values.integrationsAgent.targets }}
+{{- if .Values.integrationsAgent.targets.clickhouseQueryLog }}
+  {{- range .Values.integrationsAgent.targets.clickhouseQueryLog }}
+    {{- if .passwordFromSecret }}
+      {{- if .passwordFromSecret.name }}
+        {{- $hasClickhouseSecrets = true }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.integrationsAgent.authorizedSecrets }}
+  {{- $hasAuthorizedSecrets = true }}
+{{- end }}
+{{ if or $hasClickhouseSecrets $hasAuthorizedSecrets }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "groundcover.fullname" . }}-integrations-agent
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.rbac.annotations }}
+{{ toYaml .Values.rbac.annotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if .Values.rbac.labels }}
+{{ toYaml .Values.rbac.labels | indent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "groundcover.fullname" . }}-integrations-agent
+subjects:
+- kind: ServiceAccount
+  name: integrations-agent
+  namespace: {{ .Release.Namespace }}
+{{ end -}}

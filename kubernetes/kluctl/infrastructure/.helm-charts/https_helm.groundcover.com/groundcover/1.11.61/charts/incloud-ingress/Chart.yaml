@@ -1,0 +1,25 @@
+apiVersion: v2
+appVersion: 0.1.0
+dependencies:
+- name: kong
+  repository: https://charts.konghq.com
+  tags:
+  - managed
+  version: 2.32.0
+- name: kong-crds
+  repository: file://../../../kong-crds
+  tags:
+  - managed
+  version: 2.32.0
+- condition: cert-manager.enabled
+  name: cert-manager
+  repository: https://charts.jetstack.io
+  version: 1.15.3
+- condition: cert-manager-crds.enabled
+  name: cert-manager-crds
+  repository: file://../../../cert-manager-crds
+  version: 1.15.1
+description: A Helm chart for Kubernetes
+name: incloud-ingress
+type: application
+version: 0.1.0

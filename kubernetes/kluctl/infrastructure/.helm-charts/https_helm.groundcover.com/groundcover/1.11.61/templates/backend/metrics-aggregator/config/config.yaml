@@ -1,0 +1,23 @@
+{{ if and .Values.global.metricsAggregator.enabled .Values.global.backend.enabled }}
+{{- $sensorValues := deepCopy .Values.metricsAggregator -}}
+{{- $sensorValues = mergeOverwrite $sensorValues (default (dict) .Values.global.metricsAggregator) -}}
+{{- $sensorValues = set $sensorValues "serviceName" "metrics-aggregator" -}}
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yaml: |
+{{ include "groundcover.sensor.config" (merge (dict "sensorValues" $sensorValues) .) | indent 4 }}
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if $sensorValues.additionalLabels }}
+{{ toYaml $sensorValues.additionalLabels | indent 4 }}
+    {{- end }}
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if $sensorValues.additionalAnnotations }}
+{{ toYaml $sensorValues.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: {{ include "metrics-aggregator.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+{{ end }}

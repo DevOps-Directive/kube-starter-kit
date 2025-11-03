@@ -1,0 +1,125 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: v1
+data:
+  config.yaml: |-
+
+    LogLevel: 4
+
+    Reverse: true
+    startuptimeout: 1m0s
+    MaxResponseSizeBytes: {{ .Values.portal.maxResponseSizeBytes }}
+
+    ClusterId: {{ template "groundcover.clusterId" . }}
+    MultipleClusterIds: 
+    {{- with .Values.multipleClusterIds }}{{ toYaml . | nindent 6 }}{{- end }}  
+    Autodiscovery: {{ or .Values.portal.autodiscovery (not (empty .Values.multipleClusterIds)) }}
+    GroundcoverVersion: "OVERRIDEN"
+
+    Incluster: true
+    Namespace: {{ .Release.Namespace }}
+    
+    Router:
+      Host: "{{ tpl .Values.saas.host . }}"
+      Port: "{{ tpl (print .Values.saas.port) . }}"
+      BasePath: "{{ .Values.saas.basePath }}"
+      Token: "OVERRIDEN"
+      WebsocketScheme: "{{ tpl .Values.saas.scheme . }}"
+      TLSSkipVerify: "{{ tpl (print .Values.saas.tls_skip_verify) . }}"
+      ExtraHeaders:
+    {{- if .Values.installationId }}
+        - Key: X-Portal-InstallationId
+          Value: {{ .Values.installationId }}
+    {{- end }}
+    {{- if .Values.tags.incloud }}
+        - Key: X-Portal-InCloud
+          Value: "True"
+    {{- end }}
+    {{- with .Values.portal.extraHeaders }}
+      {{ toYaml . | nindent 8 }}
+    {{- end }}  
+
+    DirectModeGRPCPort: "5555"
+
+    VictoriaMetrics:
+      URL: {{ include "victoria-metrics.read.http.url" . }}
+
+    ClickHouse:
+      Pass: "OVERRIDEN"
+      User: {{ include "clickhouse.username" . }}
+      Host: {{ include "clickhouse.fullname" . }}
+      Database: {{ include "clickhouse.database" . }}
+      HTTPPort: {{ .Values.global.clickhouse.containerPorts.http | int }}
+      NativePort: {{ .Values.global.clickhouse.containerPorts.tcp | int }}
+    
+    MonitorsManager:
+      Enabled: false
+      URL: "OVERRIDEN"
+      Username: "admin"
+      Password: "OVERRIDEN"
+
+    Workflows:
+      Enabled: false
+      URL: "OVERRIDEN"
+      APIKey: "OVERRIDEN"
+    
+    FleetManager:
+      Enabled: {{ .Values.global.fleetmanager.enabled}}
+      URL: {{ printf "http://%s:%d" (include "fleet-manager.fullname" .) (int .Values.fleetManager.manageHttpPort) }}
+    
+    {{- if eq (include "telemetry.enabled" .) "true" }}
+    Tracing:
+      Enabled: true
+      Endpoint: '{{ include "telemetry.traces.otlpUrl" . }}'
+      WriteTimeout: 5s
+      FlushInterval: 5s
+      BatchSize: 50
+      Headers:
+        apikey: "OVERRIDEN"
+    {{- end }}
+
+    BackendName: "{{ .Values.global.backend.name }}"
+
+    Pprof:
+      enabled: {{ include "telemetry.enabled" . }}
+      cpuSamplingDuration: {{ .Values.portal.pprof.cpuSamplingDuration }}
+      httpUploader:
+        enabled: {{ eq .Values.portal.pprof.uploaderType "http" }}
+        pushURL: {{ printf "%s/upload/pprof" (include "telemetry.metrics.base.url" .) }}
+      pyroscopeUploader:
+        enabled: {{ eq .Values.portal.pprof.uploaderType "pyroscope" }}
+        pushURL: {{ include "telemetry.metrics.base.url" . }}
+      backoffTicker:
+        interval: {{ .Values.portal.pprof.backoffTicker.interval }}
+        exponent: {{ .Values.portal.pprof.backoffTicker.exponent }}
+      memoryTicker:
+        enabled: {{ .Values.portal.pprof.memoryTicker.enabled }}
+        interval: {{ .Values.portal.pprof.memoryTicker.interval }}
+        jumpSizeInBytes: {{ .Values.portal.pprof.memoryTicker.jumpSizeInBytes }}
+        windowSize: {{ .Values.portal.pprof.memoryTicker.windowSize }}
+        initialWait: {{ .Values.portal.pprof.memoryTicker.initialWait }}
+      cpuTicker:
+        enabled: {{ .Values.portal.pprof.cpuTicker.enabled }}
+        interval: {{ .Values.portal.pprof.cpuTicker.interval }}
+        jumpSizeInMCPU: {{ .Values.portal.pprof.cpuTicker.jumpSizeInMCPU }}
+        windowSize: {{ .Values.portal.pprof.cpuTicker.windowSize }}
+        initialWait: {{ .Values.portal.pprof.cpuTicker.initialWait }}    
+
+    Kong:
+      Enabled: {{ include "backend.kong.enabled" . }}
+      Endpoint: {{ include "backend.kong.endpoint" . }}
+
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if .Values.portal.additionalLabels }}
+{{ toYaml .Values.portal.additionalLabels | indent 4 }}
+    {{- end }}
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.portal.additionalAnnotations }}
+{{ toYaml .Values.portal.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: {{ include "portal.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+{{ end -}}

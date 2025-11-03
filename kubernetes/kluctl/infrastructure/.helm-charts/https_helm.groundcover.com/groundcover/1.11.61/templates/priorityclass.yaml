@@ -1,0 +1,8 @@
+{{- if .Values.priorityClass.create}}
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ .Values.priorityClass.name | default ( include "groundcover.fullname" . ) }}
+preemptionPolicy: {{ .Values.priorityClass.preemptionPolicy }}
+value: {{ .Values.priorityClass.value }}
+{{- end }}

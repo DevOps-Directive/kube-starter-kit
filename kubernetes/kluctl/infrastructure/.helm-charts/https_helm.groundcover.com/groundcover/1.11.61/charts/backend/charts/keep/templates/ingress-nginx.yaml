@@ -1,0 +1,119 @@
+{{- if and .Values.global.ingress.enabled (or (eq .Values.global.ingress.className "nginx") (eq .Values.global.ingress.classType "nginx")) }}
+{{- $fullName := include "keep.fullname" . }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-ingress
+  labels:
+    {{- include "keep.labels" . | nindent 4 }}
+    app.kubernetes.io/component: networking
+  annotations:
+    {{- if or (eq .Values.global.ingress.className "nginx") (eq .Values.global.ingress.classType "nginx") }}
+    kubernetes.io/ingress.class: {{ .Values.global.ingress.className }}
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/use-http2: "false"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri ~* ^({{ .Values.global.ingress.websocketPrefix }}|{{ .Values.global.ingress.backendPrefix }}|{{ .Values.global.ingress.frontendPrefix }})(/|$)(.*)) {
+        rewrite ^({{ .Values.global.ingress.websocketPrefix }}|{{ .Values.global.ingress.backendPrefix }}|{{ .Values.global.ingress.frontendPrefix }})(/|$)(.*) /$3 break;
+      }
+    nginx.ingress.kubernetes.io/server-snippet: |
+      {{- if $.Values.websocket.enabled }}
+      location ^~ {{ .Values.global.ingress.websocketPrefix }} {
+        rewrite ^{{ .Values.global.ingress.websocketPrefix }}(/|$)(.*) /$2 break;
+        proxy_pass http://{{ $fullName }}-websocket.{{ .Release.Namespace }}.svc.cluster.local:{{ $.Values.websocket.service.port }};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_cache_bypass $http_upgrade;
+      }
+      {{- end }}
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    {{- end }}
+    {{- with .Values.global.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.global.ingress.className }}
+  {{- if .Values.global.ingress.tls }}
+  tls:
+    {{- range .Values.global.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .Values.global.ingress.hosts }}
+    {{- range .Values.global.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+        {{- if $.Values.websocket.enabled }}
+        - path: {{ $.Values.global.ingress.websocketPrefix }}(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: {{ $fullName }}-websocket
+              port:
+                number: {{ $.Values.websocket.service.port }}
+        {{- end }}
+        {{- if $.Values.backend.enabled }}
+        - path: {{ $.Values.global.ingress.backendPrefix }}(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: {{ $fullName }}-backend
+              port:
+                number: {{ $.Values.backend.service.port }}
+        {{- end }}
+        - path: {{ $.Values.global.ingress.frontendPrefix }}(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: {{ $fullName }}-frontend
+              port:
+                number: {{ $.Values.frontend.service.port }}
+    {{- end }}
+    {{- else }}
+    - http:
+        paths:
+        {{- if $.Values.websocket.enabled }}
+        - path: {{ $.Values.global.ingress.websocketPrefix }}(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: {{ $fullName }}-websocket
+              port:
+                number: {{ $.Values.websocket.service.port }}
+        {{- end }}
+        {{- if $.Values.backend.enabled }}
+        - path: {{ $.Values.global.ingress.backendPrefix }}(/|$)(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: {{ $fullName }}-backend
+              port:
+                number: {{ $.Values.backend.service.port }}
+        {{- end }}
+        - path: {{ $.Values.global.ingress.frontendPrefix }}(.*)
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: {{ $fullName }}-frontend
+              port:
+                number: {{ $.Values.frontend.service.port }}
+    {{- end }}
+{{- end }}

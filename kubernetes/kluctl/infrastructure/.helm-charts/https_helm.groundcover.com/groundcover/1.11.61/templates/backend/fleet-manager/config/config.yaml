@@ -1,0 +1,59 @@
+{{ if and .Values.global.fleetmanager.enabled .Values.global.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yaml: |
+    LogLevel: {{ .Values.fleetManager.logLevel }}
+    ManageHttpPort: {{ .Values.fleetManager.manageHttpPort }}
+    HealthProbePort: {{ .Values.fleetManager.healthProbePort }}
+    Pprof:
+      enabled: {{ include "telemetry.enabled" . }}
+      cpuSamplingDuration: {{ .Values.fleetManager.pprof.cpuSamplingDuration }}
+      httpUploader:
+        enabled: {{ eq .Values.fleetManager.pprof.uploaderType "http" }}
+        pushURL: {{ printf "%s/upload/pprof" (include "telemetry.metrics.base.url" .) }}
+      pyroscopeUploader:
+        enabled: {{ eq .Values.fleetManager.pprof.uploaderType "pyroscope" }}
+        pushURL: {{ include "telemetry.metrics.base.url" . }}
+      backoffTicker:
+        interval: {{ .Values.fleetManager.pprof.backoffTicker.interval }}
+        exponent: {{ .Values.fleetManager.pprof.backoffTicker.exponent }}
+      memoryTicker:
+        enabled: {{ .Values.fleetManager.pprof.memoryTicker.enabled }}
+        interval: {{ .Values.fleetManager.pprof.memoryTicker.interval }}
+        jumpSizeInBytes: {{ .Values.fleetManager.pprof.memoryTicker.jumpSizeInBytes }}
+        windowSize: {{ .Values.fleetManager.pprof.memoryTicker.windowSize }}
+        initialWait: {{ .Values.fleetManager.pprof.memoryTicker.initialWait }}
+      cpuTicker:
+        enabled: {{ .Values.fleetManager.pprof.cpuTicker.enabled }}
+        interval: {{ .Values.fleetManager.pprof.cpuTicker.interval }}
+        jumpSizeInMCPU: {{ .Values.fleetManager.pprof.cpuTicker.jumpSizeInMCPU }}
+        windowSize: {{ .Values.fleetManager.pprof.cpuTicker.windowSize }}
+        initialWait: {{ .Values.fleetManager.pprof.cpuTicker.initialWait }}    
+    configManager:
+      db: 
+        host: {{ tpl .Values.fleetManager.configManager.db.host . }}
+        port: {{ tpl .Values.fleetManager.configManager.db.port . }}
+        name: {{ .Values.fleetManager.configManager.db.name }}
+        user: {{ .Values.fleetManager.configManager.db.user }}
+        pass: {{ tpl .Values.fleetManager.configManager.db.pass . }}
+        timeout: {{ .Values.fleetManager.configManager.db.timeout }}
+        interval: {{ .Values.fleetManager.configManager.db.interval }}
+        sslmode: {{ .Values.fleetManager.configManager.db.sslmode }}
+      skipMigrations: {{ .Values.fleetManager.configManager.skipMigrations }}
+      migrationsPath: {{ .Values.fleetManager.configManager.migrationsPath }}
+      cacheRefreshInterval: {{ .Values.fleetManager.configManager.cacheRefreshInterval }}
+metadata:
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    {{- if .Values.fleetManager.additionalLabels }}
+{{ toYaml .Values.fleetManager.additionalLabels | indent 4 }}
+    {{- end }}
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.fleetManager.additionalAnnotations }}
+{{ toYaml .Values.fleetManager.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: fleet-manager-config
+  namespace: {{ .Release.Namespace }}
+{{ end }}

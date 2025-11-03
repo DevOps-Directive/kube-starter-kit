@@ -1,0 +1,6 @@
+helmChart:
+  repo: https://helm.groundcover.com
+  chartName: groundcover
+  chartVersion: 1.11.61
+  releaseName: groundcover
+  namespace: groundcover

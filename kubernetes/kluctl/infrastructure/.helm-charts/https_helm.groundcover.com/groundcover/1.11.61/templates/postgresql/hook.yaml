@@ -1,0 +1,78 @@
+{{ if and .Values.global.backend.enabled .Values.global.postgresql.enabled (index .Values "statefulset-modifier" "enabled")}}
+{{- $shouldPatchPvc := true -}}
+{{- $shouldPatchAnnotations := true -}}
+{{- $shouldPatchSize := (index .Values "statefulset-modifier" "sizePatches") -}}
+{{- $pvcSize := index .Values "backend" "postgresql" "primary" "persistence" "size" -}}
+{{- $annotations := (index .Values "backend" "postgresql" "primary" "persistence" "annotations") | toJson -}}
+{{- $patches := (include "volume-expansion.patches" (index .Values "backend" "postgresql" "primary" "persistence")) | fromYaml -}}
+{{- $sizePatches := (include "volume-expansion.size-patches" (merge (dict "size" $pvcSize) $.Values.backend.postgresql.primary.persistence) ) | fromYaml -}}
+{{- $annotationsPatches := (include "volume-expansion.annotations-patches"  $.Values.backend.postgresql.primary.persistence) | fromYaml -}}
+{{- $sizePvcPatch := (get $sizePatches "pvc") | toJson -}}
+{{- $sizeStsPatch := (get $sizePatches "sts") | toJson -}}
+{{- $annotationsPvcPatch := (get $annotationsPatches "pvc") | toJson -}}
+{{- $annotationsStsPatch := (get $annotationsPatches "sts") | toJson -}}
+{{- $pvcPatch := (get $patches "pvc") | toJson -}}
+{{- $stsPatch := (get $patches "sts") | toJson -}}
+{{- $name := (printf "%s-psql" (include "statefulset-modifier.fullname" $)) -}}
+{{- $stsName := (include "postgresql.primary.fullname" .) -}}
+{{- $pvcName := (printf "data-%s-0" $stsName) -}}
+{{ if $.Release.IsUpgrade }}
+{{- $pvc := (lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $pvcName | default dict) -}}
+{{- $pvcCapacitySize := ($pvc | dig "status" "capacity" "storage" $pvcSize) -}}
+{{- $sts := (lookup "apps/v1" "StatefulSet" $.Release.Namespace $stsName | default dict) -}}
+{{- $stsPvcSize := ($sts | dig "spec" "volumeClaimTemplates" (list dict) | first | dig "spec" "resources" "requests" "storage" $pvcSize) -}}
+{{- $stsPvcAnnotations := ($sts | dig "spec" "volumeClaimTemplates" (list dict) | first | dig "metadata" "annotations" dict) | toJson -}}
+{{- $shouldPatchPvc = (not (eq $pvcSize $pvcCapacitySize)) -}}
+{{- $shouldPatchAnnotations = (not (eq $stsPvcAnnotations $annotations)) -}}
+{{- end -}}
+{{ if or (and $shouldPatchPvc $shouldPatchSize) $shouldPatchAnnotations }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  labels:
+  annotations:
+  {{- include "statefulset-modifier.job.annotations" $ | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      name: {{ $name }}
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: {{ include "imagePullSecrets" $ }}
+      serviceAccountName: {{ include "statefulset-modifier.fullname" $ }}
+      containers:
+      - name: sts-delete
+        imagePullPolicy: IfNotPresent
+        image: {{ include "statefulset-modifier.job.image" $ }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl delete sts {{ $stsName | quote }} --ignore-not-found --cascade=orphan
+{{ if and $shouldPatchPvc $shouldPatchSize }}
+      - name: pvc-patch
+        imagePullPolicy: IfNotPresent
+        image: {{ include "statefulset-modifier.job.image" $ }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl patch pvc {{ $pvcName | quote }} --type json --patch {{ $pvcPatch | quote }} || exit 0
+{{ else if $shouldPatchAnnotations }}
+      - name: pvc-patch
+        imagePullPolicy: IfNotPresent
+        image: {{ include "statefulset-modifier.job.image" $ }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl patch pvc {{ $pvcName | quote }} --type json --patch {{ $annotationsPvcPatch | quote }} || exit 0
+{{- end -}}
+{{- end -}}
+{{- end -}}

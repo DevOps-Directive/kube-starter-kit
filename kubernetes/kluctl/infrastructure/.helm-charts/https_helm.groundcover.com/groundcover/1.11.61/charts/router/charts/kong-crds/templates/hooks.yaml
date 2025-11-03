@@ -1,0 +1,36 @@
+
+{{- if .Values.upgradeCRDs }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kong-crds.fullname" . }}
+  labels:
+  annotations:
+  {{- include "kong-crds.job.annotations" . | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      name: {{ include "kong-crds.fullname" . }}
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: {{ .Values.imagePullSecrets | toJson }}
+      serviceAccountName: {{ include "kong-crds.fullname" . }}
+      containers:
+      - name: apply-crds
+        imagePullPolicy: IfNotPresent
+        image: {{ include "kong-crds.job.image" . }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl apply -f /crds/*.yaml
+        volumeMounts:
+          - name: crds
+            mountPath: /crds
+      volumes:
+        - name: crds
+          configMap:
+            name: {{ include "kong-crds.fullname" . }}
+{{- end }}

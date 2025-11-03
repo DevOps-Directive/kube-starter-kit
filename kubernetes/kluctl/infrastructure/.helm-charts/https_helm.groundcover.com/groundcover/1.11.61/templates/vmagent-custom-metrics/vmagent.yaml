@@ -1,0 +1,9 @@
+{{ if (index .Values "victoria-metrics-operator" "builtinVMAgent" "enabled") }}
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  name: {{ template "groundcover.fullname" . }}
+  namespace: {{ .Release.namespace }}
+spec:
+{{ tpl (toYaml (index .Values "victoria-metrics-operator" "builtinVMAgent" "spec")) . | indent 2 }}
+{{ end }}

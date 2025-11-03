@@ -1,0 +1,81 @@
+{{- if and .Values.global.postgresql.enabled .Values.postgresql.jobs.createKeepUser.enabled .Values.global.postgresql.overrideUrl }}
+{{- $name := (printf "%s-keep-user" (include "postgresql.primary.fullname" $)) -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    {{- with .Values.postgresql.jobs.createKeepUser.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}  
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets: {{ include "imagePullSecrets" $ }}
+
+      initContainers:
+      - name: wait-for-db
+        image: '{{ include "postgresql.image" . }}'
+        env:
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: '{{ include "postgresql.secretName" . }}'
+                key: '{{ include "postgresql.adminPasswordKey" . }}'
+          - name: PGHOST
+            value: '{{ splitList ":" (include "postgresql.base.url" .) | first }}'
+          - name: PGPORT
+            value: '{{ splitList ":" (include "postgresql.base.url" .) | last }}'
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -eu
+            . /opt/bitnami/scripts/libautoctl.sh
+            wait_until_can_connect "postgres://postgres:${PGPASSWORD}@${PGHOST}:${PGPORT}/postgres"
+      containers:
+      - name: psql
+        image: '{{ include "postgresql.image" . }}'
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -eu 
+
+            cat > /tmp/11-create-keep-user.sh << 'EOF'
+            {{- tpl (index .Values.postgresql.primary.initdb.scripts "11-create-keep-user.sh") . | nindent 12 }}
+            EOF
+
+            chmod +x /tmp/11-create-keep-user.sh
+            /tmp/11-create-keep-user.sh
+        env:
+          - name: POSTGRES_KEEP_USER
+            valueFrom:
+              secretKeyRef:
+                optional: true
+                name: keep-postgres
+                key: username
+          - name: POSTGRES_KEEP_DB
+            valueFrom:
+              secretKeyRef:
+                optional: true
+                name: keep-postgres
+                key: database
+          - name: POSTGRES_KEEP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                optional: true
+                name: keep-postgres
+                key: password
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: '{{ include "postgresql.secretName" . }}'
+                key: '{{ include "postgresql.adminPasswordKey" . }}'
+          - name: INITDB_PGHOST
+            value: '{{ splitList ":" (include "postgresql.base.url" .) | first }}'
+          - name: INITDB_PGPORT
+            value: '{{ splitList ":" (include "postgresql.base.url" .) | last }}'
+{{ end -}}

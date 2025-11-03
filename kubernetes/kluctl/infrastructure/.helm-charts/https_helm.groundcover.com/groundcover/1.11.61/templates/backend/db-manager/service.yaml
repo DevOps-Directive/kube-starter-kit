@@ -1,0 +1,27 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    {{- if .Values.dbManager.additionalAnnotations }}
+{{ toYaml .Values.dbManager.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: db-manager
+    app.kubernetes.io/name: db-manager
+    {{- if .Values.dbManager.additionalLabels }}
+{{ toYaml .Values.dbManager.additionalLabels | indent 4 }}
+    {{- end }}
+  name: db-manager
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: http
+    port: 8888
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: db-manager
+  type: ClusterIP
+{{ end -}}
