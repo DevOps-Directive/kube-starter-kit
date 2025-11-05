@@ -5,10 +5,9 @@
 # export MISE_EXPERIMENTAL=1
 # alias m="mise"
 # alias ml="mise task ls"
-# alias mla="mise run //:mise-list-all --search-string"
+# alias mla="mise run //:mise-fzf"
 # 
-## the mta alias allows me to list all available tasks and filter using a string
-## $ mta foo # returns all tasks containing foo
+## the mla alias allows me to search within all available tasks
 #############################################
 
 # https://mise.jdx.dev/tasks/monorepo.html
@@ -20,25 +19,42 @@ yq = "4"
 jq = "1"
 aws-cli = "2"
 "aqua:aws/session-manager-plugin" = "1"
+kind = "0.30"
+tilt = "0.35"
+fzf = "latest"
 
-[tasks.mise-list-all]
-description = "[Mise Task All] Filter mise tasks with grep; empty string shows all"
-usage = '''
-flag "--search-string <string>" help="String to filter tasks by (can be empty)"
-'''
+[tasks.mise-fzf]
+description = "[Mise] Pick one task; print it and copy the run command"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
 
-SEARCH_STRING="${usage_search_string-}"  # allow empty
+LIST_CMD=(mise task ls --all)
 
-# Default to literal match; override with GREP_FLAGS='-E', '-Fi', etc.
-GREP_FLAGS="${GREP_FLAGS:--F}"
+SEL="$("${LIST_CMD[@]}" \
+  | fzf --no-multi --height=90% --border --prompt='task> ' \
+        --select-1 --exit-0)"
 
-if [ -z "$SEARCH_STRING" ]; then
-  mise task --all
-else
-  # Don't fail the task on no matches
-  mise task ls --all | grep ${GREP_FLAGS} -- "$SEARCH_STRING" || true
+[ -n "${SEL:-}" ] || exit 0
+
+# First token only = task name
+TASK="$(awk '{print $1; exit}' <<< "$SEL")"
+
+# Build the runnable command
+CMD=$(printf 'mise run %q' "$TASK")
+
+echo "$CMD"
+
+copy_to_clipboard() {
+  if command -v pbcopy >/dev/null 2>&1; then
+    pbcopy
+  # TODO: add support for linux clipboard tools
+  else
+    return 1
+  fi
+}
+
+if copy_to_clipboard <<< "$CMD"; then
+  echo "(^ copied to clipboard)"
 fi
 '''

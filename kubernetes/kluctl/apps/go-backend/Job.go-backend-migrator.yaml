@@ -24,5 +24,10 @@ spec:
               "$(DATABASE_URL)",
             ]
           env:
+            # - name: DATABASE_URL
+            #   value: "postgresql://app:0K8xJ9mKqljmwUHpIX5jpuoZHFmJVNnYvoOHOxai04GYUE0mPXp9MXbaRnJGc37C@go-backend-pg-rw.apps.svc.cluster.local:5432/app"
             - name: DATABASE_URL
-              value: "postgresql://app:0K8xJ9mKqljmwUHpIX5jpuoZHFmJVNnYvoOHOxai04GYUE0mPXp9MXbaRnJGc37C@go-backend-pg-rw.apps.svc.cluster.local:5432/app"
+              valueFrom:
+                secretKeyRef:
+                  name: go-backend-pg-app
+                  key: uri

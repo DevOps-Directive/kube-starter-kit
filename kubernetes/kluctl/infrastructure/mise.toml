@@ -1,4 +1,6 @@
 [tasks]
 deploy-staging = "kluctl deploy -t staging --prune"
 deploy-staging-auto-approve = "kluctl deploy -t staging -y --prune"
+deploy-kind = "kluctl deploy -t kind --prune"
+deploy-kind-auto-approve = "kluctl deploy -t kind -y --prune"
 helm-pull = "kluctl helm-pull"

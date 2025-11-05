@@ -1,0 +1,17 @@
+
+
+[tasks.create-cluster]
+description = "Create KinD development cluster"
+run = '''
+kind create cluster --config ./kind/cluster-config.yaml
+./kind/create-local-registry.sh
+'''
+
+[tasks.delete-cluster]
+description = "Delete KinD development cluster"
+run = '''
+kind delete cluster
+'''
+
+[tasks.tilt-up]
+run = "tilt up --file ./tilt/Tiltfile"
