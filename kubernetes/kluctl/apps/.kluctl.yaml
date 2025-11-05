@@ -3,19 +3,16 @@ targets:
   - name: kind
     args:
       cluster_name: kind
-    # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
     context: kind-kind
 
   - name: staging
     args:
       cluster_name: staging
-    # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
     context: staging
 
   # - name: production
   #   args:
   #     cluster_name: production
-  #   # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
   #   context: gke_kubernetes-course-424917_us-central1-a_devops-directive-kubernetes-course-2
 
 args:

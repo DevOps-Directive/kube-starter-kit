@@ -7,10 +7,8 @@ spec:
   instances: 1
   storage:
     size: 1Gi
-    # TODO:  template this
-    # storageClass: ebs-gp3-encrypted
-    storageClass: standard
+    storageClass: {{goBackend.db.storageClass}}
   superuserSecret:
     name: go-backend-db-superuser
   # TODO: ensure this matches the local postgres version
-  image: ghcr.io/cloudnative-pg/postgresql:17.5
+  image: {{goBackend.db.image}}
