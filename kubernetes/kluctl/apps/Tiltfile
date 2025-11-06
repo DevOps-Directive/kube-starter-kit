@@ -1,38 +1,5 @@
-docker_build(
-  '857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend', 
-  '../../../services/go-backend'
-)
-
-docker_build(
-  '857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations', 
-  '../../../services/go-backend/migrations'
-)
-
-# https://docs.tilt.dev/custom_resource.html#using-k8s_custom_deploy
 k8s_yaml(local(
-  'mise exec -- kluctl render -t kind --print-all'
+  'mise exec -- kluctl render -t kind --include-tag kind --print-all'
 ))
 
-k8s_resource(
-    new_name='go-backend-db',
-    objects=['go-backend-pg:cluster'], 
-    resource_deps=['cloudnative-pg-wait'], 
-    extra_pod_selectors=[{
-      'cnpg.io/cluster': 'go-backend-pg', 
-      'cnpg.io/podRole': 'instance'} # avoid selecting the initdb job
-    ],
-    labels=['go-backend']
-)
-local_resource('go-backend-db-wait', 
-  cmd='kubectl wait --namespace apps --for=condition=ready cluster go-backend-pg',
-  resource_deps=['go-backend-db'],
-  labels=['go-backend']
-)
-k8s_resource('go-backend', 
-  port_forwards=8080,
-  resource_deps=['go-backend-db-wait'],
-  labels=['go-backend'])
-k8s_resource('go-backend-migrate',
-  resource_deps=['go-backend-db-wait'],
-  labels=['go-backend']
-)
+include('./go-backend/Tiltfile')

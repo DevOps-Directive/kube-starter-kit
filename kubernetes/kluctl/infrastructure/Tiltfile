@@ -1,18 +1,5 @@
-# https://docs.tilt.dev/custom_resource.html#using-k8s_custom_deploy
-# k8s_custom_deploy(
-#   name='infrastructure',
-#   apply_dir='./',
-#   apply_cmd=[
-#     'mise','run','//kubernetes/kluctl/infrastructure:kluctl-deploy-render'
-#   ],
-#   delete_cmd=['echo', 'foo'],
-#   deps=[],
-#   set=['build.id=%s' % 'blah'])
-# )
-
-# https://docs.tilt.dev/custom_resource.html#using-k8s_custom_deploy
 k8s_yaml(local(
-  'mise exec -- kluctl render -t kind --print-all'
+  'mise exec -- kluctl render -t kind --include-tag kind --print-all'
 ))
 
 k8s_resource('cert-manager', 
@@ -95,12 +82,12 @@ k8s_resource('cloudnative-pg',
     'cnpg-default-monitoring:configmap'
   ],
   resource_deps=['cert-manager'], 
-  labels=['cnpg']
+  labels=['cloudnative-pg']
 )
 local_resource('cloudnative-pg-wait', 
   cmd='kubectl wait --namespace cnpg-system --for=condition=ready pod -l app.kubernetes.io/instance=cloudnative-pg --timeout=120s',
   resource_deps=['cloudnative-pg'],
-  labels=['cnpg']
+  labels=['cloudnative-pg']
 )
 k8s_kind('clusters.postgresql.cnpg.io', 
   image_json_path='{.spec.imageName}',

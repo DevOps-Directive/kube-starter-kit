@@ -21,9 +21,6 @@ spec:
         - name: go-backend
           image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:foo
           env:
-            # - name: DATABASE_URL
-            #   # TODO: Load password from secret
-            #   value: "postgresql://app:0K8xJ9mKqljmwUHpIX5jpuoZHFmJVNnYvoOHOxai04GYUE0mPXp9MXbaRnJGc37C@go-backend-pg-rw.apps.svc.cluster.local:5432/app"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
