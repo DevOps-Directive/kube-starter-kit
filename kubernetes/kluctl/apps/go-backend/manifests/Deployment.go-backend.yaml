@@ -22,8 +22,10 @@ spec:
           image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:foo
           env:
             - name: DATABASE_URL
-              # TODO: Load password from secret
-              value: "postgresql://app:0K8xJ9mKqljmwUHpIX5jpuoZHFmJVNnYvoOHOxai04GYUE0mPXp9MXbaRnJGc37C@go-backend-pg-rw.apps.svc.cluster.local:5432/app"
+              valueFrom:
+                secretKeyRef:
+                  name: go-backend-pg-app
+                  key: uri
             # TODO: load from configmap/secret
             - name: OTEL_EXPORTER_OTLP_ENDPOINT # gRPC
               value: grafana-k8s-monitoring-alloy-receiver.monitoring:4317

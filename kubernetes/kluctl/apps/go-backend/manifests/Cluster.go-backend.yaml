@@ -7,6 +7,8 @@ spec:
   instances: 1
   storage:
     size: 1Gi
-    storageClass: ebs-gp3-encrypted
+    storageClass: {{goBackend.db.storageClass}}
   superuserSecret:
     name: go-backend-db-superuser
+  # TODO: ensure this matches the local postgres version
+  image: {{goBackend.db.image}}

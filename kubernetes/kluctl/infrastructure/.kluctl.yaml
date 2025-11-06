@@ -1,5 +1,20 @@
 # .kluctl.yaml
 targets:
+  - name: kind
+    args:
+      cluster_name: kind
+      install_karpenter: false
+      install_ingress_nginx: true
+      install_envoy_gateway: false
+      install_ebs_csi_driver: false
+      install_external_dns: false
+      install_external_secrets_operator: false
+      install_groundcover: false
+      install_argo_rollouts: false
+      install_kargo: false
+    # Adding a context to .kluctl.yaml helps prevent accidentally deploying to the wrong cluster!
+    context: kind-kind
+
   - name: staging
     args:
       cluster_name: staging
@@ -22,6 +37,20 @@ args:
   - name: install_istio
     default: false
   - name: install_envoy_gateway
+    default: true
+  - name: install_karpenter
+    default: true
+  - name: install_ebs_csi_driver
+    default: true
+  - name: install_external_dns
+    default: true
+  - name: install_external_secrets_operator
+    default: true
+  - name: install_groundcover
+    default: true
+  - name: install_argo_rollouts
+    default: true
+  - name: install_kargo
     default: true
 
 # Without a discriminator, pruning won't work. Make sure the rendered result is unique on the target cluster
