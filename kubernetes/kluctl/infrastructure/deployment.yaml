@@ -33,6 +33,8 @@ deployments:
     when: args.install_external_secrets_operator
   - path: ingress-nginx
     when: args.install_ingress_nginx
+    tags:
+      - kind
   - include: argo-rollouts
     when: args.install_argo_rollouts
   - include: kargo

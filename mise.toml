@@ -22,6 +22,7 @@ aws-cli = "2"
 kind = "0.30"
 tilt = "0.35"
 fzf = "latest"
+"github:kubernetes-sigs/cloud-provider-kind" = "0.9"
 
 [tasks.mise-fzf]
 description = "[Mise] Pick one task; print it and copy the run command"

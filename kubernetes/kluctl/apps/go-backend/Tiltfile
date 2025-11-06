@@ -25,7 +25,14 @@ local_resource('go-backend-db-wait',
 )
 k8s_resource('go-backend', 
   port_forwards=8080,
-  resource_deps=['go-backend-db-wait'],
+  objects=[
+    'minimal-nginx:ingress',
+    'minimal-istio:ingress'
+  ],
+  resource_deps=[
+    'go-backend-db-wait',
+    'ingress-nginx-wait'
+  ],
   labels=['go-backend'])
 k8s_resource('go-backend-migrate',
   resource_deps=['go-backend-db-wait'],

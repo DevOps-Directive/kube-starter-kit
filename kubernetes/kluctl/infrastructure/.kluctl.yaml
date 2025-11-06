@@ -4,7 +4,7 @@ targets:
     args:
       cluster_name: kind
       install_karpenter: false
-      install_ingress_nginx: false
+      install_ingress_nginx: true
       install_envoy_gateway: false
       install_ebs_csi_driver: false
       install_external_dns: false

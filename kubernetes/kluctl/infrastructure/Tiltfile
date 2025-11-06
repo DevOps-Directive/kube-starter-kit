@@ -2,44 +2,23 @@ k8s_yaml(local(
   'mise exec -- kluctl render -t kind --include-tag kind --print-all'
 ))
 
+################ CERT MANAGER #################
 k8s_resource('cert-manager', 
-  objects=[
-    'cert-manager:namespace',
-    'cert-manager-webhook:mutatingwebhookconfiguration', 
-    'cert-manager-webhook:validatingwebhookconfiguration',
-    # CRDs
-    'certificaterequests.cert-manager.io',
-    'certificates.cert-manager.io',
-    'challenges.acme.cert-manager.io',
-    'clusterissuers.cert-manager.io',
-    'issuers.cert-manager.io',
-    'orders.acme.cert-manager.io',
-    # Namespace scoped resources 
-    'cert-manager-cainjector:serviceaccount',
-    'cert-manager:serviceaccount',
-    'cert-manager-cainjector\\:leaderelection:role',
-    'cert-manager\\:leaderelection:role',
-    'cert-manager-tokenrequest:role',
-    'cert-manager-startupapicheck\\:create-cert:role',
-    'cert-manager-cainjector\\:leaderelection:rolebinding',
-    'cert-manager\\:leaderelection:rolebinding',
-    'cert-manager-tokenrequest:rolebinding',
-    'cert-manager-startupapicheck\\:create-cert:rolebinding'
-  ],
   labels=['cert-manager']
 )
-k8s_resource('cert-manager-webhook', 
+k8s_resource('cert-manager-webhook',  
   objects=[
-    'cert-manager-webhook:serviceaccount',
-    'cert-manager-webhook\\:dynamic-serving:role',
-    'cert-manager-webhook\\:dynamic-serving:rolebinding'
-  ], 
+    'cert-manager-webhook:mutatingwebhookconfiguration', 
+    'cert-manager-webhook:validatingwebhookconfiguration'
+  ],
+  resource_deps=['cert-manager'],
   labels=['cert-manager']
 )
 local_resource('cert-manager-webhook-wait', 
   cmd='kubectl wait --namespace cert-manager --for=condition=ready pod -l app.kubernetes.io/component=webhook --timeout=120s',
   resource_deps=['cert-manager-webhook'],
-  labels=['cert-manager']
+  labels=['cert-manager'],
+  allow_parallel=True
 )
 k8s_resource(
   new_name='cert-manager-resources', 
@@ -48,38 +27,23 @@ k8s_resource(
     'letsencrypt-staging-dns:clusterissuer',
     'selfsigned:clusterissuer'
   ], 
+  # These need the webhook pod to be ready
   resource_deps=['cert-manager-webhook-wait'],
   labels=['cert-manager']
 )
 k8s_resource('cert-manager-startupapicheck', 
-  objects=['cert-manager-startupapicheck:serviceaccount'], 
   labels=['cert-manager']
 )
 k8s_resource('cert-manager-cainjector', 
-  objects=[], 
   labels=['cert-manager']
 )
+################ END CERT MANAGER #################
 
-
-###
+################ CLOUDNATIVE-PG #################
 k8s_resource('cloudnative-pg', 
   objects=[
-    'cnpg-system:namespace',
-    'cloudnative-pg:serviceaccount',
     'cnpg-mutating-webhook-configuration:mutatingwebhookconfiguration', 
     'cnpg-validating-webhook-configuration:validatingwebhookconfiguration',
-    'backups.postgresql.cnpg.io',
-    'clusterimagecatalogs.postgresql.cnpg.io',
-    'clusters.postgresql.cnpg.io',
-    'databases.postgresql.cnpg.io',
-    'failoverquorums.postgresql.cnpg.io',
-    'imagecatalogs.postgresql.cnpg.io',
-    'poolers.postgresql.cnpg.io',
-    'publications.postgresql.cnpg.io',
-    'scheduledbackups.postgresql.cnpg.io',
-    'subscriptions.postgresql.cnpg.io',
-    'cnpg-controller-manager-config:configmap',
-    'cnpg-default-monitoring:configmap'
   ],
   resource_deps=['cert-manager'], 
   labels=['cloudnative-pg']
@@ -87,10 +51,24 @@ k8s_resource('cloudnative-pg',
 local_resource('cloudnative-pg-wait', 
   cmd='kubectl wait --namespace cnpg-system --for=condition=ready pod -l app.kubernetes.io/instance=cloudnative-pg --timeout=120s',
   resource_deps=['cloudnative-pg'],
-  labels=['cloudnative-pg']
+  labels=['cloudnative-pg'],
+  allow_parallel=True
 )
 k8s_kind('clusters.postgresql.cnpg.io', 
   image_json_path='{.spec.imageName}',
   pod_readiness='wait'
 )
+################ END CLOUDNATIVE-PG #################
 
+################ INGRESS-NGINX #################
+k8s_resource('ingress-nginx-controller', 
+  labels=['ingress-nginx']
+)
+
+local_resource('ingress-nginx-wait',
+  cmd='kubectl wait --namespace ingress-nginx --for=condition=ready pod -l app.kubernetes.io/instance=ingress-nginx --timeout=120s',
+  resource_deps=['ingress-nginx-controller'],
+  labels=['ingress-nginx'],
+  allow_parallel=True
+)
+################ END INGRESS-NGINX #################

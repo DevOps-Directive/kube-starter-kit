@@ -2,3 +2,5 @@
 include('../../kubernetes/kluctl/infrastructure/Tiltfile')
 
 include('../../kubernetes/kluctl/apps/Tiltfile')
+
+k8s_yaml('../kind/Service.dockerhost.yaml')

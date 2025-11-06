@@ -7,6 +7,11 @@ kind create cluster --config ./kind/cluster-config.yaml
 ./kind/create-local-registry.sh
 '''
 
+[tasks.cloud-provider-kind]
+run = 'sudo cloud-provider-kind'
+# Note: Running as container on host network doesn't create address, but running on kind network doesn't allow connecting to it
+# run = 'docker run --rm --network host -v /var/run/docker.sock:/var/run/docker.sock registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.9.0'
+
 [tasks.delete-cluster]
 description = "Delete KinD development cluster"
 run = '''
@@ -15,3 +20,5 @@ kind delete cluster
 
 [tasks.tilt-up]
 run = "tilt up --file ./tilt/Tiltfile"
+
+# TODO: Use tmux to run + stop tilt & cloud-provider-kind together
