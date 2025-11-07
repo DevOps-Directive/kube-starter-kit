@@ -1,0 +1,5 @@
+{
+  "services/container-only-dummy": "0.0.1",
+  "services/go-backend": "0.0.2",
+  "services/go-backend/migrator": "0.0.2"
+}
