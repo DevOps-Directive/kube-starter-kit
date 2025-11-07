@@ -19,7 +19,7 @@
   "plugins": [
     {
       "type": "linked-versions",
-      "groupName": "apis-and-db",
+      "groupName": "go-backend-and-migrations",
       "components": [
         "services/go-backend",
         "services/go-backend/migrations"
