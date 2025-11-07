@@ -6,13 +6,7 @@ deployments:
   # after initial install, the barrier can be removed to enable parallel applies
   # - barrier: true
   - include: cert-manager
-    tags:
-      - kind
-      - cert-manager
   - include: cloudnative-pg
-    tags:
-      - kind
-      - cloudnative-pg
   - include: envoy-gateway
     when: args.install_envoy_gateway
   - path: ebs-csi-driver
@@ -33,8 +27,6 @@ deployments:
     when: args.install_external_secrets_operator
   - path: ingress-nginx
     when: args.install_ingress_nginx
-    tags:
-      - kind
   - include: argo-rollouts
     when: args.install_argo_rollouts
   - include: kargo

@@ -1,5 +1,5 @@
 k8s_yaml(local(
-  'mise exec -- kluctl render -t kind --include-tag kind --print-all'
+  'mise exec -- kluctl render -t kind --print-all'
 ))
 
 include('./go-backend/Tiltfile')

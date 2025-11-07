@@ -1,9 +1,4 @@
 deployments:
   - path: pre-deploy
-    tags:
-      - kind
   - barrier: true
   - include: go-backend
-    tags:
-      - kind
-      - go-backend
