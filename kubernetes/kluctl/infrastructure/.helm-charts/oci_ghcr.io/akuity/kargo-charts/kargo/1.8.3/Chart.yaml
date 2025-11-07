@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: v1.8.0
+appVersion: v1.8.3
 description: Kargo
 maintainers:
 - email: kent@akuity.io
@@ -10,4 +10,4 @@ name: kargo
 sources:
 - https://github.com/akuity/kargo
 type: application
-version: 1.8.0
+version: 1.8.3
