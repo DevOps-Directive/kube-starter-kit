@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend-no-migrations@0.2.0...services/go-backend-no-migrations@0.3.0) (2025-11-10)
+
+
+### Features
+
+* add k8s, kargo, and tilt resources ([#36](https://github.com/DevOps-Directive/kube-starter-kit/issues/36)) ([b623bb3](https://github.com/DevOps-Directive/kube-starter-kit/commit/b623bb34b60ad5c338abf275c2431bda82b91e6d))
+
 ## [0.2.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend-no-migrations@0.1.0...services/go-backend-no-migrations@0.2.0) (2025-11-10)
 
 
