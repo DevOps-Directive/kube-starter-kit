@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.1.1...services/go-backend/migrations@0.2.0) (2025-11-10)
+
+
+### Features
+
+* empty commit ([844dd10](https://github.com/DevOps-Directive/kube-starter-kit/commit/844dd10b1eb0522253c53f4443ee73c4b8b1d525))
+
 ## [0.1.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.1.0...services/go-backend/migrations@0.1.1) (2025-11-10)
 
 
