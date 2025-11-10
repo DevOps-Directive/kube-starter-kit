@@ -16,6 +16,7 @@ on:
         required: true
         options:
           - services/go-backend
+          - services/go-backend-no-migrations
       version:
         description: "Version/tag to use (optional; defaults generating with git describe)"
         required: false
