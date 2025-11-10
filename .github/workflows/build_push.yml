@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       services: ${{ steps.set-output.outputs.services }}
+      tagType: ${{ steps.set-output.outputs.tagType }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
         if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
@@ -45,14 +46,17 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo 'services=["${{ inputs.service }}"]' >> "$GITHUB_OUTPUT"
+            echo 'tagType=manual' >> "$GITHUB_OUTPUT"
 
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             tag="${GITHUB_REF_NAME}"        # e.g. service-a@1.2.3
             svc="${tag%%@*}"
             echo "services=[\"$svc\"]" >> "$GITHUB_OUTPUT"
+            echo 'tagType=release' >> "$GITHUB_OUTPUT"
 
           else # push to main
             echo 'services=${{ steps.filter.outputs.changes }}' >> "$GITHUB_OUTPUT"
+            echo 'tagType=pre-release' >> "$GITHUB_OUTPUT"
           fi
 
   build-push-container-images:
@@ -97,12 +101,13 @@ jobs:
         env:
           INPUT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
           SERVICE: ${{ matrix.service }}
+          TAG_TYPE: ${{ needs.filter.outputs.tagType }}
         shell: bash
         run: |
           if [[ -n "$INPUT_VERSION" ]]; then
             version=$INPUT_VERSION
             image_tag=$(mise run //tools:manual-version-tag "$INPUT_VERSION")
-          elif [[ "$ENVIRONMENT" == "production" ]]; then
+          elif [[ "$TAG_TYPE" == "release" ]]; then
             version=$(mise run //tools:generate-version -- "$SERVICE")
             image_tag=$(mise run //tools:generate-version-tag -- "$SERVICE")
           else
