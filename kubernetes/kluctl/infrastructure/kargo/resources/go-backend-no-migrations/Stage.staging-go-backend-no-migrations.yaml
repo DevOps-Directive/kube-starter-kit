@@ -11,6 +11,11 @@ spec:
       steps:
         - task:
             name: update-image
+          vars:
+            - name: image
+              value: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend-no-migrations
+            - name: updateImagePath
+              value: ./src/kubernetes/kluctl/apps/go-backend-no-migrations/Deployment.go-backend.yaml
   requestedFreight:
     - origin:
         kind: Warehouse

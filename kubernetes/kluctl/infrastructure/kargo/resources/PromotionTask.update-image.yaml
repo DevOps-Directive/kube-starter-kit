@@ -13,7 +13,7 @@ spec:
       uses: git-clone
     - as: update-image
       config:
-        path: ./src/kubernetes/kluctl/apps/go-backend/Deployment.go-backend.yaml
+        path: ${{vars.updateImagePath}}
         updates:
           - key: spec.template.spec.containers.0.image
             value: ${{vars.image}}:${{imageFrom( vars.image ).Tag}}
@@ -32,3 +32,5 @@ spec:
       value: git@github.com:DevOps-Directive/kube-starter-kit.git
     - name: image
       value: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend
+    - name: updateImagePath
+      value: ./src/kubernetes/kluctl/apps/go-backend/Deployment.go-backend.yaml
