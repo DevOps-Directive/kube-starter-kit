@@ -12,7 +12,8 @@ locals {
   repos = [
     "services/container-only-dummy",
     "services/go-backend",
-    "services/go-backend/migrations"
+    "services/go-backend/migrations",
+    "services/go-backend-no-migrations"
   ]
 }
 

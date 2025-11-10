@@ -1,0 +1,16 @@
+[tools]
+# Inherits from ancestor mise.toml files
+
+[env]
+IMAGE_REPO = "857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend-no-migrations"
+IMAGE_TAG = "foobarbaz"
+SERVICE_RELEASE_TAG = "services/go-backend-no-migrations"
+
+[tasks]
+
+run-postgres = "docker compose up db"
+
+run-service = "DATABASE_URL=postgres://postgres:password@localhost:5432/postgres go run ./cmd"
+
+[tasks.build-image]
+run = "docker build ."
