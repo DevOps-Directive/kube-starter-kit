@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
   name: is-not-prerelease
-  namespace: kube-starter-kit
+  namespace: kargo-kube-starter-kit
 spec:
   args:
     - name: IMAGE_TAG

@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	// OpenTelemetry imports
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -24,8 +22,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 
-	// pgx v5 instrumentation
-	"github.com/exaring/otelpgx"
 )
 
 const (
@@ -39,10 +35,6 @@ var isShuttingDown atomic.Bool
 func main() {
 	// --- Config
 	port := getenv("PORT", "8080")
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Fatal("DATABASE_URL must be set")
-	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// --- Signal root context
@@ -55,26 +47,6 @@ func main() {
 		log.Fatalf("init OTel: %v", err)
 	}
 	defer func() { _ = shutdownOTel(context.Background()) }()
-
-	// --- DB pool (pgx + OTel)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	cfg, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		log.Fatalf("parse pgx config: %v", err)
-	}
-	// Attach OTel tracer so queries become child spans of r.Context()
-	cfg.ConnConfig.Tracer = otelpgx.NewTracer()
-
-	dbpool, err := pgxpool.NewWithConfig(ctx, cfg)
-	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v", err)
-	}
-	if err := dbpool.Ping(ctx); err != nil {
-		log.Fatalf("Unable to ping database: %v", err)
-	}
-	log.Println("Connected to database")
 
 	// --- Handlers
 	mux := http.NewServeMux()
@@ -112,13 +84,6 @@ func main() {
 		}
 
 		var random float64
-		// IMPORTANT: using r.Context() so DB spans nest under the HTTP span.
-		if err := dbpool.QueryRow(r.Context(), "SELECT random() AS random").Scan(&random); err != nil {
-			http.Error(w, "database query failed", http.StatusInternalServerError)
-			log.Printf("ERROR: query failed: %v\n", err)
-			return
-		}
-
 		_, _ = fmt.Fprintf(w, "Sleep Duration: %v, Random number: %.6f\n", sleep, random)
 		log.Printf("Served / in %v\n", time.Since(start))
 	})
@@ -140,11 +105,6 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Close DB pool after server.Shutdown completes
-	server.RegisterOnShutdown(func() {
-		log.Println("Closing database pool...")
-		dbpool.Close()
-	})
 
 	// Start server
 	errCh := make(chan error, 1)

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend-no-migrations
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-backend-no-migrations
+  template:
+    metadata:
+      labels:
+        app: go-backend-no-migrations
+      # annotations:
+      #   instrumentation.opentelemetry.io/inject-go: "honeycomb/otel-autoinstrumentation"
+      #   # Go Requires an additional annotation to the path of the binary on the container
+      #   instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/bin/server"
+    spec:
+      containers:
+        - name: go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend-no-migrations:c87b755

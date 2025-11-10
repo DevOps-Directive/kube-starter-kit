@@ -1,0 +1,20 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: services--go-backend
+  namespace: kargo-kube-starter-kit
+spec:
+  freightCreationPolicy: Automatic
+  interval: 5m0s
+  subscriptions:
+    - image:
+        discoveryLimit: 20
+        imageSelectionStrategy: SemVer
+        repoURL: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend
+        strictSemvers: true
+    - image:
+        discoveryLimit: 20
+        imageSelectionStrategy: SemVer
+        repoURL: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations
+        strictSemvers: true
+# TODO: add condition that tags between the two images must match
