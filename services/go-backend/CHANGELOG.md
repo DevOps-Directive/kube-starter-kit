@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.1.0...services/go-backend@0.1.1) (2025-11-10)
+
+
+### Chores
+
+* no-op change to go-backend ([76ee9c0](https://github.com/DevOps-Directive/kube-starter-kit/commit/76ee9c08f0a4fe87608a63c56af1299b5b053744))
+
 ## [0.1.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.0.4...services/go-backend@0.1.0) (2025-11-07)
 
 
@@ -11,4 +18,3 @@
 ### Chores
 
 * test no-op change ([b84120f](https://github.com/DevOps-Directive/kube-starter-kit/commit/b84120f1c2c85a73bc7faf7acd1c8a1ca5deca41))
-
