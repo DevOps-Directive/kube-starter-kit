@@ -89,11 +89,6 @@ fi
 
 IFS='-' read -r CORE COUNT GREF <<<"$BASE"
 
-if [[ "$COUNT" -eq 0 ]]; then
-  echo "$CORE"
-  exit 0
-fi
-
 IFS='.' read -r MA MI PA <<<"$CORE"
 NEXT_PATCH=$((PA+1))
 CORE_NEXT="${MA}.${MI}.${NEXT_PATCH}"
