@@ -1,0 +1,20 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  annotations:
+    kargo.akuity.io/color: salmon
+  name: staging-go-backend-no-migrations
+  namespace: kargo-kube-starter-kit
+spec:
+  promotionTemplate:
+    spec:
+      steps:
+        - task:
+            name: update-image
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: services--go-backend-no-migrations
+      sources:
+        direct: true
+        stages: []

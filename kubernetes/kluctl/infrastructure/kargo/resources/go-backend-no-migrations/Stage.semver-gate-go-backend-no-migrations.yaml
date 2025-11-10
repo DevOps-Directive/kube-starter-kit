@@ -1,0 +1,27 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  annotations:
+    kargo.akuity.io/color: yellow
+  name: semver-gate-go-backend-no-migrations
+  namespace: kargo-kube-starter-kit
+spec:
+  promotionTemplate:
+    spec:
+      steps:
+        - task:
+            name: no-op
+  requestedFreight:
+    - origin:
+        kind: Warehouse
+        name: services--go-backend-no-migrations
+      sources:
+        direct: false
+        stages:
+          - staging
+  verification:
+    analysisTemplates:
+      - name: is-not-prerelease
+    args:
+      - name: IMAGE_TAG
+        value: '${{imageFrom("857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend-no-migrations").Tag}}'

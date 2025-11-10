@@ -3,3 +3,4 @@ k8s_yaml(local(
 ))
 
 include('./go-backend/Tiltfile')
+include('./go-backend-no-migrations/Tiltfile')
