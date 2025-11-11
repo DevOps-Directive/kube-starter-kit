@@ -7,8 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  id-token: write # necessary to use octo-sts
 
 jobs:
   release-please:
