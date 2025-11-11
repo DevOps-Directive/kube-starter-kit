@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/container-only-dummy@0.2.1...services/container-only-dummy@0.2.2) (2025-11-11)
+
+
+### Chores
+
+* force update for container only dummy service ([fdb6e8b](https://github.com/DevOps-Directive/kube-starter-kit/commit/fdb6e8b4c37dc055aa22a6d1198b828efe0998d1))
+
 ## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/container-only-dummy@0.2.0...services/container-only-dummy@0.2.1) (2025-11-10)
 
 
@@ -20,4 +27,3 @@
 ### Features
 
 * empty commit ([c075c6c](https://github.com/DevOps-Directive/kube-starter-kit/commit/c075c6cd748ea5fe217ddd70f7610116fce18350))
-
