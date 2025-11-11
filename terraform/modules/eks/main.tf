@@ -74,7 +74,7 @@ module "eks" {
   eks_managed_node_groups = {
     base = {
       ami_type       = "AL2023_x86_64_STANDARD" # Alternative option: BOTTLEROCKET_x86_64
-      instance_types = ["t3.large"]             # TODO: Make this an input
+      instance_types = ["t3.medium"]            # TODO: Make this an input
 
       # TODO: Pin version + add input to avoid unexpected upgrade?
 
