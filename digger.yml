@@ -25,6 +25,8 @@ generate_projects:
       root_dir: "terraform/live/"
       terragrunt: true
       workflow: "default"
+      # These dont currently seem to be utilized when `terragrunt: true`
+      # See: https://diggertalk.slack.com/archives/C01DVJRK6CX/p1761659562940929?thread_ts=1761641951.832309&cid=C01DVJRK6CX
       include_patterns:
-        - /terraform/modules/**
-        - /digger.yml # Updating this file will force a plan for all projects
+        - terraform/modules/**
+        - digger.yml # Updating this file will force a plan for all projects...
