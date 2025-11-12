@@ -1,0 +1,112 @@
+{{ if and (.Values.global.backend.enabled) (.Values.clickhouse.persistence.enabled) (index .Values "statefulset-modifier" "enabled") (not (index .Values "clickhouse" "persistence" "dropBeforeCreate")) }}
+{{- $shouldPatchPvc := true -}}
+{{- $shouldPatchAnnotations := true -}}
+{{- $shouldPatchSize := (index .Values "statefulset-modifier" "sizePatches") -}}
+{{- $shards := .Values.clickhouse.shards | int -}}
+{{- $annotations := $.Values.clickhouse.persistence.annotations | toJson -}}
+{{- range $shardIndex, $e := until $shards -}}
+{{- $pvcSize := (eq $shardIndex 0) | ternary $.Values.clickhouse.persistence.size (default $.Values.clickhouse.persistence.size $.Values.clickhouse.persistence.extraShardsSize) -}}
+{{- $patches := (include "volume-expansion.patches" (merge (dict "size" $pvcSize) $.Values.clickhouse.persistence) ) | fromYaml -}}
+{{- $sizePatches := (include "volume-expansion.size-patches" (merge (dict "size" $pvcSize) $.Values.clickhouse.persistence) ) | fromYaml -}}
+{{- $annotationsPatches := (include "volume-expansion.annotations-patches"  $.Values.clickhouse.persistence) | fromYaml -}}
+{{- $sizePvcPatch := (get $sizePatches "pvc") | toJson -}}
+{{- $sizeStsPatch := (get $sizePatches "sts") | toJson -}}
+{{- $annotationsPvcPatch := (get $annotationsPatches "pvc") | toJson -}}
+{{- $annotationsStsPatch := (get $annotationsPatches "sts") | toJson -}}
+{{- $pvcPatch := (get $patches "pvc") | toJson -}}
+{{- $stsPatch := (get $patches "sts") | toJson -}}
+{{- $stsName := (printf "%s-shard%d" (include "clickhouse.fullname" $) $shardIndex) -}}
+{{- $name := (printf "%s-ch-%d" (include "statefulset-modifier.fullname" $) $shardIndex) -}}
+{{- $pvcName := (printf "data-%s-0" $stsName) -}}
+{{ if $.Release.IsUpgrade }}
+{{- $pvc := (lookup "v1" "PersistentVolumeClaim" $.Release.Namespace $pvcName | default dict) -}}
+{{- $pvcCapacitySize := ($pvc | dig "status" "capacity" "storage" $pvcSize) -}}
+{{- $sts := (lookup "apps/v1" "StatefulSet" $.Release.Namespace $stsName | default dict) -}}
+{{- $stsPvcSize := ($sts | dig "spec" "volumeClaimTemplates" (list dict) | first | dig "spec" "resources" "requests" "storage" $pvcSize) -}}
+{{- $stsPvcAnnotations := ($sts | dig "spec" "volumeClaimTemplates" (list dict) | first | dig "metadata" "annotations" dict) | toJson -}}
+{{- $shouldPatchPvc = (not (eq $pvcSize $pvcCapacitySize)) -}}
+{{- $shouldPatchAnnotations = (not (eq $stsPvcAnnotations $annotations)) -}}
+{{- end -}}
+{{ if or (and $shouldPatchPvc $shouldPatchSize) $shouldPatchAnnotations }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}
+  labels:
+  annotations:
+  {{- include "statefulset-modifier.job.annotations" $ | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      name: {{ $name }}
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: {{ include "imagePullSecrets" $ }}
+      serviceAccountName: {{ include "statefulset-modifier.fullname" $ }}
+      containers:
+      - name: sts-delete
+        imagePullPolicy: IfNotPresent
+        image: {{ include "statefulset-modifier.job.image" $ }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl delete sts {{ $stsName | quote }} --ignore-not-found --cascade=orphan
+{{ if and $shouldPatchPvc $shouldPatchSize }}
+      - name: pvc-patch-size-and-annotations
+        imagePullPolicy: IfNotPresent
+        image: {{ include "statefulset-modifier.job.image" $ }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl patch pvc {{ $pvcName | quote }} --type json --patch {{ $pvcPatch | quote }} || exit 0
+{{ else if $shouldPatchAnnotations }}
+      - name: pvc-patch-annotations-only
+        imagePullPolicy: IfNotPresent
+        image: {{ include "statefulset-modifier.job.image" $ }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            set -e
+            kubectl patch pvc {{ $pvcName | quote }} --type json --patch {{ $annotationsPvcPatch | quote }} || exit 0
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{ if and (.Values.global.backend.enabled) (index .Values "statefulset-modifier" "enabled") (.Values.clickhouse.persistence.enabled) (index .Values "clickhouse" "persistence" "dropBeforeCreate") }}
+{{- $shards := .Values.clickhouse.shards | int -}}
+{{- range $shardIndex, $e := until $shards -}}
+{{- $hookJobName := (printf "%s-ch-delete-sts-hook-%d" (include "statefulset-modifier.fullname" $) $shardIndex) -}}
+{{- $stsName := (printf "%s-shard%d" (include "clickhouse.fullname" $) $shardIndex) }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $hookJobName }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy": "before-hook-creation"    
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: {{ include "imagePullSecrets" $ }}
+      serviceAccountName: {{ include "statefulset-modifier.fullname" $ }}
+      containers:
+        - name: kubectl
+          image: {{ include "statefulset-modifier.job.image" $ }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              kubectl delete sts {{ $stsName | quote }} --cascade=foreground
+{{- end }}
+{{- end }}

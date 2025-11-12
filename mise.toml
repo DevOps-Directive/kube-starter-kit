@@ -1,0 +1,61 @@
+################# SETUP ####################
+## I have the following in my zshrc file:
+#
+# eval "$(/Users/palas/.local/bin/mise activate zsh)"
+# export MISE_EXPERIMENTAL=1
+# alias m="mise"
+# alias ml="mise task ls"
+# alias mla="mise run //:mise-fzf"
+# 
+## the mla alias allows me to search within all available tasks
+#############################################
+
+# https://mise.jdx.dev/tasks/monorepo.html
+# MISE_EXPERIMENTAL=1 set in zshrc
+experimental_monorepo_root = true
+
+[tools]
+yq = "4"
+jq = "1"
+aws-cli = "2"
+"aqua:aws/session-manager-plugin" = "1"
+kind = "0.30"
+tilt = "0.35"
+fzf = "latest"
+"github:kubernetes-sigs/cloud-provider-kind" = "0.9"
+
+[tasks.mise-fzf]
+description = "[Mise] Pick one task; print it and copy the run command"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIST_CMD=(mise task ls --all)
+
+SEL="$("${LIST_CMD[@]}" \
+  | fzf --no-multi --height=90% --border --prompt='task> ' \
+        --select-1 --exit-0)"
+
+[ -n "${SEL:-}" ] || exit 0
+
+# First token only = task name
+TASK="$(awk '{print $1; exit}' <<< "$SEL")"
+
+# Build the runnable command
+CMD=$(printf 'mise run %q' "$TASK")
+
+echo "$CMD"
+
+copy_to_clipboard() {
+  if command -v pbcopy >/dev/null 2>&1; then
+    pbcopy
+  # TODO: add support for linux clipboard tools
+  else
+    return 1
+  fi
+}
+
+if copy_to_clipboard <<< "$CMD"; then
+  echo "(^ copied to clipboard)"
+fi
+'''

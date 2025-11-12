@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cert-manager-crds.fullname" . }}
+  annotations:
+  {{- include "cert-manager-crds.rbac.annotations" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "cert-manager-crds.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "cert-manager-crds.fullname" . }}
+    namespace: {{ .Release.Namespace }}

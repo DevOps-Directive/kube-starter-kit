@@ -1,0 +1,7 @@
+[tools]
+# Inherits from ancestor mise.toml files
+
+[env]
+IMAGE_REPO = "857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations"
+IMAGE_TAG = "foobarbaz"
+SERVICE_RELEASE_TAG = "services/go-backend/migrations"

@@ -1,0 +1,35 @@
+{{- $ctx := dict "helm" . }}
+{{- range $i, $z := .Values.availabilityZones }}
+  {{- $zone := mergeOverwrite (deepCopy $.Values.zoneTpl) $z }}
+  {{- if and (($zone.write).vmauth).enabled ($zone.vmcluster).enabled -}}
+    {{- $commonAuthSpec := ((($.Values).common).vmauth).spec | default dict }}
+    {{- $commonClusterSpec := ((($.Values).common).vmcluster).spec | default dict }}
+    {{- $commonSpec := ($zone.common).spec | default dict }}
+    {{- $spec := $zone.write.vmauth.spec | default dict }}
+    {{- $_ := set $ctx "appKey" (list "zone" "write" "vmauth" "spec") }}
+    {{- $_ := set $zone.write.vmauth "spec" (mergeOverwrite (deepCopy $commonAuthSpec) (deepCopy $commonSpec) (deepCopy $spec)) }}
+    {{- $_ := set $ctx "zone" $zone }}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAuth
+metadata:
+  name: {{ include "vm.cr.fullname" $ctx }}
+  namespace: {{ include "vm.namespace" $ }}
+  labels: {{ include "vm.labels" $ctx | nindent 4 }}
+  {{- with $zone.write.vmauth.annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end  }}
+spec: {{ tpl (toYaml (omit $zone.write.vmauth.spec "unauthorizedUserAccessSpec")) $ctx | nindent 2 }}
+  {{- $_ := set $ctx "style" "managed" }}
+  {{- $clusterSpec := ($zone.vmcluster).spec | default dict }}
+  {{- $_ := set $zone.vmcluster "spec" (mergeOverwrite (deepCopy $commonClusterSpec) (deepCopy $commonSpec) (deepCopy $clusterSpec)) }}
+  {{- $_ := set $ctx "appKey" (list "zone" "vmcluster" "spec" "vminsert") }}
+  unauthorizedUserAccessSpec:
+    url_map:
+      - src_paths:
+          - "/insert/.+"
+        url_prefix:
+          - {{ include "vm.url" $ctx }}
+  {{- $_ := unset $ctx "style" }}
+{{- end }}
+{{- end }}

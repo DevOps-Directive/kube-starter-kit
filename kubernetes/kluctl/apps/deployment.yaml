@@ -1,4 +1,5 @@
 deployments:
   - path: pre-deploy
   - barrier: true
-  - path: go-backend
+  - include: go-backend
+  - include: go-backend-no-migrations

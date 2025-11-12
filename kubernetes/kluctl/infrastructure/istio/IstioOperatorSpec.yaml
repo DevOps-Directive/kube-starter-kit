@@ -2,12 +2,12 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   profile: ambient
-  revision: 1-27-1
+  revision: 1-27-3
   values:
-    defaultRevision: 1-27-1
+    defaultRevision: 1-27-3
     pilot:
       env:
-        ISTIOD_CUSTOM_HOST: "istiod-1-27-1.istio-system.svc,istiod-1-27-1.istio-system.svc.cluster.local"
+        ISTIOD_CUSTOM_HOST: "istiod-1-27-3.istio-system.svc,istiod-1-27-3.istio-system.svc.cluster.local"
   components:
     ingressGateways:
       # Need at least one gateway controller (proxy) to use ingress resources

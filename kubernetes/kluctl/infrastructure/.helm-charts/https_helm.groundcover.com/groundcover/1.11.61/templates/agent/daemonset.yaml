@@ -1,0 +1,341 @@
+{{ if .Values.global.agent.enabled }}
+{{- $sensorValues := deepCopy .Values.agent.sensor -}}
+{{- if .Values.agent.alligator -}}
+{{ $sensorValues = mergeOverwrite $sensorValues .Values.agent.alligator }}
+{{- end -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.agent.additionalAnnotations }}
+{{ toYaml .Values.agent.additionalAnnotations | indent 4 }}
+    {{- end }}
+  name: {{ include "sensorDaemonSet.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: sensor
+    app.kubernetes.io/name: sensor
+    {{- if .Values.agent.additionalLabels }}
+{{ toYaml .Values.agent.additionalLabels | indent 4 }}
+    {{- end }}
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 100%
+  selector:
+    matchLabels:
+      app: sensor
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ (include "agent.monitoring.port" .) | quote }}
+        vm.io/path: "vmetrics"
+        vm.io/port: {{ (include "agent.monitoring.port" .) | quote  }}
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        checksum/sensor_config: {{ include (print $.Template.BasePath "/agent/config/sensor/config.yaml") . | sha256sum }}
+        {{- if .Values.agent.additionalAnnotations }}
+{{ toYaml .Values.agent.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.agent.podAnnotations }}
+{{ toYaml .Values.agent.podAnnotations | indent 8 }}
+        {{- end }}
+      labels:
+        app: sensor
+        app.kubernetes.io/name: sensor
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.agent.additionalLabels }}
+{{ toYaml .Values.agent.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.agent.podLabels }}
+{{ toYaml .Values.agent.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+{{- if .Values.agent.tolerations }}
+      tolerations:
+{{ toYaml .Values.agent.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.agent.affinity }}
+      affinity:
+{{ toYaml .Values.agent.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.agent.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.agent.nodeSelector | indent 8 }}
+{{- end }}
+      containers:
+        - env:
+            - name: PROMETHEUS_PORT
+              value: {{ (include "agent.monitoring.port" .) | quote }}
+            - name: FLORA_PROMETHEUSSERVER_ENABLED
+              value: "false"
+            - name: FLORA_SYSTEMINFO_HOSTMOUNTPATH
+              value: "/host"
+            - name: FLORA_NETWORKTRACER_CONNECTIONMANAGER_PROTOCOLS_HTTP_UNLIMITEDPAYLOADENDPOINTS
+              value: {{ (tpl $sensorValues.httpUnlimitedEndpoints .) | quote }}
+            - name: FLORA_NETWORKTRACER_CONNECTIONMANAGER_PROTOCOLS_HTTP2_UNLIMITEDPAYLOADENDPOINTS
+              value: {{ (tpl $sensorValues.http2UnlimitedEndpoints .) | quote }}
+            - name: FLORA_CONTAINERREPOSITORY_TRACKEDCONTAINERTYPE
+              value: {{ "kubernetes" }}
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name                  
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName              
+            - name: GC_RUNNINGNAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: GC_GROUNDCOVERVERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['groundcover_version']     
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            {{- with $sensorValues.env }}
+              {{ tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}
+            {{- with $sensorValues.builtinEnv }}
+              {{ tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}                              
+          envFrom:
+            - secretRef:
+                name: {{include "groundcover.config.secretName" .}}
+          image: {{ tpl $sensorValues.image.repository . }}:{{ tpl $sensorValues.image.tag .}}
+          resources:
+{{- toYaml $sensorValues.resources | nindent 12 }}
+          imagePullPolicy: {{ default "Always" .Values.agent.imagePullPolicy }}
+          name: "sensor"
+          ports:
+          - containerPort: {{ (include "agent.monitoring.port" .) | int }}
+            name: prom-metrics
+            protocol: TCP
+          {{- include "groundcover.sensor.deployment.ingestion-ports" (merge (dict "sensorValues" $sensorValues) .) | nindent 10 }}
+          {{- if .Values.global.debug.enabled }}
+          - containerPort: 4040
+            name: dlv-tcp
+            protocol: TCP
+          {{- end }}
+          {{- if $sensorValues.healthProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /health
+              port: health-http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /health
+              port: health-http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 20
+          {{- end }}
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
+                - SYS_ADMIN
+            privileged: true
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - mountPath: /host
+              name: host-root
+              readOnly: true
+            - mountPath: /sys/kernel/debug
+              name: sys-kernel-debug
+              readOnly: false
+            - mountPath: {{ include "groundcover.sensor.tracefs.mount.path" (dict "sensorValues" $sensorValues) }}
+              name: sys-kernel-tracing
+              readOnly: false
+            - mountPath: /config
+              name: sensor-configuration
+              readOnly: false
+            - mountPath: /scrape-config
+              name: sensor-scrape-configuration
+              readOnly: false
+            - mountPath: /comm
+              name: comm
+              readOnly: false
+            - mountPath: /var/run/positions
+              name: sensor-position
+            - mountPath: /var/lib/docker/containers
+              name: docker
+              readOnly: true
+{{- if and (eq (include "telemetry.enabled" .) "true") (eq .Values.agent.flb.enabled true) }}
+        - name: fluent-bit
+          image: {{ tpl .Values.agent.flb.image.repository . }}:{{ .Values.agent.flb.image.tag }}
+          imagePullPolicy: {{ default "Always" .Values.agent.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 2020
+              protocol: TCP
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc/fluent-bit.conf
+              subPath: fluent-bit.conf
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc/custom_parsers.conf
+              subPath: custom_parsers.conf
+            - name: docker
+              readOnly: true
+              mountPath: /var/lib/docker/containers
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: GC_GROUNDCOVERVERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['groundcover_version']   
+            - name: GC_RUNNINGNAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+        {{- with .Values.agent.flb.env }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }}
+        {{- with .Values.agent.flb.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }}
+          envFrom:
+          - secretRef:
+              name: {{include "groundcover.config.secretName" .}}
+          resources:
+            {{- toYaml .Values.agent.flb.resources | nindent 12 }}
+{{- end }}              
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: {{ default false .Values.agent.hostNetwork }}
+      hostPID: true
+      initContainers:
+        - name: check-ingestion-endpoint-ready
+          env:
+          {{- with .Values.agent.initContainers.checkIngestion.builtinEnv }}
+            {{ tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}    
+          args:
+          - | 
+              while [ $(curl -H "apikey:$API_KEY" \
+              {{- if .Values.global.ingestion.tls_skip_verify }}
+                -k \
+              {{- end }}
+                -sw '%{http_code}' {{ include "ingestion.health.http.url" . }} -o /dev/null) -ne 200 ]
+              do
+                echo 'Waiting for ingestion endpoint...';
+                sleep 2;
+              done;
+              echo ingestion endpoint is up
+          command:
+            - /bin/sh
+            - -c
+          image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+        - name: check-metrics-ingestor-ready
+          env:
+          {{- with .Values.agent.initContainers.checkMetrics.builtinEnv }}
+            {{ tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}      
+          args:
+          - |
+              while [ $(curl -H "apikey:$API_KEY" \
+              {{- if .Values.global.ingestion.tls_skip_verify }}
+                -k \
+              {{- end }}
+                -sw '%{http_code}' {{ include "metrics-ingester.write.http.url" . }} -o /dev/null) -ne 204 ];
+              do 
+                echo 'Waiting for VictoriaMetrics Agent...'; 
+                sleep 2; 
+              done; 
+              echo VictoriaMetrics Agent is up
+          command:
+            - /bin/sh
+            - -c
+          image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      serviceAccountName: {{ include "sensor.fullname" . }}
+{{- if or (.Values.agent.priorityClassName) (.Values.agent.priorityClass.create) }}
+  {{- if .Values.agent.priorityClassName }}
+      priorityClassName: {{ .Values.agent.priorityClassName }}
+  {{- else }}
+      priorityClassName: {{ include "groundcover.agentPriorityClass" . }}
+  {{- end }}
+{{- end }}
+      terminationGracePeriodSeconds: 10
+      volumes:
+{{- if eq (include "telemetry.enabled" .) "true" }}
+        - name: fluent-bit-config
+          configMap:
+            name: fluent-bit-config
+            defaultMode: 420
+{{- end }}
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - hostPath:
+            path: /
+            type: Directory
+          name: host-root
+        - hostPath:
+            path: /sys/kernel/debug
+            type: Directory
+          name: sys-kernel-debug
+        - hostPath:
+            path: {{ include "groundcover.sensor.tracefs.mount.path" (dict "sensorValues" $sensorValues) }}
+            type: Directory
+          name: sys-kernel-tracing
+        - configMap:
+            defaultMode: 420
+            name: sensor-configuration
+          name: sensor-configuration
+        - configMap:
+            defaultMode: 420
+            name: sensor-scrape-configuration
+          name: sensor-scrape-configuration
+        - emptyDir: {}
+          name: comm
+        - hostPath:
+            path: /run/sensor-position-{{ .Release.Namespace }}
+          name: sensor-position
+        - hostPath:
+            path: /var/lib/docker/containers
+          name: docker
+        - emptyDir: {}
+          name: linux-headers
+        - hostPath:
+            path: /var/log
+          name: varlog
+{{- end }}

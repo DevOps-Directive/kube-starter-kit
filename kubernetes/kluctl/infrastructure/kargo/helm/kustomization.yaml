@@ -4,5 +4,5 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - Certificate.yaml
-  - Secret.github-dex.yaml
+  - ExternalSecret.github-dex.yaml
   - helm-rendered.yaml # this file is auto-generated at deploy time

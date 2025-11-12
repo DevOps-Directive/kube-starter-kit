@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: metrics-ingester-certificate
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+{{ $ca := genCA (include "metrics-ingester.fullname" .) 1826 -}}
+stringData:
+  tls.key: {{ $ca.Key  | quote }}
+  tls.crt: {{ $ca.Cert | quote }}

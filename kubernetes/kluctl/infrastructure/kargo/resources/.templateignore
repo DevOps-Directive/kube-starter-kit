@@ -1,0 +1,4 @@
+# TODO: figure out how to get kluctl + kargo templating to play nice
+AnalysisTemplate.is-not-prerelease.yaml
+PromotionTask.update-image.yaml
+Stage.semver-gate.yaml

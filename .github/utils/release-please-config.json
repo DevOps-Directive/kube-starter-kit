@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "f120a7ceefa2a5940682a097f0d4c9920c644fc2",
+  "include-component-in-tag": true,
+  "include-v-in-tag": false,
+  "bump-minor-pre-major": true,
+  "packages": {
+    "services/container-only-dummy": {
+      "component": "services/container-only-dummy"
+    },
+    "services/go-backend": {
+      "component": "services/go-backend",
+      "release-type": "go"
+    },
+    "services/go-backend/migrations": {
+      "component": "services/go-backend/migrations"
+    },
+    "services/go-backend-no-migrations": {
+      "component": "services/go-backend-no-migrations"
+    }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "go-backend-and-migrations",
+      "components": [
+        "services/go-backend",
+        "services/go-backend/migrations"
+      ]
+    }
+  ],
+  "release-type": "simple",
+  "separate-pull-requests": false,
+  "tag-separator": "@",
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "chore",
+      "section": "Chores"
+    },
+    {
+      "type": "revert",
+      "section": "Reverts"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.dbManager.additionalAnnotations }}
+{{ toYaml .Values.dbManager.additionalAnnotations | indent 4 }}
+    {{- end }}    
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: db-manager
+    {{- if .Values.dbManager.additionalLabels }}
+{{ toYaml .Values.dbManager.additionalLabels | indent 4 }}
+    {{- end }}
+  name: db-manager
+  namespace: {{ .Release.Namespace }}
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: db-manager
+  replicas: {{ .Values.dbManager.replicas }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"      
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        {{- if .Values.dbManager.additionalAnnotations }}
+{{ toYaml .Values.dbManager.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.dbManager.podAnnotations }}
+{{ toYaml .Values.dbManager.podAnnotations | indent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/backend/db-manager/config/configMap.yaml") . | sha256sum }}
+      labels:
+        app: db-manager
+        app.kubernetes.io/name: db-manager
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.dbManager.additionalLabels }}
+{{ toYaml .Values.dbManager.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.dbManager.podLabels }}
+{{ toYaml .Values.dbManager.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+{{- if .Values.dbManager.tolerations }}
+      tolerations:
+{{ toYaml .Values.dbManager.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.dbManager.affinity }}
+      affinity:
+{{ toYaml .Values.dbManager.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.dbManager.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.dbManager.nodeSelector | indent 8 }}
+{{- end }}
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+      serviceAccountName: {{ default "db-manager" .Values.dbManager.serviceAccount.name }}
+      containers:
+      - env:
+        - name: GC_GROUNDCOVERVERSION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['groundcover_version']
+        - name: GC_CLICKHOUSE_PASS
+          valueFrom:
+            secretKeyRef:
+              key: '{{ include "clickhouse.secretKey" . }}'
+              name: '{{ include "clickhouse.secretName" . }}'
+        {{- with .Values.dbManager.env }}
+          {{ toYaml . | nindent 8 }}
+        {{- end }}
+        image: {{ tpl .Values.dbManager.image.repository . }}:{{ tpl .Values.dbManager.image.tag . }}
+        imagePullPolicy: Always
+        name: db-manager     
+        ports:
+        - containerPort: 9102
+          name: metrics
+        - containerPort: 8888
+          name: http          
+        resources:
+{{- toYaml .Values.dbManager.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /config
+          name: db-manager-config-volume
+      initContainers:
+      - args:
+          - while [ $(curl -sw '%{http_code}' {{ printf "%s/ping" (include "clickhouse.httpEndpoint" .) }}
+            -o /dev/null) -ne 200 ]; do echo 'Waiting for Clickhouse...'; sleep 2; done; echo Clickhouse is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+        name: check-ch-ready
+{{- if .Values.dbManager.priorityClassName }}
+      priorityClassName: {{ .Values.dbManager.priorityClassName }}
+{{- end }}
+      volumes:
+      - configMap:
+          name: db-manager-config
+        name: db-manager-config-volume
+{{ end -}}

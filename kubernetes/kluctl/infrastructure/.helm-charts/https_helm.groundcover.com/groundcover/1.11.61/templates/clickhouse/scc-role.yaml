@@ -1,0 +1,41 @@
+{{- if and .Values.global.backend.enabled (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ printf "%s-scc" (include "clickhouse.fullname" .) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: clickhouse
+    app.kubernetes.io/name: clickhouse
+  {{- include "groundcover.labels" . | nindent 4 }}
+  annotations: {}
+rules:
+  - apiGroups:
+      - security.openshift.io
+    resources:
+      - securitycontextconstraints
+    verbs:
+      - use
+    resourceNames:
+      - anyuid
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ printf "%s-scc" (include "clickhouse.fullname" .) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: clickhouse
+    app.kubernetes.io/name: clickhouse
+  {{- include "groundcover.labels" . | nindent 4 }}
+  annotations: {}
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ printf "%s-scc" (include "clickhouse.fullname" .) }}
+subjects:
+  - kind: ServiceAccount
+    namespace: {{ .Release.Namespace }}
+    name: {{ include "clickhouse.serviceAccountName" . }}
+{{ end -}}

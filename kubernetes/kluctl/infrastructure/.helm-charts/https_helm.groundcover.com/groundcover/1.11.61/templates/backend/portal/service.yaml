@@ -1,0 +1,33 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.portal.additionalAnnotations }}
+{{ toYaml .Values.portal.additionalAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: portal
+    app.kubernetes.io/name: portal
+    {{- if .Values.portal.additionalLabels }}
+{{ toYaml .Values.portal.additionalLabels | indent 4 }}
+    {{- end }}
+  name: {{ include "portal.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: grpc-portal
+    port: 5555
+    protocol: TCP
+    targetPort: grpc-portal
+  - name: http
+    port: 9999
+    protocol: TCP
+    targetPort: portal-http
+
+  selector:
+    app: portal
+  type: ClusterIP
+{{ end -}}

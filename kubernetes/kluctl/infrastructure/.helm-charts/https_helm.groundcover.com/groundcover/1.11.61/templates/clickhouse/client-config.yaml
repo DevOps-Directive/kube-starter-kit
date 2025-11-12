@@ -1,0 +1,16 @@
+{{ if .Values.global.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-client-config-map
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: clickhouse
+    app.kubernetes.io/name: clickhouse
+data:
+  config.xml: |-
+    <config>
+        <vertical>true</vertical>
+        <database>{{ include "clickhouse.database" . }}</database>
+    </config>
+{{ end }}

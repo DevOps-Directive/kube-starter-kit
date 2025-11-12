@@ -1,0 +1,151 @@
+{{ if .Values.global.agent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+    {{- if .Values.k8sWatcher.additionalAnnotations }}
+{{ toYaml .Values.k8sWatcher.additionalAnnotations | indent 4 }}
+    {{- end }}    
+  labels:
+    {{- include "groundcover.labels" . | nindent 4 }}
+    app: k8s-watcher
+    app.kubernetes.io/name: k8s-watcher
+    {{- if .Values.k8sWatcher.additionalLabels }}
+{{ toYaml .Values.k8sWatcher.additionalLabels | indent 4 }}
+    {{- end }}
+  name: k8s-watcher
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: k8s-watcher
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+        groundcover_version: {{ default .Chart.AppVersion .Values.global.origin.tag }}
+        checksum/config: {{ include (print $.Template.BasePath "/backend/k8s-watcher/config/config.yaml") . | sha256sum }}
+        {{- if .Values.k8sWatcher.additionalAnnotations }}
+{{ toYaml .Values.k8sWatcher.additionalAnnotations | indent 8 }}
+        {{- end }}
+        {{- if .Values.k8sWatcher.podAnnotations }}
+{{ toYaml .Values.k8sWatcher.podAnnotations | indent 8 }}
+        {{- end }}
+      labels:
+        app: k8s-watcher
+        app.kubernetes.io/name: k8s-watcher
+        {{- include "groundcover.labels" . | nindent 8 }}
+        {{- if .Values.k8sWatcher.additionalLabels }}
+{{ toYaml .Values.k8sWatcher.additionalLabels | indent 8 }}
+        {{- end }}
+        {{- if .Values.k8sWatcher.podLabels }}
+{{ toYaml .Values.k8sWatcher.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+{{- if .Values.k8sWatcher.tolerations }}
+      tolerations:
+{{ toYaml .Values.k8sWatcher.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.k8sWatcher.affinity }}
+      affinity:
+{{ toYaml .Values.k8sWatcher.affinity | indent 8 }}
+{{- end }}
+{{- if .Values.k8sWatcher.topologySpreadConstraints }}
+      topologySpreadConstraints:
+{{ toYaml .Values.k8sWatcher.topologySpreadConstraints | indent 8 }}
+{{- end }}
+{{- if .Values.k8sWatcher.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.k8sWatcher.nodeSelector | indent 8 }}
+{{- end }}
+      imagePullSecrets: {{ include "imagePullSecrets" . }}
+      containers:
+      - env: 
+        - name: GC_RUNNINGNAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GC_GROUNDCOVERVERSION
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['groundcover_version']              
+        {{- with .Values.k8sWatcher.env }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        {{- with .Values.k8sWatcher.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{include "groundcover.config.secretName" .}}
+        image: {{ tpl .Values.k8sWatcher.image.repository . }}:{{ tpl .Values.k8sWatcher.image.tag . }}
+        imagePullPolicy: Always
+        name: k8s-watcher
+        ports:
+        - containerPort: 9102
+          name: watcher-metrics
+        - containerPort: 8888
+          name: watcher-http   
+        readinessProbe:
+          {{ toYaml .Values.k8sWatcher.readinessProbe | nindent 10 }}
+        livenessProbe:
+          {{ toYaml .Values.k8sWatcher.livenessProbe | nindent 10 }}
+        resources:
+{{- toYaml .Values.k8sWatcher.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /config
+          name: k8s-watcher-config-volume
+      initContainers:
+      - name: check-ingestion-endpoint-ready
+        env:
+        {{- with .Values.k8sWatcher.initContainers.checkIngestion.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }}     
+        args:
+        - |
+            while [ $(curl -H "apikey:$API_KEY" \
+            {{- if .Values.global.ingestion.tls_skip_verify }}
+              -k \
+            {{- end }}
+              -sw '%{http_code}' {{ include "ingestion.health.http.url" . }} -o /dev/null) -ne 200 ];
+            do
+              echo 'Waiting for ingestion endpoint...';
+              sleep 2;
+            done;
+            echo ingestion endpoint is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      - name: check-metrics-ingestor-ready
+        env:
+        {{- with .Values.k8sWatcher.initContainers.checkMetrics.builtinEnv }}
+          {{ tpl (toYaml .) $ | nindent 12 }}
+        {{- end }} 
+        args:
+        - |
+            while [ $(curl -H "apikey:$API_KEY" \
+            {{- if .Values.global.ingestion.tls_skip_verify }}
+              -k \
+            {{- end }}
+              -sw '%{http_code}' {{ include "metrics-ingester.write.http.url" . }} -o /dev/null) -ne 204 ];
+            do
+              echo 'Waiting for VictoriaMetrics Agent...';
+              sleep 2;
+            done;
+            echo VictoriaMetrics Agent is up
+        command:
+          - /bin/sh
+          - -c
+        image: '{{ tpl .Values.curl.image.repository . }}:{{ tpl .Values.curl.image.tag . }}'
+      serviceAccountName: k8s-watcher
+{{- if .Values.k8sWatcher.priorityClassName }}
+      priorityClassName: {{ .Values.k8sWatcher.priorityClassName }}
+{{- end }}
+      volumes:
+      - configMap:
+          name: k8s-watcher-config
+        name: k8s-watcher-config-volume
+{{ end }}

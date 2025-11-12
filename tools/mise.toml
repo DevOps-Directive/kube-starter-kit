@@ -1,0 +1,153 @@
+# tools/mise.toml
+
+[tasks.generate-version]
+description = "Use git describe to generate a tag based on the latest release tag"
+silent = true
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-version
+  mise run //tools:generate-version <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+TAG="$(git describe --tags --always --first-parent --match "${SVC}@[0-9]*.[0-9]*.[0-9]*")"
+PREFIX="${SVC}@"
+echo "${TAG#${PREFIX}}"
+'''
+
+[tasks.generate-version-tag]
+description = "Combine the image repo with the version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-version-tag
+  IMAGE_REPO=<repo>                            mise run //tools:generate-version-tag <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+  IMAGE_REPO           Target image repository (e.g., 8570....amazonaws.com/services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+: "${IMAGE_REPO:?Set IMAGE_REPO}"
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+VERSION="$(mise run --interleave :generate-version "$SVC")"
+echo "${IMAGE_REPO}:${VERSION}"
+'''
+
+[tasks.generate-extended-version]
+description = "If commits since last tag: emit x.y.(z+1)-rcNNNN-g<sha>; else: x.y.z"
+silent = true
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-extended-version
+  mise run //tools:generate-extended-version <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+BASE="$(mise run --interleave :generate-version "$SVC")"  # e.g., 1.2.3 or 1.2.3-7-gabc123
+
+# Ensure we have -N-g<sha> suffix for counting commits
+if [[ ! "$BASE" =~ -g[0-9a-fA-F]+$ ]]; then
+  GIT_HASH="$(git rev-parse --short HEAD)"
+  BASE="${BASE}-0-g${GIT_HASH}"
+fi
+
+IFS='-' read -r CORE COUNT GREF <<<"$BASE"
+
+IFS='.' read -r MA MI PA <<<"$CORE"
+NEXT_PATCH=$((PA+1))
+CORE_NEXT="${MA}.${MI}.${NEXT_PATCH}"
+
+printf "%s-rc%04d-%s\n" "$CORE_NEXT" "$COUNT" "$GREF"
+'''
+
+[tasks.generate-extended-version-tag]
+description = "Combine the image repo with the extended version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-extended-version-tag
+  IMAGE_REPO=<repo>                            mise run //tools:generate-extended-version-tag <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+  IMAGE_REPO           Target image repository (e.g., 8570....amazonaws.com/services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+: "${IMAGE_REPO:?Set IMAGE_REPO}"
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+VERSION="$(mise run --interleave :generate-extended-version "$SVC")"
+echo "${IMAGE_REPO}:${VERSION}"
+'''
+
+[tasks.manual-version-tag]
+description = "Combine the image repo with the input version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> IMAGE_TAG=<image_tag> mise run //tools:manual-version-tag
+  IMAGE_REPO=<repo>                       mise run //tools:manual-version-tag <image_tag>
+
+where:
+  IMAGE_REPO           Target image repository (e.g., <account_id>.dkr.ecr.us-east-2.amazonaws.com/services/go-backend)
+  IMAGE_TAG            The version tag to apply to the image
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+unset IMAGE_TAG
+
+IMAGE_TAG="${1:-${IMAGE_TAG:-}}"
+[[ -n "$IMAGE_TAG" ]] || { usage; exit 2; }
+
+echo "${IMAGE_REPO}:${IMAGE_TAG}"
+'''

@@ -1,0 +1,547 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-otel-http" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }},{{ printf "%s-basic-auth" .Release.Name }}{{printf ",cors-allow-all"}}
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" )  | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "opentelemetry-collector.loki.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "loki-http" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.health.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+          {{- if .Values.global.ingestor.enabled }}
+                  number: {{ index .Values.global "ingestor" "healthProbe" "port" | int }}
+          {{- else }}
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "health" "servicePort" | int }}
+          {{- end }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.datadogapm.tracesv03.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "datadogapm" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.datadogapm.tracesv04.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "datadogapm" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.datadogapm.tracesv05.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "datadogapm" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.datadogapm.tracesv07.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .)  }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "datadogapm" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.datadogapm.tracesapiv02.http.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "datadogapm" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.otlptraces.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "otlp-http" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.otlplogs.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "otlp-http" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.otlpmetrics.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "otlp-http" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.awsfirehose.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "awsfirehose" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.httpreceiver.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "http-json" "servicePort" | int }}
+          - path: {{ get (urlParse (include "opentelemetry-collector.rumreceiver.http.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "rum" "servicePort" | int }}          
+          - path: {{ get (urlParse (include "opentelemetry-collector.zipkin.http.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (include "ingestor.fullname" .) (include "opentelemetry-collector.fullname" .) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "zipkin" "servicePort" | int }}            
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-ingest-v2-health" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/plugins: {{ printf "%s-auth,ingest-v2-rewrite-to-health" .Release.Name }}
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+    
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "incloud.ingestion.otlp.health.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.http.health.port" .) | int }}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-ingest-v2-otlp" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/plugins: {{ printf "%s-auth,ingest-v2-rewrite-to-v1-logs" .Release.Name }}
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "incloud.ingestion.otlp.http.traces-as-logs.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.otlp.http.traces.port" .) | int }}
+
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "incloud.ingestion.otlp.http.logs.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.otlp.http.logs.port" .) | int }}
+
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "incloud.ingestion.otlp.http.custom.url" .)) "path" }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.otlp.http.custom.port" .) | int }}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-ingest-v2-json" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }}
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "vector.incloud.json.traces-as-logs.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.json.traces-as-logs.port" .) | int }}
+          - path: {{ get (urlParse (include "vector.incloud.json.logs.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.json.logs.port" .) | int }}
+          - path: {{ get (urlParse (include "vector.incloud.json.events.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.json.events.port" .) | int }}
+          - path: {{ get (urlParse (include "vector.incloud.json.entities.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.json.entities.port" .) | int }}
+          - path: {{ get (urlParse (include "vector.incloud.json.measurements.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.json.measurements.port" .) | int }}
+          - path: {{ include "vector.cluster.json.tables.write.path" . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vector.fullname" . }}
+                port:
+                  number: {{ (include "vector.cluster.json.table.write.port" .) | int }}
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-metrics-http" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }},{{ printf "%s-basic-auth" .Release.Name }}{{- if .Values.global.ingress.useIngestionTag }}{{ ",tag-ingestion-key" }}{{- end }}
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "metrics-ingester.write.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "metrics-ingester.fullname" . }}
+                port:
+                  name: http
+          - path: {{ get (urlParse (include "metrics-ingester.promethues-exposition.http.url" .)) "path" }} 
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "metrics-ingester.fullname" . }}
+                port:
+                  name: http
+          - path: {{ get (urlParse (include "metrics-ingester.health.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "metrics-ingester.fullname" . }}
+                port:
+                  name: http
+          - path: {{ get (urlParse (include "metrics-ingester.datadog.http.v1.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "metrics-ingester.fullname" . }}
+                port:
+                  name: http
+          - path: {{ get (urlParse (include "metrics-ingester.datadog.http.v2.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "metrics-ingester.fullname" . }}
+                port:
+                  name: http
+          - path: {{ get (urlParse (include "metrics-ingester.datadog.http.beta.sketches.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "metrics-ingester.fullname" . }}
+                port:
+                  name: http
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-grpc" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/headers.content-type: application/grpc
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }}
+    konghq.com/protocols: {{ ternary "grpcs" "grpc" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /opentelemetry.proto.collector.logs.v1.LogsService/Export
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (printf "%s-grpc" (include "ingestor.fullname" .)) (printf "%s-grpc" (include "opentelemetry-collector.fullname" .)) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "otlp" "servicePort" | int }}
+          - path: /opentelemetry.proto.collector.metrics.v1.MetricsService/Export
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (printf "%s-grpc" (include "ingestor.fullname" .)) (printf "%s-grpc" (include "opentelemetry-collector.fullname" .)) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "otlp" "servicePort" | int }}
+          - path: /opentelemetry.proto.collector.trace.v1.TraceService/Export
+            pathType: Exact
+            backend:
+              service:
+                name: {{ .Values.global.ingestor.enabled | ternary (printf "%s-grpc" (include "ingestor.fullname" .)) (printf "%s-grpc" (include "opentelemetry-collector.fullname" .)) }}
+                port:
+                  number: {{ index .Values.global "opentelemetry-collector" "ports" "otlp" "servicePort" | int }}
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-status" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }}
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: {{ get (urlParse (include "portal.live.http.url" .)) "path" }} 
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "portal.fullname" . }}
+                port:
+                  name: http
+{{- if .Values.global.fleetmanager.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-remote-config" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    konghq.com/strip-path: "true"
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }}{{printf ",allow-ingestion-token-remoteconfig,fleet-manager-rewrite-api"}}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /fleet-manager/api/client/config
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "fleet-manager.fullname" . }}
+                port:
+                  name: manage-http
+{{- end }}
+---
+
+{{- if .Values.datasource.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-clickhouse" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    konghq.com/headers.X-Clickhouse-User: default
+    konghq.com/plugins: {{ printf "%s-auth,clickhouse-ds-rewrite" .Release.Name }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "clickhouse.fullname" . }}
+                port:
+                  name: http
+
+--- 
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-prometheus" (include "incloud-ingress.name" .) | trunc 63 | trimSuffix "-" }}
+  annotations:
+    konghq.com/protocols: {{ ternary "https" "http" ( eq (tpl .Values.secure . ) "true" ) | quote }}
+    konghq.com/strip-path: "true"
+    konghq.com/plugins: {{ printf "%s-auth" .Release.Name }}
+    {{- with .Values.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ include "incloud-ingress.ingressClass" .}}
+  {{- if .Values.global.ingress.enableTLS }}
+  tls:
+    - secretName: {{ include "incloud-ingress.certificate.name" . }}
+      hosts: {{ include "incloud-ingress.certificate.dnsNames" .  | nindent 8 }}
+    {{- if not (empty .Values.global.ingress.customDomains) }}
+    - secretName: {{ include "incloud-ingress.customCertificate.name" . }}
+      hosts: {{ include "incloud-ingress.customCertificate.dnsNames" .  | nindent 8 }}
+    {{- end }}
+
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /datasources/prometheus
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "victoria-metrics.read.http.host" . }}
+                port:
+                  name: http
+{{- end -}}

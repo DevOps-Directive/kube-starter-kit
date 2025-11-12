@@ -1,0 +1,3 @@
+{{ if .Values.agent.alligator }}
+WARNING: The configuration for 'alligator' is deprecated. Please replace it with 'sensor'.
+{{ end }}
