@@ -32,7 +32,7 @@ jobs:
           role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
-      - uses: diggerhq/digger@2ef0ab1a588f9dc359961881f5e2d3fbec7f6c7f # v0.6.129
+      - uses: diggerhq/digger@1f2eeaae4190f2d6891de5c9ca792b0e76316a7c # v0.6.134
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
           upload-plan-destination: aws
           upload-plan-destination-s3-bucket: ksk-gbl-infra-bootstrap-digger-plans
           cache-dependencies: true
-          digger-version: v0.6.129
+          digger-version: v0.6.134
           reporting-strategy: "latest_run"
 
           # setup-opentofu: true
