@@ -30,3 +30,4 @@ generate_projects:
       include_patterns:
         - terraform/modules/**
         - digger.yml # Updating this file will force a plan for all projects...
+        - foo.bar
