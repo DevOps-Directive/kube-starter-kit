@@ -38,6 +38,6 @@ generate_projects:
       terragrunt: true
       root_dir: live/dev-account/us-east-1
       workflow: default
-      workflow_file: digger-dev-us-east-1.yml
+      workflow_file: digger_workflow.yml
       include_patterns:
         - live/dev-account/app-config.yaml
