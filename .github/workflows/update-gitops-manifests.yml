@@ -9,6 +9,8 @@ on:
         type: choice
         options:
           - services/go-backend
+          # TODO: handle the fact that migrations image shouldn't deploy independently (its coupled to application version)
+          - services/go-backend/migrations
           - services/go-backend-no-migrations
       version:
         description: "Version to deploy"
