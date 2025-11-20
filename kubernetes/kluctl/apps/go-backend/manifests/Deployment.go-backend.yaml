@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:{{ goBackend.version }} # staging_services/go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:{{ goBackend.version }}
           env:
             - name: DATABASE_URL
               valueFrom:

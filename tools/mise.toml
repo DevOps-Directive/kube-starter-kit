@@ -180,7 +180,7 @@ STARTING_PATH="${3:-${STARTING_PATH:-}}"
 
 # Default excluded files, override via EXCLUDED_FILES env if needed
 EXCLUDED_FILES="${EXCLUDED_FILES:-$(cat <<'EOF'
-./Taskfile.yaml
+./foo.yaml
 MORE_FILES_CAN_GO_HERE
 EOF
 )}"
@@ -195,7 +195,10 @@ echo "IDENTIFIER_COMMENT: ${IDENTIFIER_COMMENT}"
 echo "NEW_TAG: ${NEW_TAG}"
 
 # Find YAML/YML files containing the IDENTIFIER_COMMENT and update the tag
-find "$STARTING_PATH" -type f \( -name "*.yaml" -o -name "*.yml" \) \
+# - Skip any directory named .helm-charts (and its subdirectories) via -prune (dont search over pulled charts)
+find "$STARTING_PATH" \
+  -type d -name '.helm-charts' -prune -o \
+  -type f \( -name "*.yaml" -o -name "*.yml" \) \
   -exec grep -l -- "$IDENTIFIER_COMMENT" {} \; | while read -r file; do
     # Skip excluded files
     if printf '%s\n' "$EXCLUDED_FILES" | grep -qF "$file"; then

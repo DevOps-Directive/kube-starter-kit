@@ -127,3 +127,5 @@ jobs:
           provenance: false # this prevents extra manifest image in ECR
           cache-from: type=gha
           cache-to: type=gha,mode=max
+#
+# TODO: trigger update-gitops-manifest

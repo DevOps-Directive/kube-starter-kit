@@ -37,9 +37,13 @@ jobs:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
         with:
           ref: main # Checking out the tip of main (vs the GITHUB_REF of the build workflow is more robust to merge conflicts since we merge back to main)
-      - uses: ./.github/actions/setup-dependencies
+      - uses: jdx/mise-action@be3be2260bc02bc3fbf94c5e2fed8b7964baf074 # v3.4.0
         with:
-          install_task: "true"
+          version: 2025.10.21
+          install: false # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
+          experimental: true # [default: false] enable experimental features
+          github_token: ${{ secrets.GITHUB_TOKEN }} # [default: ${{ github.token }}] GitHub token for API authentication
       - name: Generate Commit Message
         id: generate-commit-message
         run: |
@@ -49,9 +53,11 @@ jobs:
         run: |
           # NOTE: We could (additionally) update staging for release tags
           #       so production image tags end up there too
-          task utils:update-image-tags-service \
-            NEW_TAG=${{ inputs.version }} \
-            ENVIRONMENT=${{ inputs.environment }}
+          STARTING_PATH=$(git rev-parse --show-toplevel) \
+          NEW_TAG=${{ inputs.version }} \
+          ENVIRONMENT=${{ inputs.environment }} \
+          SERVICE_RELEASE_TAG=${{ inputs.service }} \
+          mise run //tools:update-image-tags-service
       - run: |
           git --no-pager diff
       # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated
@@ -59,10 +65,6 @@ jobs:
       - name: Commit & push (via Task)
         working-directory: ${{ inputs.service }}
         run: |
-          task utils:git:commit-push \
-            COMMIT_MSG="${{ steps.generate-commit-message.outputs.commit_message }}" \
-            BRANCH=main
-
-# TODO:
-# 1. Adapt https://github.com/sidpalas/capstone/blob/main/utils/Taskfile.yaml to use mise
-# 2.
+          COMMIT_MSG="${{ steps.generate-commit-message.outputs.commit_message }}" \
+          BRANCH=main \
+          mise run //tools:git-commit-push
