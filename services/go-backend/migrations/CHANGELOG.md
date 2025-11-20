@@ -9,6 +9,7 @@
 
 ## [0.1.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.1.0...services/go-backend/migrations@0.1.1) (2025-11-10)
 
+
 ### Chores
 
 * **services/go-backend/migrations:** Synchronize go-backend-and-migrations versions

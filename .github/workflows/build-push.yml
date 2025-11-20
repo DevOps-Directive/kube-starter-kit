@@ -23,7 +23,6 @@ on:
         type: string
 
 permissions:
-  actions: write # used to trigger deploy workflow
   contents: read
 
 jobs:
@@ -69,6 +68,7 @@ jobs:
     needs: filter
     if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
     permissions:
+      actions: write # used to trigger deploy workflow
       contents: read
       id-token: write
     strategy:
@@ -141,7 +141,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run update-gitops-manifests.yml \
-            -f service=${{ matrix.service }} \
-            -f version=${{ steps.image-tag.outputs.version }} \
-            -f environment=${{ needs.filter.outputs.environment }}
+          if [ "${{ needs.filter.outputs.environment }}" != "none" ]; then
+            gh workflow run update-gitops-manifests.yml \
+              -f service=${{ matrix.service }} \
+              -f version=${{ steps.image-tag.outputs.version }} \
+              -f environment=${{ needs.filter.outputs.environment }}
+          fi
