@@ -10,6 +10,7 @@ workflows:
         - run: echo "Starting apply step"
         - init
         # can change back to `- apply` after https://github.com/diggerhq/digger/pull/2332 is merged
+        # TODO: remove after validating in hosted version of digger
         - run: terragrunt apply -lock-timeout=3m -auto-approve $DIGGER_PLANFILE
     workflow_configuration:
       on_pull_request_pushed: ["digger plan"]
@@ -27,6 +28,9 @@ generate_projects:
       workflow: "default"
       # These dont currently seem to be utilized when `terragrunt: true`
       # See: https://diggertalk.slack.com/archives/C01DVJRK6CX/p1761659562940929?thread_ts=1761641951.832309&cid=C01DVJRK6CX
+      # UPDATE: This is fixed... but the fix doesn't seem to be deployed to the hosted versiion of digger
+      #         Self hosting ghcr.io/diggerhq/digger_backend:v0.6.136 on railway it is working
+      # TODO: Remove this comment after the hosted version is updated
       include_patterns:
         - terraform/modules/**
-        - digger.yml # Updating this file will force a plan for all projects...
+        - digger.yml
