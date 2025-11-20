@@ -23,12 +23,14 @@ on:
         type: string
 
 permissions:
+  actions: write # used to trigger deploy workflow
   contents: read
 
 jobs:
   filter:
     runs-on: ubuntu-24.04
     outputs:
+      environment: ${{ steps.set-output.outputs.environment }}
       services: ${{ steps.set-output.outputs.services }}
       tagType: ${{ steps.set-output.outputs.tagType }}
     steps:
@@ -47,16 +49,19 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo 'services=["${{ inputs.service }}"]' >> "$GITHUB_OUTPUT"
             echo 'tagType=manual' >> "$GITHUB_OUTPUT"
+            echo 'environment=none' >> "$GITHUB_OUTPUT"
 
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             tag="${GITHUB_REF_NAME}"        # e.g. service-a@1.2.3
             svc="${tag%%@*}"
             echo "services=[\"$svc\"]" >> "$GITHUB_OUTPUT"
             echo 'tagType=release' >> "$GITHUB_OUTPUT"
+            echo 'environment=production' >> "$GITHUB_OUTPUT"
 
           else # push to main
             echo 'services=${{ steps.filter.outputs.changes }}' >> "$GITHUB_OUTPUT"
             echo 'tagType=pre-release' >> "$GITHUB_OUTPUT"
+            echo 'environment=staging' >> "$GITHUB_OUTPUT"
           fi
 
   build-push-container-images:
@@ -127,5 +132,16 @@ jobs:
           provenance: false # this prevents extra manifest image in ECR
           cache-from: type=gha
           cache-to: type=gha,mode=max
-#
-# TODO: trigger update-gitops-manifest
+
+      # Trigger deploy as a separate workflow to:
+      #   1. enable running it manually via workflow_dispatch
+      #   2. keep workflows smaller and more focused
+      # We could use reuseable workflow (with workflow_call trigger... but being able to trigger manually is nice)
+      - name: Trigger Deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run update-gitops-manifests.yaml \
+            -f service=${{ matrix.service }} \
+            -f version=${{ steps.image-tag.outputs.version }} \
+            -f environment=${{ needs.filter.outputs.environment }}
