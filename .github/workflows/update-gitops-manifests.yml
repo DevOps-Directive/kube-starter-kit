@@ -58,8 +58,9 @@ jobs:
           STARTING_PATH=$(git rev-parse --show-toplevel) \
           NEW_TAG=${{ inputs.version }} \
           ENVIRONMENT=${{ inputs.environment }} \
-          SERVICE_RELEASE_TAG=${{ inputs.service }} \
           mise run //tools:update-image-tags-service
+
+          # SERVICE_RELEASE_TAG gets loaded from service specific mise.toml
       - run: |
           git --no-pager diff
       # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated

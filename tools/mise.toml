@@ -1,5 +1,9 @@
 # tools/mise.toml
 
+# NOTE: using environment variables here rather than mise task arguments (https://mise.jdx.dev/tasks/task-arguments.html)
+#       allows for monorepo tasks to be called from within a subdirectory and use 
+#       the env vars defined in the local mise.toml file
+
 [tasks.generate-version]
 description = "Use git describe to generate a tag based on the latest release tag"
 silent = true

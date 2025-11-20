@@ -138,12 +138,23 @@ jobs:
       #   2. keep workflows smaller and more focused
       # We could use reuseable workflow (with workflow_call trigger... but being able to trigger manually is nice)
       - name: Trigger Deploy
+        working-directory: ${{ matrix.service }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENVIRONMENT: ${{ needs.filter.outputs.environment }}
         run: |
-          if [ "${{ needs.filter.outputs.environment }}" != "none" ]; then
-            gh workflow run update-gitops-manifests.yml \
-              -f service=${{ matrix.service }} \
-              -f version=${{ steps.image-tag.outputs.version }} \
-              -f environment=${{ needs.filter.outputs.environment }}
+          RUN_DEPLOY_WORKFLOW="${RUN_DEPLOY_WORKFLOW:-true}" # Can be set in from service specific mise.toml
+          if [ "$RUN_DEPLOY_WORKFLOW" != "true" ]; then
+            "echo skipping update-gitops-manifests workflow because service has RUN_DEPLOY_WORKFLOW: $RUN_DEPLOY_WORKFLOW" 
+            exit 0                    
           fi
+
+          if [ "$ENVIRONMENT" == "none" ]; then
+            echo "skipping update-gitops-manifests workflow because environment = ${}" 
+            exit 0
+          fi
+
+          gh workflow run update-gitops-manifests.yml \
+            -f service=${{ matrix.service }} \
+            -f version=${{ steps.image-tag.outputs.version }} \
+            -f environment="$ENVIRONMENT"
