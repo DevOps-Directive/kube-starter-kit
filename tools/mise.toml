@@ -151,3 +151,176 @@ IMAGE_TAG="${1:-${IMAGE_TAG:-}}"
 
 echo "${IMAGE_REPO}:${IMAGE_TAG}"
 '''
+
+[tasks.update-image-tags]
+description = "Recursively update image tags in files with the specified comment"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  NEW_TAG=<tag> IDENTIFIER_COMMENT='<comment>' STARTING_PATH=/path  mise run //tools:update-image-tags
+  mise run //tools:update-image-tags <tag> '<comment>' [starting_path]
+
+where:
+  NEW_TAG             The new image tag to write (e.g., 1.2.3-rc0007-gabc123)
+  IDENTIFIER_COMMENT  Comment to match in the YAML line (e.g., '# THIS_IS_MY_IMAGE_TAG')
+  STARTING_PATH       Directory to start searching from (defaults to current dir if omitted)
+  EXCLUDED_FILES      Optional newline-separated list of files to skip (override default via env)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+NEW_TAG="${1:-${NEW_TAG:-}}"
+IDENTIFIER_COMMENT="${2:-${IDENTIFIER_COMMENT:-}}"
+STARTING_PATH="${3:-${STARTING_PATH:-}}"
+
+# Default excluded files, override via EXCLUDED_FILES env if needed
+EXCLUDED_FILES="${EXCLUDED_FILES:-$(cat <<'EOF'
+./Taskfile.yaml
+MORE_FILES_CAN_GO_HERE
+EOF
+)}"
+
+if [[ -z "$NEW_TAG" || -z "$IDENTIFIER_COMMENT" || -z "$STARTING_PATH" ]]; then
+  usage
+  exit 2
+fi
+
+echo "STARTING_PATH: ${STARTING_PATH}"
+echo "IDENTIFIER_COMMENT: ${IDENTIFIER_COMMENT}"
+echo "NEW_TAG: ${NEW_TAG}"
+
+# Find YAML/YML files containing the IDENTIFIER_COMMENT and update the tag
+find "$STARTING_PATH" -type f \( -name "*.yaml" -o -name "*.yml" \) \
+  -exec grep -l -- "$IDENTIFIER_COMMENT" {} \; | while read -r file; do
+    # Skip excluded files
+    if printf '%s\n' "$EXCLUDED_FILES" | grep -qF "$file"; then
+      continue
+    fi
+
+    echo "Updating: $file"
+    # Replace "<anything>:" + existing value before comment with NEW_TAG, keeping the comment
+    # using -i.bak to make it compatible across MacOS sed and gnu-sed
+    sed -i.bak "s|\([[:space:]]*.*:[[:space:]]*\).* \(${IDENTIFIER_COMMENT}\)|\1${NEW_TAG} \2|" "$file"
+    rm -f "${file}.bak"
+  done
+'''
+
+[tasks.update-image-tags-service]
+description = "Update image tags for kluctl config"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  NEW_TAG=<tag> ENVIRONMENT=<env> SERVICE_RELEASE_TAG=<service>  mise run //tools:update-image-tags-service
+  mise run //tools:update-image-tags-service <tag> <env> <service>
+
+where:
+  NEW_TAG             The new image tag to write (e.g., 1.2.3-rc0007-gabc123)
+  ENVIRONMENT         Environment name (e.g., dev, staging, prod)
+  SERVICE_RELEASE_TAG Service identifier used in the comment (e.g., services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+NEW_TAG="${1:-${NEW_TAG:-}}"
+ENVIRONMENT="${2:-${ENVIRONMENT:-}}"
+SERVICE_RELEASE_TAG="${3:-${SERVICE_RELEASE_TAG:-}}"
+
+if [[ -z "$NEW_TAG" || -z "$ENVIRONMENT" || -z "$SERVICE_RELEASE_TAG" ]]; then
+  usage
+  exit 2
+fi
+
+IDENTIFIER_COMMENT="# ${ENVIRONMENT}_${SERVICE_RELEASE_TAG}"
+STARTING_PATH="${STARTING_PATH:-$(git rev-parse --show-toplevel)}"
+
+export NEW_TAG IDENTIFIER_COMMENT STARTING_PATH
+
+mise run --interleave :update-image-tags "$NEW_TAG" "$IDENTIFIER_COMMENT" "$STARTING_PATH"
+'''
+
+[tasks.git-commit-push]
+description = "Commit & push changes to a branch with exponential backoff retries"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:git-commit-push [commit_msg] [branch]
+
+or via env:
+  COMMIT_MSG="chore: ..." BRANCH=main MAX_RETRIES=5 BASE_DELAY=2 JITTER_MAX=3 \
+    mise run //tools:git-commit-push
+
+where:
+  COMMIT_MSG   Commit message (default: "chore: automated update [skip ci]")
+  BRANCH       Branch to push to (default: main)
+  MAX_RETRIES  Max push attempts with backoff (default: 5)
+  BASE_DELAY   Base delay (seconds) for first backoff step (default: 2)
+  JITTER_MAX   Max random jitter (seconds) to add (default: 3)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+DEFAULT_COMMIT_MSG="chore: automated update [skip ci]"
+
+COMMIT_MSG="${1:-${COMMIT_MSG:-$DEFAULT_COMMIT_MSG}}"
+BRANCH="${2:-${BRANCH:-main}}"
+MAX_RETRIES="${MAX_RETRIES:-5}"
+BASE_DELAY="${BASE_DELAY:-2}"
+JITTER_MAX="${JITTER_MAX:-3}"
+
+# Bail if nothing to commit
+if git diff --quiet; then
+  echo "No changes to commit."
+  exit 0
+fi
+
+# Configure identity (override via env if you want)
+: "${GIT_USER_NAME:=github-actions[bot]}"
+: "${GIT_USER_EMAIL:=${GITHUB_ACTOR_ID:-41898282}+${GITHUB_ACTOR:-github-actions[bot]}@users.noreply.github.com}"
+
+git config user.name  "$GIT_USER_NAME"
+git config user.email "$GIT_USER_EMAIL"
+
+git add -A
+git commit -m "$COMMIT_MSG"
+
+attempt=1
+while [ "$attempt" -le "$MAX_RETRIES" ]; do
+  git fetch origin "$BRANCH"
+
+  if ! git rebase "origin/$BRANCH"; then
+    echo "Rebase failed; aborting and retrying..."
+    git rebase --abort || true
+  fi
+
+  if git push origin "HEAD:$BRANCH"; then
+    echo "Push succeeded on attempt $attempt"
+    exit 0
+  fi
+
+  delay=$(( BASE_DELAY * 2**(attempt-1) ))
+  jitter=$(( RANDOM % JITTER_MAX ))
+  sleep_time=$(( delay + jitter ))
+  echo "Push failed (attempt $attempt). Retrying in ${sleep_time}s (base=${delay}s, jitter=${jitter}s)..."
+  sleep "$sleep_time"
+
+  attempt=$(( attempt + 1 ))
+done
+
+echo "Push failed after ${MAX_RETRIES} attempts" >&2
+exit 1
+'''

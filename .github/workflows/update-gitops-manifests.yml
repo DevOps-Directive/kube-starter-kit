@@ -1,0 +1,68 @@
+name: Update GitOps Manifests
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Path to the service to deploy (go/api-golang)"
+        required: true
+        type: choice
+        options:
+          - services/go-backend
+          - services/go-backend-no-migrations
+      version:
+        description: "Version to deploy"
+        required: true
+        type: string
+      environment:
+        description: "Target environment to deploy to"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  # Serializes deploys for each (Environment, Service)
+  group: ${{ github.workflow }}-gitops-${{ inputs.environment }}-${{ inputs.service }}
+  cancel-in-progress: false
+
+jobs:
+  update-manifests:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          ref: main # Checking out the tip of main (vs the GITHUB_REF of the build workflow is more robust to merge conflicts since we merge back to main)
+      - uses: ./.github/actions/setup-dependencies
+        with:
+          install_task: "true"
+      - name: Generate Commit Message
+        id: generate-commit-message
+        run: |
+          commit_message="chore: update ${{ inputs.environment }}, ${{ inputs.service }}, ${{ inputs.version }} [skip ci]"
+          echo "commit_message=${commit_message}" >> "$GITHUB_OUTPUT"
+      - working-directory: ${{ inputs.service }}
+        run: |
+          # NOTE: We could (additionally) update staging for release tags
+          #       so production image tags end up there too
+          task utils:update-image-tags-service \
+            NEW_TAG=${{ inputs.version }} \
+            ENVIRONMENT=${{ inputs.environment }}
+      - run: |
+          git --no-pager diff
+      # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated
+      # Alternatively, we could use peter-evans/create-pull-request to generate a PR instead
+      - name: Commit & push (via Task)
+        working-directory: ${{ inputs.service }}
+        run: |
+          task utils:git:commit-push \
+            COMMIT_MSG="${{ steps.generate-commit-message.outputs.commit_message }}" \
+            BRANCH=main
+
+# TODO:
+# 1. Adapt https://github.com/sidpalas/capstone/blob/main/utils/Taskfile.yaml to use mise
+# 2.

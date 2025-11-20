@@ -4,7 +4,7 @@ metadata:
   name: go-backend
   namespace: apps
 spec:
-  replicas: 1
+  replicas: {{apiGolang.replicas}}
   selector:
     matchLabels:
       app: go-backend
@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:foo
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:{{ goBackend.version }} # staging_services/go-backend
           env:
             - name: DATABASE_URL
               valueFrom:
