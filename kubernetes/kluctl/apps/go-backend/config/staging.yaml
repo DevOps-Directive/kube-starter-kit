@@ -4,4 +4,4 @@ goBackend:
     image: ghcr.io/cloudnative-pg/postgresql:17.5
     storageClass: ebs-gp3-encrypted
   replicas: 1
-  version: 0.2.1-rc0021-gd62cd56 # staging_services/go-backend
+  version: 0.2.1-rc0024-g55d88c6 # staging_services/go-backend
