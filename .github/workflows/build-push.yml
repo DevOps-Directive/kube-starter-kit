@@ -143,14 +143,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ENVIRONMENT: ${{ needs.filter.outputs.environment }}
         run: |
-          RUN_DEPLOY_WORKFLOW="${RUN_DEPLOY_WORKFLOW:-true}" # Can be set in from service specific mise.toml
+          # Load env vars from mise.toml in this directory
+          eval "$(mise env --shell bash)"
+          RUN_DEPLOY_WORKFLOW="${RUN_DEPLOY_WORKFLOW:-true}"
+
           if [ "$RUN_DEPLOY_WORKFLOW" != "true" ]; then
-            "echo skipping update-gitops-manifests workflow because service has RUN_DEPLOY_WORKFLOW: $RUN_DEPLOY_WORKFLOW" 
-            exit 0                    
+            echo "skipping update-gitops-manifests workflow because service has RUN_DEPLOY_WORKFLOW=$RUN_DEPLOY_WORKFLOW"
+            exit 0
           fi
 
-          if [ "$ENVIRONMENT" == "none" ]; then
-            echo "skipping update-gitops-manifests workflow because environment = ${}" 
+          if [ "$ENVIRONMENT" = "none" ]; then
+            echo "skipping update-gitops-manifests workflow because environment=$ENVIRONMENT"
             exit 0
           fi
 
