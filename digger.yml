@@ -18,8 +18,6 @@ workflows:
       on_commit_to_default: ["digger unlock"]
       skip_merge_check: true # Let Dev Apply before the branch is mergable (TODO: split out prod and enforce this)
 
-respect_layers: true
-
 generate_projects:
   blocks:
     # terraform/live/{env}/{region}/{project}
