@@ -1,10 +1,30 @@
-[tasks]
+[env]
+OUTPUT_PATH = "services/go-backend-helm"
 
-render = """
-helm template . | yq -P --no-doc -s '"./out/" +
+[tasks.render-cluster]
+description = "Render manifests for specified cluster"
+usage = '''
+arg "<cluster>" help="Target cluster" {
+  choices "staging" "production"
+}
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+export OUTPUT_DIR="../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
+mkdir -p "$OUTPUT_DIR"
+if [[ -n "$OUTPUT_DIR" && "$OUTPUT_DIR" != "/" ]]; then
+    rm -rf "${OUTPUT_DIR:?}"/*
+fi
+
+helm template . \
+  --values values.yaml \
+  --values values.${usage_cluster}.yaml \
+  | yq -P --no-doc -s 'strenv(OUTPUT_DIR) + "/" +
     ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
     ((.kind // "unknown") | downcase) + "_" +
-    (.metadata.name // ("idx_" + $index))
+    (.metadata.name // ("idx_" + $index)) +
+    ".yaml"
   '
-for f in ./out/*.yml; do mv "$f" "${f%.yml}.yaml"; done
 """

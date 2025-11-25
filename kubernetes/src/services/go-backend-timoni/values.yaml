@@ -1,0 +1,4 @@
+values:
+  message: "Message Override!"
+  image:
+    repository: foobarbaz
