@@ -33,5 +33,6 @@ generate_projects:
       #         Self hosting ghcr.io/diggerhq/digger_backend:v0.6.136 on railway it is working
       # TODO: Remove this comment after the hosted version is updated
       include_patterns:
+        - terraform/live/shared/global/force-plan-no-op/**
         - terraform/modules/**
         - digger.yml
