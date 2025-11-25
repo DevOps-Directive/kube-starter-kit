@@ -32,3 +32,4 @@ module "eks-wrapper" {
   sso_admin_role_arn     = var.sso_admin_role_arn
   context                = module.label.context
 }
+
