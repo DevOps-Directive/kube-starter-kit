@@ -12,17 +12,10 @@ run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
-export OUTPUT_DIR="../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
-mkdir -p "$OUTPUT_DIR"
-if [[ -n "$OUTPUT_DIR" && "$OUTPUT_DIR" != "/" ]]; then
-    rm -rf "${OUTPUT_DIR:?}"/*
-fi
+export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
+
+mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
 kubectl kustomize ./${usage_cluster} \
-  | yq -P --no-doc -s 'strenv(OUTPUT_DIR) + "/" +
-    ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
-    ((.kind // "unknown") | downcase) + "_" +
-    (.metadata.name // ("idx_" + $index)) +
-    ".yaml"
-  '
+  | mise run //tools:render:split-k8s-docs ${OUTPUT_DIR}
 """
