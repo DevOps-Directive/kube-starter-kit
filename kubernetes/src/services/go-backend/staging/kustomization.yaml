@@ -1,3 +1,4 @@
+namespace: go-backend-kustomize
 resources:
   - ../base
 patches:

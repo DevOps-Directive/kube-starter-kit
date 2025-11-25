@@ -1,5 +1,5 @@
 [env]
-OUTPUT_PATH = "services/go-backend-kustomize"
+OUTPUT_PATH = "services/go-backend"
 
 [tasks.render-cluster]
 description = "Render manifests for specified cluster"

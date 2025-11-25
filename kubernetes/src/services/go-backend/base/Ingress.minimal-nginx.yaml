@@ -2,7 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: minimal-nginx
-  namespace: apps
   annotations:
     external-dns.alpha.kubernetes.io/hostname: ingress-nginx.staging.kubestarterkit.com
 spec:

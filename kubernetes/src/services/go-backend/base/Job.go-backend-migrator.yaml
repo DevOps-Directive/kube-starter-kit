@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: go-backend-migrate
-  namespace: apps
   annotations:
     kluctl.io/hook: pre-deploy
     # kluctl.io/hook-weight: 1 # use ascending hook weight if resources need to exist in order
