@@ -1,0 +1,12 @@
+# Need to specify destination path:
+
+[tasks]
+
+render-staging = """
+kubectl kustomize ./staging | yq -P --no-doc -s '"./out/" +
+    ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
+    ((.kind // "unknown") | downcase) + "_" +
+    (.metadata.name // ("idx_" + $index))
+  '
+for f in ./out/*.yml; do mv "$f" "${f%.yml}.yaml"; done
+"""

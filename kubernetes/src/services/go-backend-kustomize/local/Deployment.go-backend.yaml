@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend
+  namespace: apps
+spec:
+  template:
+    spec:
+      containers:
+        - name: go-backend
+          # TODO: move to kustomization.yaml
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:local-version

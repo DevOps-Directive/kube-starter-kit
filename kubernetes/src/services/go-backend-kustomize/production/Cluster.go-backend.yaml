@@ -1,0 +1,8 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: go-backend-pg
+  namespace: apps
+spec:
+  storage:
+    storageClass: ebs-gp3-encrypted

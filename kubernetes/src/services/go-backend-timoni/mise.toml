@@ -1,0 +1,13 @@
+[tasks]
+
+render = """
+timoni template foo . \
+| yq -P --no-doc '
+    select(tag == "!!map")   # drops the trailing empty doc (null)
+  ' -s '"./out/" +
+    ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
+    ((.kind // "unknown") | downcase) + "_" +
+    (.metadata.name // ("idx_" + $index))
+  '
+for f in ./out/*.yml; do mv "$f" "${f%.yml}.yaml"; done
+"""
