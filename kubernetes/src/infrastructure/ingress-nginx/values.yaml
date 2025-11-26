@@ -1,0 +1,8 @@
+ingress-nginx:
+  controller:
+    admissionWebhooks:
+      enabled: true
+      certManager:
+        enabled: true
+      patch:
+        enabled: true

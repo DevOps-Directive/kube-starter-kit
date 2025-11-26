@@ -1,0 +1,97 @@
+[tools]
+istioctl = "1.27"
+
+[tasks.generate-manifests]
+description = "Generate Istio manifests from IstioOperatorSpec.yaml into ./install/istio-generated-manifests.yaml"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run generate-manifests [<IstioOperatorSpec.yaml>]
+
+env (optional):
+  ISTIO_OPERATOR_SPEC   Path to IstioOperatorSpec.yaml (default: IstioOperatorSpec.yaml)
+
+Notes from Taskfile:
+  - revision could be "default", "canary", or specific version "1-27-1"
+  - Issues observed previously included ztunnel health and cert DnsName mismatches:
+    istiod-default.istio-system.svc vs istiod-pilot.istio-system.svc.
+  - Resolved by specifying the revision in IstioOperatorSpec.yaml.
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+SPEC="${1:-${ISTIO_OPERATOR_SPEC:-IstioOperatorSpec.yaml}}"
+mkdir -p ./install
+
+istioctl manifest generate \
+  -f "${SPEC}" \
+  --cluster-specific \
+  > ./install/istio-generated-manifests.yaml
+'''
+
+[tasks.generate-revision-tag]
+description = "Generate an Istio revision tag manifest into ./install/istio-generated-revision-tag.yaml"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run generate-revision-tag [<revision>]
+
+env (optional):
+  REVISION  Istio data-plane control plane revision (default: 1-27-1)
+
+Note: The generated mutating webhook primarily targets pods (sidecar injection).
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+REVISION="${1:-${REVISION:-1-27-1}}"
+mkdir -p ./install
+
+istioctl tag generate default --revision "${REVISION}" \
+  > ./install/istio-generated-revision-tag.yaml
+'''
+
+[tasks.download-gateway-api-crds]
+description = "Download Gateway API CRDs (standard-install.yaml) into ./install/gateway-api-crds.yaml"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run download-gateway-api-crds [<version>]
+
+env (optional):
+  GATEWAY_API_VERSION  Gateway API release tag (default: v1.3.0)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+VER="${1:-${GATEWAY_API_VERSION:-v1.3.0}}"
+mkdir -p ./install
+
+curl -fsSL "https://github.com/kubernetes-sigs/gateway-api/releases/download/${VER}/standard-install.yaml" \
+  > ./install/gateway-api-crds.yaml
+'''
+
+[tasks.uninstall]
+description = "Purge Istio and delete istio namespaces"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+istioctl uninstall --purge || true
+kubectl delete namespace istio-system istio-ingress || true
+'''

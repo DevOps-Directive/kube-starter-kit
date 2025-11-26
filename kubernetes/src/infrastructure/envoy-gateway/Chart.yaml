@@ -1,0 +1,13 @@
+apiVersion: v2
+name: envoy-gateway-wrapper
+description: Umbrella chart that installs envoy gateway plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: gateway-helm
+    repository: "oci://docker.io/envoyproxy"
+    version: 1.6.0
+  - name: gateway-crds-helm
+    repository: "oci://docker.io/envoyproxy"
+    version: 1.6.0

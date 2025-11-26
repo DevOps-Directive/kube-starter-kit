@@ -1,6 +1,0 @@
-# Can pass yaml values files 👍
-# timoni build foo . --values myvalues.yaml
-values:
-  message: "Message Override!"
-  image:
-    repository: foobarbaz

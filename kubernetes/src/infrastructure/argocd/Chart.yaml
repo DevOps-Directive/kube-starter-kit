@@ -1,0 +1,13 @@
+apiVersion: v2
+name: argocd-wrapper
+description: Umbrella chart that installs Argo CD plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: argo-cd
+    repository: https://argoproj.github.io/argo-helm
+    version: 7.7.16 # pin this
+    alias: argocd
+# TODO... how to handle upgrading the version here?
+#   rely on main/tag render flow?

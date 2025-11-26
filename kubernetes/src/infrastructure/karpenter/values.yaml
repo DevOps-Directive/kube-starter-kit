@@ -1,0 +1,11 @@
+karpenter:
+  nodeSelector:
+    karpenter.sh/controller: "true"
+  dnsPolicy: Default
+  settings:
+    # TODO: make these dynamic
+    clusterName: "ksk-use2-staging-eks"
+    clusterEndpoint: "https://01FAE4D24863BE8CF6056316CA888EE1.gr7.us-east-2.eks.amazonaws.com"
+    interruptionQueue: "Karpenter-ksk-use2-staging-eks"
+  webhook:
+    enabled: false

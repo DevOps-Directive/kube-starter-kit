@@ -2,3 +2,19 @@
 "aqua:kluctl/kluctl" = "2"
 helm = "3"
 kubectl = "1.34"
+kustomize = "5.8"
+argocd = "3.2"
+timoni = "0.25"
+
+[tasks]
+
+# TODO: remove
+# This is just for me to avoid paying for compute when not using it
+scale-karpenter-down = 'k scale deployments.apps -n kube-system karpenter --replicas=0'
+scale-karpenter-up = 'k scale deployments.apps -n kube-system karpenter --replicas=2'
+
+[tasks.foo]
+description = "blah"
+run = """
+echo foo
+"""

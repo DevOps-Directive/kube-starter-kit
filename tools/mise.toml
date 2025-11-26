@@ -369,7 +369,9 @@ set -euo pipefail
 export OUTPUT_DIR="${usage_output_dir:?}"
 export OUTPUT_EXT="${usage_ext:-yaml}"
 
-yq -P --no-doc 'select(tag == "!!map")' \
+yq -P --no-doc '
+    select(tag == "!!map") # drops the trailing empty doc (null) added by timoni
+  ' \
   -s '
     strenv(OUTPUT_DIR) + "/" +
     ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
