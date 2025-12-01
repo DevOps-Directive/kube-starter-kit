@@ -43,8 +43,8 @@ echo "${SSO_ROLE_ARN}"
 [tasks.create-terraform-iam-role-in-target-account]
 description = "Create an IAM role assumable by the infrastructure SSO role"
 usage = '''
-flag "--role-name <name>"           help="IAM role name to create in target account"                   env="ROLE_NAME"
-flag "--infra-sso-role-arn <arn>"   help="Infra account SSO admin role ARN (principal for trust policy)" env="INFRASTRUCTURE_SSO_ROLE_ARN"
+flag "--role-name <name>"           help="IAM role name to create in target account"
+flag "--infra-sso-role-arn <arn>"   help="Infra account SSO admin role ARN (principal for trust policy)"
 '''
 run = '''
 #!/usr/bin/env bash
