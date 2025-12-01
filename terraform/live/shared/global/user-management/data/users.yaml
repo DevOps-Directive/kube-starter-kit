@@ -17,6 +17,7 @@ users:
       username: sidpala5
       role: member
       teams:
+        Admin: {} # default role = "member"
         ReadOnly: {} # default role = "member"
     aws:
       user_name: sid+test
