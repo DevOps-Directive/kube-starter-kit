@@ -10,6 +10,6 @@ permissions:
   # For Digger
   contents: write # required to merge PRs
   actions: write # required for plan persistence
-  pull-requests: write # required to post PR comments
+  pull_requests: write # required to post PR comments
   issues: read # required to check if PR number is an issue or not
   statuses: write # required to validate combined PR status
