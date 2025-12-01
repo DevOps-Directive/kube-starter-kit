@@ -1,0 +1,15 @@
+# issuer: https://token.actions.githubusercontent.com
+# # TODO: restrict
+# subject_pattern: repo:my-org/my-repo:.*
+
+# permissions:
+#   administration: write # repo permission
+#   metadata: read # repo permission
+#   members: read # org permission
+
+issuer: https://token.actions.githubusercontent.com
+subject: repo:DevOps-Directive/kube-starter-kit:ref:refs/heads/sp/octo-sts-gh-permissions
+
+permissions:
+  contents: write # read commits and create tags
+  pull_requests: write # create/edit PRs
