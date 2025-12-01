@@ -3,6 +3,13 @@ issuer: https://token.actions.githubusercontent.com
 subject_pattern: repo:DevOps-Directive/kube-starter-kit:.*
 
 permissions:
+  # For Terraform
   administration: write # repo permission
   metadata: read # repo permission
   members: read # org permission
+  # For Digger
+  contents: write # required to merge PRs
+  actions: write # required for plan persistence
+  pull-requests: write # required to post PR comments
+  issues: read # required to check if PR number is an issue or not
+  statuses: write # required to validate combined PR status
