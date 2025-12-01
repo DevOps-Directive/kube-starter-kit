@@ -26,7 +26,7 @@ jobs:
         id: octo-sts
         with:
           scope: DevOps-Directive/kube-starter-kit
-          identity: digger # see .github/chainguard/release-please.sts.yaml for trust policy
+          identity: digger # see .github/chainguard/digger.sts.yaml for trust policy
       - name: digger drift detection
         uses: diggerhq/digger@2ef0ab1a588f9dc359961881f5e2d3fbec7f6c7f # v0.6.129
         with:
