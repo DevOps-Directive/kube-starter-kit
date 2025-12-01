@@ -22,6 +22,11 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
+      - uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
+        id: octo-sts
+        with:
+          scope: DevOps-Directive/kube-starter-kit
+          identity: digger # see .github/chainguard/release-please.sts.yaml for trust policy
       - name: digger drift detection
         uses: diggerhq/digger@2ef0ab1a588f9dc359961881f5e2d3fbec7f6c7f # v0.6.129
         with:

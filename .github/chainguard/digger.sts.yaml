@@ -1,0 +1,7 @@
+issuer: https://token.actions.githubusercontent.com
+subject: repo:my-org/my-repo:pull_request
+
+permissions:
+  administration: write # repo permission
+  metadata: read # repo permission
+  members: read # org permission

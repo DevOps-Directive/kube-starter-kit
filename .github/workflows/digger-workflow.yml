@@ -30,6 +30,11 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
+      - uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
+        id: octo-sts
+        with:
+          scope: DevOps-Directive/kube-starter-kit
+          identity: digger # see .github/chainguard/release-please.sts.yaml for trust policy
       - name: ${{ fromJSON(github.event.inputs.spec).job_id }}
         run: echo "job id ${{ fromJSON(github.event.inputs.spec).job_id }}"
       - uses: diggerhq/digger@1f2eeaae4190f2d6891de5c9ca792b0e76316a7c # v0.6.134
