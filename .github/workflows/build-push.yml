@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - kubernetes/**
       - services/**
     tags:
       - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
