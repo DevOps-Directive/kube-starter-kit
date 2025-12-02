@@ -10,6 +10,7 @@ services/container-only-dummy:
 services/go-backend: &go_backend
   - "services/go-backend/**"
   - ".github/workflows/build_push.yml"
+  - "kubernetes/src/services/go-backend/**"
 
 services/go-backend/migrations:
   - *go_backend # db migrations tied to service
