@@ -11,3 +11,5 @@ This root module is a hack to work around a couple of digger bugs:
 - Drift reconcilliation via GH issue comments is not currently working (This attempt was reverted: https://github.com/diggerhq/digger/pull/2346)
 
 If/when those are fixed, this can be deleted.
+
+CHANGE_ME_VALUE: 0
