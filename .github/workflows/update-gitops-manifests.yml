@@ -63,7 +63,7 @@ jobs:
           # monorepo mise task (configured via env vars)
           mise run //tools:update-image-tags-service
 
-          # local mise task (specific to service)
+          # TODO: make this configurable
           mise run //kubernetes/src/${{ inputs.service }}:render-cluster ${{ inputs.environment }}
       - run: |
           git --no-pager diff
