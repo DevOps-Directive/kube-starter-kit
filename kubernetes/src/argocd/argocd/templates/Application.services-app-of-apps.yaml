@@ -1,0 +1,13 @@
+# This is the entrypoint (which manages all of the other applications in this chart)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: services-app-of-apps
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: argocd
+  source:
+    path: kubernetes/rendered/{{ .Values.cluster }}/argocd/services
+    repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git

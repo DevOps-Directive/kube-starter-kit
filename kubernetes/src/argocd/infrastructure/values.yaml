@@ -1,0 +1,6 @@
+applications:
+  argocd:
+    enabled: true
+  cert-manager:
+    enabled: true
+    # Could specify path for each application here to make it more flexible
