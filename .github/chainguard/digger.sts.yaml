@@ -6,7 +6,7 @@ permissions:
   # For Terraform
   administration: write # repo permission
   metadata: read # repo permission
-  members: read # org permission
+  members: write # org permission
   # For Digger
   contents: write # required to merge PRs
   actions: write # required for plan persistence
