@@ -1,8 +1,7 @@
 issuer: https://token.actions.githubusercontent.com
 subject_pattern: ^repo:DevOps-Directive/kube-starter-kit:.*
 claim_pattern:
-  event_name: ^workflow_dispatch$
-  job_workflow_ref: DevOpsDirective/kube-starter-kit/\.github/workflows/digger.*
+  job_workflow_ref: DevOps-Directive/kube-starter-kit/\.github/workflows/digger.*
 
 
 permissions:
