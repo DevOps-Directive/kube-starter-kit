@@ -1,9 +1,11 @@
 locals {
   users_file = yamldecode(file("${path.module}/data/users.yaml"))
+  users_list = try(local.users_file.users, [])
 
   # AWS
   sso_users = {
-    for u in local.users_file.users : u.aws.user_name => u.aws
+    for u in local.users_list : u.aws.user_name => u.aws
+    if try(u.aws.user_name, null) != null
   }
 
   account_ids = [
@@ -19,8 +21,8 @@ locals {
     for u in local.users_file.users :
     u.github.username => {
       username = u.github.username
-      org_role = try(u.github.role, "member") # org: member|admin
-      teams    = try(u.github.teams, {})      # map(team_key => {role=?})
+      org_role = try(u.github.role, "member") # default stays "member"
+      teams    = try(u.github.teams, [])      # list of team keys
     }
     if try(u.github.username, null) != null
   }
