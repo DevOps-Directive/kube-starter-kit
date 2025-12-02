@@ -31,9 +31,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
       - name: Debug OIDC Claims
-        uses: github/actions-oidc-debugger@main
+        uses: steve-todorov/oidc-debugger-action@b6d83b24a379e77233fb6b26f1c1a662c4bf443c # v1.0.2
         with:
-          audience: "${{ github.server_url }}/${{ github.repository_owner }}"
+          audience: "${{ github.server_url }}/${{ github.repository }}"
       - uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
         id: octo-sts
         with:
