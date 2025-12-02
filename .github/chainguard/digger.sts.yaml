@@ -2,6 +2,7 @@ issuer: https://token.actions.githubusercontent.com
 subject_pattern: ^repo:DevOps-Directive/kube-starter-kit:.*
 claim_pattern:
   workflow_ref: '^DevOps-Directive/kube-starter-kit/\.github/workflows/digger.*@refs/.*$'
+  # ⚠️ NOTE: using '^DevOps-Directive/kube-starter-kit/\.github/workflows/digger.*' did not match
 
 permissions:
   # For Terraform
