@@ -1,14 +1,5 @@
 users:
   - github:
-      username: sidpalas-bot
-      role: member
-      teams:
-        Admin:
-          role: maintainer
-        ReadOnly:
-          role: maintainer
-    aws: {}
-  - github:
       username: sidpalas
       role: admin
       teams:
