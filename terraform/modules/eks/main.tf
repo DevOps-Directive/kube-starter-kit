@@ -33,7 +33,7 @@ module "eks" {
   access_entries = {
     sso_admin = {
       # TODO: make this configurable
-      principal_arn = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AWSAdministratorAccess_bf4f5a0626f509cb"
+      principal_arn = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AdministratorAccess_47aa578228eb79ff"
 
       policy_associations = {
         cluster_admin = {
