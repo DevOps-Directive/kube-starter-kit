@@ -1,5 +1,14 @@
 users:
   - github:
+      username: sidpalas-bot
+      role: member
+      teams:
+        Admin:
+          role: maintainer
+        ReadOnly:
+          role: maintainer
+    aws: {}
+  - github:
       username: sidpalas
       role: admin
       teams:
@@ -10,7 +19,7 @@ users:
     aws:
       user_name: sid@devopsdirective.com
       email: sid@devopsdirective.com
-      group_membership: [Admin, PowerUser, ReadOnly]
+      group_membership: [Admin]
       given_name: Sid
       family_name: Palas
   - github:
@@ -18,7 +27,6 @@ users:
       role: member
       teams:
         Admin: {} # default role = "member"
-        ReadOnly: {} # default role = "member"
     aws:
       user_name: sid+test
       email: sid+github@devopsdirective.com
