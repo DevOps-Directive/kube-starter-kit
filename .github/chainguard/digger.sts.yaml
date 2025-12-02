@@ -1,6 +1,8 @@
 issuer: https://token.actions.githubusercontent.com
-# TODO: restrict
-subject_pattern: repo:DevOps-Directive/kube-starter-kit:.*
+subject_pattern: ^repo:DevOps-Directive/kube-starter-kit:.*
+claim_pattern:
+  event_name: ^workflow_dispatch$
+  job_workflow_ref: DevOpsDirective/kube-starter-kit/\.github/workflows/digger.*
 
 permissions:
   # For Terraform
