@@ -1,0 +1,46 @@
+argocd:
+  server:
+    ingress:
+      enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+
+        # This isnt actually necessary (and doesnt do anything unless nginx is running with --enable-ssl-passthrough)
+        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+
+        # If you encounter a redirect loop or are getting a 307 response code
+        # then you need to force the nginx ingress to connect to the backend using HTTPS.
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      ingressClassName: nginx
+      hostname: argocd.staging.kubestarterkit.com
+      tls: true
+
+  configs:
+    cm:
+      url: https://argocd.staging.kubestarterkit.com
+      admin.enabled: "false"
+      dex.config: |
+        connectors:
+          # OIDC
+          - type: github
+            id: github
+            name: GitHub
+            config:
+              clientID: Ov23liqNWlrNlqKGWtpU
+              clientSecret: $github-dex:clientSecret # References secret (which must have "app.kubernetes.io/part-of: argocd" label)
+              orgs: # Limit access to users in specific orgs; optional but recommended
+                - name: DevOps-Directive
+            # In github oauth app, the Authorization callback URL is set to: https://argocd.staging.kubestarterkit.com/api/dex/callback
+    rbac:
+      # See: https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/
+      policy.csv: |
+        #####################
+        # NOTE:
+        # p, is a policy mapping (e.g. assign permissions directly)
+        # g, is a group mapping (map github group to argo group)
+        #####################
+        g, DevOps-Directive:admins, role:admin
+        g, DevOps-Directive:read-only, role:readonly
+        g, role:admin, role:readonly # admin inherits readonly role permissions
+      policy.default: role:readonly
+      scopes: "[groups]"

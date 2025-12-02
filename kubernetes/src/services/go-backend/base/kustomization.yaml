@@ -1,0 +1,9 @@
+resources:
+  - Cluster.go-backend.yaml
+  - Deployment.go-backend.yaml
+  - Gateway.minimal-envoy.yaml
+  - Ingress.minimal-istio.yaml
+  - Ingress.minimal-nginx.yaml
+  - Job.go-backend-migrator.yaml
+  - Secret.go-backend-db-superuser.yaml
+  - Service.go-backend.yaml

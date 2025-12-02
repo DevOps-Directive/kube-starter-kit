@@ -331,3 +331,53 @@ done
 echo "Push failed after ${MAX_RETRIES} attempts" >&2
 exit 1
 '''
+
+###
+
+[tasks."render:prep-output-dir"]
+description = "Create + safely clean an output dir (never cleans /)"
+usage = '''
+arg "<output-dir>" help="Directory to create/clean"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+OUTPUT_DIR="${usage_output_dir:?}"
+mkdir -p "$OUTPUT_DIR"
+
+# clean safely (including dotfiles), but never touch /
+if [[ "$OUTPUT_DIR" != "/" ]]; then
+  rm -rf -- \
+    "$OUTPUT_DIR"/* \
+    "$OUTPUT_DIR"/.[!.]* \
+    "$OUTPUT_DIR"/..?* \
+    2>/dev/null || true
+fi
+"""
+
+[tasks."render:split-k8s-docs"]
+description = "Read multi-doc YAML on stdin and write Kustomize-style files into output dir"
+usage = '''
+arg "<output-dir>" help="Directory to write files into"
+arg "[ext]" help="File extension (default: yaml)"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+export OUTPUT_DIR="${usage_output_dir:?}"
+export OUTPUT_EXT="${usage_ext:-yaml}"
+
+yq -P --no-doc '
+    select(tag == "!!map") # drops the trailing empty doc (null) added by timoni
+  ' \
+  -s '
+    strenv(OUTPUT_DIR) + "/" +
+    ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
+    ((.kind // "unknown") | downcase) + "_" +
+    (((.metadata.namespace // "") + "_") | sub("^_$"; "")) +
+    (.metadata.name // ("idx_" + $index)) +
+    "." + strenv(OUTPUT_EXT)
+  '
+"""

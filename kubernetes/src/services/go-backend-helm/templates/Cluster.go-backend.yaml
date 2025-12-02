@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: go-backend-pg
+  namespace: {{.Release.Namespace}}
+spec:
+  instances: 1
+  storage:
+    size: 1Gi
+    storageClass: {{.Values.db.storageClass}}
+  superuserSecret:
+    name: go-backend-db-superuser
+  image: {{.Values.db.image}}

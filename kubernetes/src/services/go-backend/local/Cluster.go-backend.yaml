@@ -1,0 +1,7 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: go-backend-pg
+spec:
+  storage:
+    storageClass: standard

@@ -10,6 +10,7 @@ on:
         options:
           - services/go-backend
           # TODO: handle the fact that migrations image shouldn't deploy independently (its coupled to application version)
+          # currently, the migration image workflow ends up being a no-op
           - services/go-backend/migrations
           - services/go-backend-no-migrations
       version:
@@ -58,9 +59,12 @@ jobs:
           STARTING_PATH=$(git rev-parse --show-toplevel) \
           NEW_TAG=${{ inputs.version }} \
           ENVIRONMENT=${{ inputs.environment }} \
+
+          # monorepo mise task (configured via env vars)
           mise run //tools:update-image-tags-service
 
-          # SERVICE_RELEASE_TAG gets loaded from service specific mise.toml
+          # TODO: make this configurable
+          mise run //kubernetes/src/${{ inputs.service }}:render-cluster ${{ inputs.environment }}
       - run: |
           git --no-pager diff
       # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated

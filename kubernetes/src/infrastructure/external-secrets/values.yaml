@@ -1,0 +1,10 @@
+external-secrets:
+  webhook:
+    certManager:
+      # Use cert-manager instead of external secrets cert-controller
+      # https://github.com/external-secrets/external-secrets/blob/3b901d5182cf7b0a2c5af9a30cd12c3fee594e6c/deploy/charts/external-secrets/values.yaml#L395-L400
+      enabled: true
+      cert:
+        issuerRef:
+          kind: ClusterIssuer
+          name: selfsigned
