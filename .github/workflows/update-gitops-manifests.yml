@@ -59,9 +59,12 @@ jobs:
           STARTING_PATH=$(git rev-parse --show-toplevel) \
           NEW_TAG=${{ inputs.version }} \
           ENVIRONMENT=${{ inputs.environment }} \
+
+          # monorepo mise task (configured via env vars)
           mise run //tools:update-image-tags-service
 
-          # SERVICE_RELEASE_TAG gets loaded from service specific mise.toml
+          # local mise task (specific to service)
+          mise run :render-cluster ${{ inputs.environment }}
       - run: |
           git --no-pager diff
       # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated
