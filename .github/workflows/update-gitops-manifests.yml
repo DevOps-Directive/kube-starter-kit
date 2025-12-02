@@ -56,12 +56,10 @@ jobs:
         run: |
           # NOTE: We could (additionally) update staging for release tags
           #       so production image tags end up there too
-          STARTING_PATH=$(git rev-parse --show-toplevel) \
-          NEW_TAG=${{ inputs.version }} \
-          ENVIRONMENT=${{ inputs.environment }} \
-
-          # monorepo mise task (configured via env vars)
-          mise run //tools:update-image-tags-service
+          STARTING_PATH="$(git rev-parse --show-toplevel)" \
+          NEW_TAG="${{ inputs.version }}" \
+          ENVIRONMENT="${{ inputs.environment }}" \
+            mise run //tools:update-image-tags-service
 
           # TODO: make this configurable
           mise run //kubernetes/src/${{ inputs.service }}:render-cluster ${{ inputs.environment }}
