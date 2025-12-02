@@ -49,10 +49,11 @@ module "aws-iam-identity-center" {
 
   account_assignments = {
     Admin : {
-      principal_name  = "Admin"
-      principal_type  = "GROUP"
-      principal_idp   = "INTERNAL"
-      permission_sets = ["AdministratorAccess", "PowerUserAccess", "ViewOnlyAccess"]
+      principal_name = "Admin"
+      principal_type = "GROUP"
+      principal_idp  = "INTERNAL"
+      # permission_sets = ["AdministratorAccess", "PowerUserAccess", "ViewOnlyAccess"]
+      permission_sets = ["AdministratorAccess"]
       account_ids     = local.account_ids
     },
     ReadOnly : {

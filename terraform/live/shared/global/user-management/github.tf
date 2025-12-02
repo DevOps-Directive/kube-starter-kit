@@ -40,4 +40,6 @@ resource "github_team_membership" "team" {
   team_id  = local.github_teams_by_key[each.value.team_key]
   username = each.value.username
   role     = each.value.team_role
+
+  depends_on = [github_membership.org]
 }
