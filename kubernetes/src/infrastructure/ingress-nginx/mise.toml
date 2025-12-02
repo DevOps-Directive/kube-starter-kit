@@ -16,7 +16,8 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
-helm template . --namespace ingress-nginx \
+helm template --release-name ingress-nginx . \
+  --namespace ingress-nginx \
   --values values.yaml \
   --values values.${usage_cluster}.yaml \
   | mise run //tools:render:split-k8s-docs ${OUTPUT_DIR}

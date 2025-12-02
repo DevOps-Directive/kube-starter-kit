@@ -376,6 +376,7 @@ yq -P --no-doc '
     strenv(OUTPUT_DIR) + "/" +
     ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
     ((.kind // "unknown") | downcase) + "_" +
+    (((.metadata.namespace // "") + "_") | sub("^_$"; "")) +
     (.metadata.name // ("idx_" + $index)) +
     "." + strenv(OUTPUT_EXT)
   '

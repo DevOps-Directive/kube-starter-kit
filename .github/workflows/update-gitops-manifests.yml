@@ -10,6 +10,7 @@ on:
         options:
           - services/go-backend
           # TODO: handle the fact that migrations image shouldn't deploy independently (its coupled to application version)
+          # currently, the migration image workflow ends up being a no-op
           - services/go-backend/migrations
           - services/go-backend-no-migrations
       version:
