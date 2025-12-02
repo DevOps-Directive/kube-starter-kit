@@ -64,7 +64,7 @@ jobs:
           mise run //tools:update-image-tags-service
 
           # local mise task (specific to service)
-          mise run :render-cluster ${{ inputs.environment }}
+          mise run //kubernetes/src/${{ inputs.service }}:render-cluster ${{ inputs.environment }}
       - run: |
           git --no-pager diff
       # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated
