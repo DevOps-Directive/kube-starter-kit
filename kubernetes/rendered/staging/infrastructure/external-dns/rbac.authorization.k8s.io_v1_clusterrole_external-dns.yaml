@@ -50,3 +50,35 @@ rules:
       - get
       - watch
       - list
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - httproutes
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - tcproutes
+    verbs:
+      - get
+      - watch
+      - list

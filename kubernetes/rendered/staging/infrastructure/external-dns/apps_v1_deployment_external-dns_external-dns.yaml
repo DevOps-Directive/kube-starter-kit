@@ -45,15 +45,25 @@ spec:
             runAsUser: 65532
           image: registry.k8s.io/external-dns/external-dns:v0.19.0
           imagePullPolicy: IfNotPresent
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: us-east-2
           args:
-            - --log-level=info
+            - --log-level=debug
             - --log-format=text
             - --interval=1m
             - --source=service
             - --source=ingress
-            - --policy=upsert-only
+            - --source=gateway-httproute
+            - --source=gateway-tcproute
+            - --policy=sync
             - --registry=txt
+            - --txt-owner-id=external-dns
+            - --txt-prefix=_extdns.
+            - --managed-record-types=A
+            - --managed-record-types=CNAME
             - --provider=aws
+            - --aws-zone-type=public
           ports:
             - name: http
               protocol: TCP
