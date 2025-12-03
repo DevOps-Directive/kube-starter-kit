@@ -2,12 +2,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: cloudnative-pg-gateway-helm-infra-manager
+  name: envoy-gateway-gateway-helm-infra-manager
   namespace: envoy-gateway-system
   labels:
     helm.sh/chart: gateway-helm-1.6.0
     app.kubernetes.io/name: gateway-helm
-    app.kubernetes.io/instance: cloudnative-pg
+    app.kubernetes.io/instance: envoy-gateway
     app.kubernetes.io/version: v1.6.0
     app.kubernetes.io/managed-by: Helm
 rules:

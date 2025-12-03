@@ -2,12 +2,12 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cloudnative-pg-gateway-helm-certgen
+  name: envoy-gateway-gateway-helm-certgen
   namespace: envoy-gateway-system
   labels:
     helm.sh/chart: gateway-helm-1.6.0
     app.kubernetes.io/name: gateway-helm
-    app.kubernetes.io/instance: cloudnative-pg
+    app.kubernetes.io/instance: envoy-gateway
     app.kubernetes.io/version: v1.6.0
     app.kubernetes.io/managed-by: Helm
   annotations:
@@ -50,5 +50,5 @@ spec:
               type: RuntimeDefault
       imagePullSecrets: []
       restartPolicy: Never
-      serviceAccountName: cloudnative-pg-gateway-helm-certgen
+      serviceAccountName: envoy-gateway-gateway-helm-certgen
   ttlSecondsAfterFinished: 30

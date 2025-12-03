@@ -1,0 +1,5 @@
+# Source: envoy-gateway-wrapper/templates/Namespace.envoy-gateway-system.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: envoy-gateway-system

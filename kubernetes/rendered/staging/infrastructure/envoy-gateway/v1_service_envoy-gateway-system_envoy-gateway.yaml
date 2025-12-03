@@ -8,7 +8,7 @@ metadata:
     control-plane: envoy-gateway
     helm.sh/chart: gateway-helm-1.6.0
     app.kubernetes.io/name: gateway-helm
-    app.kubernetes.io/instance: cloudnative-pg
+    app.kubernetes.io/instance: envoy-gateway
     app.kubernetes.io/version: v1.6.0
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -16,7 +16,7 @@ spec:
   selector:
     control-plane: envoy-gateway
     app.kubernetes.io/name: gateway-helm
-    app.kubernetes.io/instance: cloudnative-pg
+    app.kubernetes.io/instance: envoy-gateway
   ports:
     - name: grpc
       port: 18000
