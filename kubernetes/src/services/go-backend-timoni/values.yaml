@@ -1,0 +1,4 @@
+values:
+  message: "Hello Default"
+  image:
+    repository: "cgr.dev/chainguard/nginx"
