@@ -4,7 +4,7 @@ metadata:
   name: minimal-nginx
   namespace: {{.Release.Namespace}}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: ingress-nginx.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: ingress-nginx-helm.staging.kubestarterkit.com
 spec:
   ingressClassName: nginx
   rules:
