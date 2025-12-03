@@ -1,0 +1,332 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/agent/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    groundcover_version: 1.11.61
+  name: groundcover-sensor
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    app: sensor
+    app.kubernetes.io/name: sensor
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 100%
+  selector:
+    matchLabels:
+      app: sensor
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9102"
+        vm.io/path: vmetrics
+        vm.io/port: "9102"
+        groundcover_version: 1.11.61
+        checksum/sensor_config: 9fe7e6facee078a3194251c90d929562feec4e9a230760b5dbb1dc6f24b228ca
+      labels:
+        app: sensor
+        app.kubernetes.io/name: sensor
+        app.kubernetes.io/part-of: groundcover
+    spec:
+      imagePullSecrets: []
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: eks.amazonaws.com/compute-type
+                    operator: NotIn
+                    values:
+                      - fargate
+      containers:
+        - env:
+            - name: PROMETHEUS_PORT
+              value: "9102"
+            - name: FLORA_PROMETHEUSSERVER_ENABLED
+              value: "false"
+            - name: FLORA_SYSTEMINFO_HOSTMOUNTPATH
+              value: /host
+            - name: FLORA_NETWORKTRACER_CONNECTIONMANAGER_PROTOCOLS_HTTP_UNLIMITEDPAYLOADENDPOINTS
+              value: /api/v0.2/traces
+            - name: FLORA_NETWORKTRACER_CONNECTIONMANAGER_PROTOCOLS_HTTP2_UNLIMITEDPAYLOADENDPOINTS
+              value: /api/v0.2/traces
+            - name: FLORA_CONTAINERREPOSITORY_TRACKEDCONTAINERTYPE
+              value: kubernetes
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: GC_RUNNINGNAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: GC_GROUNDCOVERVERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['groundcover_version']
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: groundcover-token
+          envFrom:
+            - secretRef:
+                name: groundcover-config
+          image: public.ecr.aws/groundcovercom/sensor:1.11.61
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 160m
+              memory: 1Gi
+          imagePullPolicy: Always
+          name: sensor
+          ports:
+            - containerPort: 9102
+              name: prom-metrics
+              protocol: TCP
+            - containerPort: 8126
+              name: dd-traces
+              protocol: TCP
+            - containerPort: 9411
+              name: zipkin
+              protocol: TCP
+            - containerPort: 4317
+              name: otlp-grpc
+              protocol: TCP
+            - containerPort: 4318
+              name: otlp-http
+              protocol: TCP
+            - containerPort: 14250
+              name: jaeger-grpc
+              protocol: TCP
+            - containerPort: 14268
+              name: jaeger-th-http
+              protocol: TCP
+            - containerPort: 6832
+              name: jaeger-th-bin
+              protocol: UDP
+            - containerPort: 6831
+              name: jaeger-th-comp
+              protocol: UDP
+            - containerPort: 8016
+              name: http-json
+              protocol: TCP
+            - containerPort: 3100
+              name: loki-http
+              protocol: TCP
+            - containerPort: 8428
+              name: remote-write
+              protocol: TCP
+            - containerPort: 2021
+              name: health-http
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /health
+              port: health-http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /health
+              port: health-http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 20
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
+                - SYS_ADMIN
+            privileged: true
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - mountPath: /host
+              name: host-root
+              readOnly: true
+            - mountPath: /sys/kernel/debug
+              name: sys-kernel-debug
+              readOnly: false
+            - mountPath: /sys/kernel/tracing
+              name: sys-kernel-tracing
+              readOnly: false
+            - mountPath: /config
+              name: sensor-configuration
+              readOnly: false
+            - mountPath: /scrape-config
+              name: sensor-scrape-configuration
+              readOnly: false
+            - mountPath: /comm
+              name: comm
+              readOnly: false
+            - mountPath: /var/run/positions
+              name: sensor-position
+            - mountPath: /var/lib/docker/containers
+              name: docker
+              readOnly: true
+        - name: fluent-bit
+          image: public.ecr.aws/groundcovercom/fluent/fluent-bit:2.2.3
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 2020
+              protocol: TCP
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc/fluent-bit.conf
+              subPath: fluent-bit.conf
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc/custom_parsers.conf
+              subPath: custom_parsers.conf
+            - name: docker
+              readOnly: true
+              mountPath: /var/lib/docker/containers
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: GC_GROUNDCOVERVERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['groundcover_version']
+            - name: GC_RUNNINGNAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: groundcover-token
+          envFrom:
+            - secretRef:
+                name: groundcover-config
+          resources:
+            limits:
+              cpu: 100m
+              memory: 64Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: false
+      hostPID: true
+      initContainers:
+        - name: check-ingestion-endpoint-ready
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: groundcover-token
+          args:
+            - |
+              while [ $(curl -H "apikey:$API_KEY" \
+                -k \
+                -sw '%{http_code}' http://groundcover-vector:8686/health -o /dev/null) -ne 200 ]
+              do
+                echo 'Waiting for ingestion endpoint...';
+                sleep 2;
+              done;
+              echo ingestion endpoint is up
+          command:
+            - /bin/sh
+            - -c
+          image: public.ecr.aws/groundcovercom/curl:8.6.0
+        - name: check-metrics-ingestor-ready
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: groundcover-token
+          args:
+            - "while [ $(curl -H \"apikey:$API_KEY\" \\\n  -k \\\n  -sw '%{http_code}' http://groundcover-metrics-ingester:8429/api/v1/write -o /dev/null) -ne 204 ];\ndo \n  echo 'Waiting for VictoriaMetrics Agent...'; \n  sleep 2; \ndone; \necho VictoriaMetrics Agent is up\n"
+          command:
+            - /bin/sh
+            - -c
+          image: public.ecr.aws/groundcovercom/curl:8.6.0
+      serviceAccountName: groundcover-sensor
+      priorityClassName: groundcover-sensor-high-priority
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: fluent-bit-config
+          configMap:
+            name: fluent-bit-config
+            defaultMode: 420
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - hostPath:
+            path: /
+            type: Directory
+          name: host-root
+        - hostPath:
+            path: /sys/kernel/debug
+            type: Directory
+          name: sys-kernel-debug
+        - hostPath:
+            path: /sys/kernel/tracing
+            type: Directory
+          name: sys-kernel-tracing
+        - configMap:
+            defaultMode: 420
+            name: sensor-configuration
+          name: sensor-configuration
+        - configMap:
+            defaultMode: 420
+            name: sensor-scrape-configuration
+          name: sensor-scrape-configuration
+        - emptyDir: {}
+          name: comm
+        - hostPath:
+            path: /run/sensor-position-groundcover
+          name: sensor-position
+        - hostPath:
+            path: /var/lib/docker/containers
+          name: docker
+        - emptyDir: {}
+          name: linux-headers
+        - hostPath:
+            path: /var/log
+          name: varlog

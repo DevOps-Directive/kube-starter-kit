@@ -1,0 +1,74 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/monitors-manager/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: groundcover-monitors-manager
+  namespace: groundcover
+  labels:
+    helm.sh/chart: monitors-manager-7.2.0
+    app.kubernetes.io/name: monitors-manager
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v0.0.38-grafana11.3.7
+    app.kubernetes.io/managed-by: Helm
+data:
+  grafana.ini: |
+    [alerting]
+    evaluation_timeout_seconds = 120
+    [analytics]
+    check_for_updates = true
+    [database]
+    host = groundcover-postgresql:5432
+    name = monitors_manager
+    ssl_mode = require
+    type = postgres
+    user = postgres
+    [feature_toggles]
+    enable = alertStateHistoryLokiSecondary, alertStateHistoryLokiPrimary, alertStateHistoryLokiOnly, disableInstanceStore
+    [grafana_net]
+    url = https://grafana.net
+    [groundcover]
+    alerting_overrides_checksum = 03b290cac4acac2c415a604e7a415f3512ed87d0b988198938470c459e3bf07c
+    workflows_enabled = true
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/
+    logs = /var/log/grafana
+    plugins = /usr/share/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+    [server]
+    domain = ''
+    enable_gzip = true
+    [unified_alerting.state_history]
+    backend = loki
+    enabled = true
+    log_all = true
+    loki_remote_url = http://groundcover-opentelemetry-collector:3500
+    otel_enable_tls = false
+    otel_endpoint = http://groundcover-vector:4348/v1/logs
+    otel_export_enabled = true
+    otel_tls_skip_verify = true
+    otel_write_timeout = 10s
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - access: proxy
+      jsonData:
+        prometheusType: Prometheus
+        prometheusVersion: 2.50.1
+      name: VM
+      type: prometheus
+      uid: victoria-metrics
+      url: 'http://groundcover-victoria-metrics:8428'
+    - access: proxy
+      jsonData:
+        defaultDatabase: 'groundcover'
+        port: '9000'
+        server: 'groundcover-clickhouse-shard0-0-external'
+        username: 'reader'
+      name: Clickhouse
+      secureJsonData:
+        password: $CLICKHOUSE_PASSWORD
+      type: grafana-clickhouse-datasource
+      uid: clickhouse
+      url: 'groundcover-clickhouse-shard0-0-external:9000'

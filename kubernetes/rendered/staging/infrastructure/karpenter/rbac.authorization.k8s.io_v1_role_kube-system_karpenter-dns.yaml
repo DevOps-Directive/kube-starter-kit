@@ -1,0 +1,22 @@
+# Source: karpenter-wrapper/charts/karpenter/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: karpenter-dns
+  namespace: kube-system
+  labels:
+    helm.sh/chart: karpenter-1.7.1
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/version: 1.7.1
+    app.kubernetes.io/managed-by: Helm
+rules:
+  # Read
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    resourceNames:
+      - kube-dns
+    verbs:
+      - get

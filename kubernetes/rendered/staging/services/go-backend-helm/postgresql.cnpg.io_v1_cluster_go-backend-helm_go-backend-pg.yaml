@@ -1,0 +1,14 @@
+# Source: minimal/templates/Cluster.go-backend.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: go-backend-pg
+  namespace: go-backend-helm
+spec:
+  instances: 1
+  storage:
+    size: 1Gi
+    storageClass: ebs-gp3-encrypted
+  superuserSecret:
+    name: go-backend-db-superuser
+  image: ghcr.io/cloudnative-pg/postgresql:17.5

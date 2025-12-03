@@ -1,0 +1,34 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/monitors-manager/templates/tests/test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: groundcover-monitors-manager-test
+  labels:
+    helm.sh/chart: monitors-manager-7.2.0
+    app.kubernetes.io/name: monitors-manager
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v0.0.38-grafana11.3.7
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    helm.sh/hook: test-success
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  namespace: groundcover
+spec:
+  serviceAccountName: groundcover-monitors-manager-test
+  containers:
+    - name: groundcover-test
+      image: docker.io/bats/bats:v1.4.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /opt/bats/bin/bats
+        - -t
+        - /tests/run.sh
+      volumeMounts:
+        - mountPath: /tests
+          name: tests
+          readOnly: true
+  volumes:
+    - name: tests
+      configMap:
+        name: groundcover-monitors-manager-test
+  restartPolicy: Never

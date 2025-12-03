@@ -1,0 +1,15 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/agent/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    groundcover_version: 1.11.61
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    app: alligator
+    app.kubernetes.io/name: alligator
+  name: groundcover-alligator
+  namespace: groundcover
+spec:
+  type: ExternalName
+  externalName: groundcover-sensor.groundcover.svc.cluster.local

@@ -1,0 +1,10 @@
+# Source: ingress-nginx-wrapper/charts/ingress-nginx/templates/admission-webhooks/cert-manager.yaml
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: ingress-nginx-self-signed-issuer
+  namespace: ingress-nginx
+spec:
+  selfSigned: {}

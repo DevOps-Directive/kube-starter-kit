@@ -1,0 +1,25 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/backend/portal/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    groundcover_version: 1.11.61
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    app: portal
+    app.kubernetes.io/name: portal
+  name: groundcover-portal
+  namespace: groundcover
+spec:
+  ports:
+    - name: grpc-portal
+      port: 5555
+      protocol: TCP
+      targetPort: grpc-portal
+    - name: http
+      port: 9999
+      protocol: TCP
+      targetPort: portal-http
+  selector:
+    app: portal
+  type: ClusterIP

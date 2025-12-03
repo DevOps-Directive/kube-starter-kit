@@ -1,0 +1,21 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/agent/service.yaml
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    groundcover_version: 1.11.61
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    app: sensor
+    app.kubernetes.io/name: sensor
+  name: groundcover-sensor-metric-ingestor
+  namespace: groundcover
+spec:
+  selector:
+    app.kubernetes.io/name: sensor
+    app.kubernetes.io/part-of: groundcover
+  ports:
+    - protocol: TCP
+      name: metric-ingestor
+      port: 8428
+      targetPort: 8428

@@ -1,0 +1,13 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/backend/fleet-manager/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fleet-manager
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/part-of: groundcover
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: fleet-manager

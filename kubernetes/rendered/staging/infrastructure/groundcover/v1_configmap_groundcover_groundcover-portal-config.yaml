@@ -1,0 +1,12 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/backend/portal/config/configMap.yaml
+apiVersion: v1
+data:
+  config.yaml: "\nLogLevel: 4\n\nReverse: true\nstartuptimeout: 1m0s\nMaxResponseSizeBytes: 3.3554432e+07\n\nClusterId: ksk-use2-staging-eks\nMultipleClusterIds:  \nAutodiscovery: false\nGroundcoverVersion: \"OVERRIDEN\"\n\nIncluster: true\nNamespace: groundcover\n\nRouter:\n  Host: \"client.groundcover.com\"\n  Port: \"443\"\n  BasePath: \"\"\n  Token: \"OVERRIDEN\"\n  WebsocketScheme: \"wss\"\n  TLSSkipVerify: \"false\"\n  ExtraHeaders:\n    - Key: X-Portal-InstallationId\n      Value: 621835c9-599e-4167-bb7f-e77d0ce77b92  \n\nDirectModeGRPCPort: \"5555\"\n\nVictoriaMetrics:\n  URL: http://groundcover-victoria-metrics:8428\n\nClickHouse:\n  Pass: \"OVERRIDEN\"\n  User: default\n  Host: groundcover-clickhouse\n  Database: groundcover\n  HTTPPort: 8123\n  NativePort: 9000\n\nMonitorsManager:\n  Enabled: false\n  URL: \"OVERRIDEN\"\n  Username: \"admin\"\n  Password: \"OVERRIDEN\"\n\nWorkflows:\n  Enabled: false\n  URL: \"OVERRIDEN\"\n  APIKey: \"OVERRIDEN\"\n\nFleetManager:\n  Enabled: true\n  URL: http://groundcover-fleet-manager:8080\nTracing:\n  Enabled: true\n  Endpoint: 'https://traces.groundcover.com/v1/traces'\n  WriteTimeout: 5s\n  FlushInterval: 5s\n  BatchSize: 50\n  Headers:\n    apikey: \"OVERRIDEN\"\n\nBackendName: \"\"\n\nPprof:\n  enabled: true\n  cpuSamplingDuration: 60s\n  httpUploader:\n    enabled: false\n    pushURL: https://metrics.groundcover.com/upload/pprof\n  pyroscopeUploader:\n    enabled: true\n    pushURL: https://metrics.groundcover.com\n  backoffTicker:\n    interval: 10s\n    exponent: 40\n  memoryTicker:\n    enabled: true\n    interval: 60s\n    jumpSizeInBytes: 1e+08\n    windowSize: 12h\n    initialWait: 10m\n  cpuTicker:\n    enabled: true\n    interval: 60s\n    jumpSizeInMCPU: 100\n    windowSize: 12h\n    initialWait: 10m    \n\nKong:\n  Enabled: false\n  Endpoint: https://groundcover-kong-admin:8444"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: groundcover
+  annotations:
+    groundcover_version: 1.11.61
+  name: groundcover-portal-config
+  namespace: groundcover

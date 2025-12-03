@@ -1,0 +1,38 @@
+# Source: karpenter-wrapper/charts/karpenter/templates/aggregate-clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: karpenter-admin
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    helm.sh/chart: karpenter-1.7.1
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/version: 1.7.1
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - karpenter.sh
+    resources:
+      - nodepools
+      - nodepools/status
+      - nodeclaims
+      - nodeclaims/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+  - apiGroups:
+      - karpenter.k8s.aws
+    resources:
+      - ec2nodeclasses
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch

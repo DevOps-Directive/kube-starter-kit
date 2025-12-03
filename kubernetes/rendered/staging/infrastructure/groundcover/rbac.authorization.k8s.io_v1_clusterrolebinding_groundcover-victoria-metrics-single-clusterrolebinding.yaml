@@ -1,0 +1,17 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/victoria-metrics-single/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: groundcover-victoria-metrics-single-clusterrolebinding
+  labels:
+    helm.sh/chart: victoria-metrics-single-0.9.15
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: groundcover
+subjects:
+  - kind: ServiceAccount
+    name: groundcover-victoria-metrics-single
+    namespace: groundcover
+roleRef:
+  kind: ClusterRole
+  name: groundcover-victoria-metrics-single-clusterrole
+  apiGroup: rbac.authorization.k8s.io

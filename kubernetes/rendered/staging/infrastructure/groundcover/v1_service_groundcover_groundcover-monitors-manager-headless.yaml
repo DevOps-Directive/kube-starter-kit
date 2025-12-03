@@ -1,0 +1,21 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/monitors-manager/templates/headless-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: groundcover-monitors-manager-headless
+  namespace: groundcover
+  labels:
+    helm.sh/chart: monitors-manager-7.2.0
+    app.kubernetes.io/name: monitors-manager
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v0.0.38-grafana11.3.7
+    app.kubernetes.io/managed-by: Helm
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: monitors-manager
+    app.kubernetes.io/instance: groundcover
+  type: ClusterIP
+  ports:
+    - name: gossip-tcp
+      port: 9094

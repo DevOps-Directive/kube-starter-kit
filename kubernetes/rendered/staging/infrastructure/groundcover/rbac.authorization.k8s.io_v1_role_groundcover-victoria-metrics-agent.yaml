@@ -1,0 +1,43 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/victoria-metrics-agent/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: groundcover-victoria-metrics-agent
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    helm.sh/chart: victoria-metrics-agent-0.9.17
+    app.kubernetes.io/name: victoria-metrics-agent
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v1.97.1
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch

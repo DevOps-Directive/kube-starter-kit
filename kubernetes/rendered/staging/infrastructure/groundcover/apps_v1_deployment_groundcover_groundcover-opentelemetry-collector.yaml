@@ -1,0 +1,164 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/opentelemetry-collector/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: groundcover-opentelemetry-collector
+  namespace: groundcover
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.122.0
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: 0.123.1
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: groundcover
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opentelemetry-collector
+      app.kubernetes.io/instance: groundcover
+      component: standalone-collector
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/config: cba769e32266c093e8ec043685e6530633fc6ce287c56cc4010e9c307b670691
+        prometheus.io/port: "8888"
+        prometheus.io/scrape: "true"
+      labels:
+        app.kubernetes.io/name: opentelemetry-collector
+        app.kubernetes.io/instance: groundcover
+        component: standalone-collector
+        app.kubernetes.io/part-of: groundcover
+    spec:
+      serviceAccountName: groundcover-opentelemetry-collector
+      securityContext: {}
+      containers:
+        - name: opentelemetry-collector
+          command:
+            - /otelcol-contrib
+            - --config=/conf/relay.yaml
+          securityContext: {}
+          image: public.ecr.aws/groundcovercom/otel/opentelemetry-collector-contrib:1.9.700
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: awsfirehose
+              containerPort: 4433
+              protocol: TCP
+            - name: datadogapm
+              containerPort: 8126
+              protocol: TCP
+            - name: faro
+              containerPort: 12347
+              protocol: TCP
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+            - name: http-json
+              containerPort: 8016
+              protocol: TCP
+            - name: jaeger-compact
+              containerPort: 6831
+              protocol: UDP
+            - name: jaeger-grpc
+              containerPort: 14250
+              protocol: TCP
+            - name: jaeger-thrift
+              containerPort: 14268
+              protocol: TCP
+            - name: loki-historian
+              containerPort: 3500
+              protocol: TCP
+            - name: loki-http
+              containerPort: 3100
+              protocol: TCP
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+            - name: otlp
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: pprof
+              containerPort: 1777
+              protocol: TCP
+            - name: rum
+              containerPort: 8026
+              protocol: TCP
+            - name: zipkin
+              containerPort: 9411
+              protocol: TCP
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: GOMEMLIMIT
+              value: 1638MiB
+            - name: GC_GROUNDCOVERVERSION
+              value: 0.123.1
+            - name: DB_MANAGER_ADDRESS
+              value: http://db-manager:8888/writer-ready
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: admin-password
+                  name: groundcover-clickhouse
+            - name: CLUSTER_ID
+              valueFrom:
+                secretKeyRef:
+                  key: GC_CLUSTER_ID
+                  name: groundcover-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 13133
+              scheme: HTTP
+          readinessProbe:
+            initialDelaySeconds: 8
+            httpGet:
+              path: /health
+              port: 13133
+              scheme: HTTP
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /conf
+              name: opentelemetry-collector-configmap
+            - mountPath: /persistent_queues
+              name: persistent-queues
+      volumes:
+        - name: opentelemetry-collector-configmap
+          configMap:
+            name: groundcover-opentelemetry-collector
+            items:
+              - key: relay
+                path: relay.yaml
+        - emptyDir: {}
+          name: persistent-queues
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: opentelemetry-collector
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: opentelemetry-collector
+          maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+      hostNetwork: false

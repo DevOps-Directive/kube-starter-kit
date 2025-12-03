@@ -1,0 +1,101 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/victoria-metrics-agent/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: groundcover-victoria-metrics-agent
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    helm.sh/chart: victoria-metrics-agent-0.9.17
+    app.kubernetes.io/name: victoria-metrics-agent
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v1.97.1
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: victoria-metrics-agent
+      app.kubernetes.io/instance: groundcover
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: victoria-metrics-agent
+        app.kubernetes.io/instance: groundcover
+        app.kubernetes.io/part-of: groundcover
+      annotations:
+        groundcover_version: 1.11.61
+        checksum/config: 7eb14517477538d4597268c9dc0c9d080d0000d2e0ecc08a79c4b4d50d47ebe4
+        prometheus.io/port: "8429"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: groundcover-victoria-metrics-agent
+      securityContext: {}
+      containers:
+        - name: victoria-metrics-agent
+          securityContext: {}
+          image: public.ecr.aws/groundcovercom/vmagent:v1.115.0
+          workingDir: /
+          args:
+            - -promscrape.config=/config/scrape.yml
+            - -remoteWrite.tmpDataPath=/tmpData
+            - -envflag.enable=true
+            - -envflag.prefix=VM_
+            - -loggerFormat=json
+            - -promscrape.dropOriginalLabels=true
+            - -promscrape.streamParse=true
+            - -remoteWrite.headers=apikey:%{API_KEY}
+            - -remoteWrite.label=clusterId=$(GC_CLUSTER_ID)
+            - -remoteWrite.label=groundcover_version=$(GC_VERSION)
+            - -remoteWrite.maxDiskUsagePerURL=10GB
+            - -remoteWrite.showURL=true
+            - -remoteWrite.url=https://metrics.groundcover.com/api/v1/write
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8429
+          env:
+            - name: GC_CLUSTER_ID
+              valueFrom:
+                secretKeyRef:
+                  key: GC_CLUSTER_ID
+                  name: groundcover-config
+            - name: GC_VERSION
+              valueFrom:
+                secretKeyRef:
+                  key: GC_VERSION
+                  name: groundcover-config
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: groundcover-token
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: tmpdata
+              mountPath: /tmpData
+            - name: config
+              mountPath: /config
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 16m
+              memory: 32Mi
+      volumes:
+        - name: tmpdata
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: groundcover-victoria-metrics-agent-config

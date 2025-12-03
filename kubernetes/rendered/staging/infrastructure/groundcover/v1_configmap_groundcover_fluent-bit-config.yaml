@@ -1,0 +1,71 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/agent/config/fluent-bit/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/part-of: groundcover
+  annotations:
+    groundcover_version: 1.11.61
+  name: fluent-bit-config
+  namespace: groundcover
+data:
+  custom_parsers.conf: |
+    [PARSER]
+        Name severity
+        Format regex
+        Regex .*(?<severity>(?i)PANIC|ERROR|WARNING|WARN|INFO|DEBUG|TRACE).*
+  fluent-bit.conf: |
+    [SERVICE]
+        Daemon Off
+        Flush 1
+        Log_Level warning
+        Parsers_File parsers.conf
+        Parsers_file custom_parsers.conf
+        HTTP_Server On
+        HTTP_Listen 0.0.0.0
+        HTTP_Port 2020
+        Health_Check On
+
+    [INPUT]
+        Name tail
+        Tag kube.*
+        Mem_Buf_Limit 5MB
+        Skip_Long_Lines On
+        multiline.parser docker, cri
+        Exclude_Path *fluent-bit*.log
+        Path /var/log/containers/*_${GC_RUNNINGNAMESPACE}_*.log
+
+    [FILTER]
+        Name parser
+        Match kube.*
+        Key_Name log
+        Parser severity
+        Reserve_Data On
+        Preserve_Key On
+
+    [FILTER]
+        Name kubernetes
+        Match kube.*
+        Merge_Log On
+        Keep_Log Off
+        Labels On
+        Annotations Off
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude On
+
+    [FILTER]
+        Name record_modifier
+        Match *
+        Record clusterId ${GC_CLUSTER_ID}
+        Record version ${GC_GROUNDCOVERVERSION}
+
+    [OUTPUT]
+        Name opentelemetry
+        Match *
+        Host logs.groundcover.com
+        Logs_uri /v1/logs
+        Port 443
+        Tls On
+        Tls.verify Off
+        Header apikey ${API_KEY}
+        Log_response_payload Off
