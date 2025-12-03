@@ -12,7 +12,7 @@ spec:
   project: services
   source:
     path: kubernetes/rendered/{{ $.Values.cluster }}/services/{{ $name }}
-    repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git
+    repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
   syncPolicy:
     automated:
       prune: true
