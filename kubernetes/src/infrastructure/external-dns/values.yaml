@@ -21,6 +21,7 @@ txtPrefix: _extdns.
 managedRecordTypes:
   - A
   # - AAAA # Ownership gets wonky when ipv6 is enabled...
+  # TODO: investigate why it still created a AAAA record even with this commented 🤔
   - CNAME
 
 extraArgs:

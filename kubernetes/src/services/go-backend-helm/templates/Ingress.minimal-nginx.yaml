@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: "ingress-nginx.staging.kubestarterkit.com"
+    - host: "ingress-nginx-helm.staging.kubestarterkit.com"
       http:
         paths:
           - path: /
