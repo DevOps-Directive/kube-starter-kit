@@ -12,3 +12,5 @@ spec:
   source:
     path: kubernetes/rendered/staging/argocd/services
     repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git
+    # TODO: set to main
+    targetRevision: sp/app-of-apps

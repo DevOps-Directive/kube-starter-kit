@@ -11,3 +11,5 @@ spec:
   source:
     path: kubernetes/rendered/{{ .Values.cluster }}/argocd/infrastructure
     repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git
+    # TODO: set to main
+    targetRevision: sp/app-of-apps
