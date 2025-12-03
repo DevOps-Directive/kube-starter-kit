@@ -11,6 +11,8 @@ spec:
   source:
     path: kubernetes/rendered/staging/services/go-backend-helm
     repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
+    # TODO: set to main
+    targetRevision: sp/app-of-apps
   syncPolicy:
     automated:
       prune: true
