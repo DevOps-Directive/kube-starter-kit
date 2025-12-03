@@ -1,0 +1,17 @@
+# Source: infrastructure-app-of-apps/templates/Application.GENERATOR.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: infrastructure
+  source:
+    path: kubernetes/rendered/staging/infrastructure/external-dns
+    repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
