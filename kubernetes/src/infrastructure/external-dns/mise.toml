@@ -16,7 +16,7 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
-helm template --release-name cloudnative-pg . \
+helm template --release-name external-dns . \
   --namespace external-dns \
   --values values.yaml \
   --values values.${usage_cluster}.yaml \

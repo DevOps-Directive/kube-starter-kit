@@ -1,0 +1,19 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/opentelemetry-collector/templates/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: groundcover-opentelemetry-collector
+  namespace: groundcover
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.122.0
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: 0.123.1
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: groundcover
+spec:
+  maxUnavailable: 1%
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opentelemetry-collector
+      app.kubernetes.io/instance: groundcover

@@ -1,0 +1,21 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/metrics-ingester/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: groundcover-metrics-ingester-clusterrolebinding
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    helm.sh/chart: metrics-ingester-0.9.17
+    app.kubernetes.io/name: metrics-ingester
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v1.97.1
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: groundcover-metrics-ingester-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: groundcover-metrics-ingester
+    namespace: groundcover

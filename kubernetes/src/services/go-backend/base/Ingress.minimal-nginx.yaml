@@ -3,11 +3,11 @@ kind: Ingress
 metadata:
   name: minimal-nginx
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: ingress-nginx.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: ingress-nginx-kustomize.staging.kubestarterkit.com
 spec:
   ingressClassName: nginx
   rules:
-    - host: "ingress-nginx.staging.kubestarterkit.com"
+    - host: "ingress-nginx-kustomize.staging.kubestarterkit.com"
       http:
         paths:
           - path: /

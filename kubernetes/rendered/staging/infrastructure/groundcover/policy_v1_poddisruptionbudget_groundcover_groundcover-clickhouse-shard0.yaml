@@ -1,0 +1,22 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/clickhouse/templates/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: groundcover-clickhouse-shard0
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.10.1
+    helm.sh/chart: clickhouse-6.3.1
+    app.kubernetes.io/component: clickhouse
+    shard: "0"
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: groundcover
+      app.kubernetes.io/name: clickhouse
+      app.kubernetes.io/component: clickhouse
+      shard: "0"

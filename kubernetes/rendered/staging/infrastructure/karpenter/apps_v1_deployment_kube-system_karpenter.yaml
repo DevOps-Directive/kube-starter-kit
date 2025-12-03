@@ -1,0 +1,152 @@
+# Source: karpenter-wrapper/charts/karpenter/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karpenter
+  namespace: kube-system
+  labels:
+    helm.sh/chart: karpenter-1.7.1
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/version: 1.7.1
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: karpenter
+      app.kubernetes.io/instance: karpenter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: karpenter
+        app.kubernetes.io/instance: karpenter
+      annotations:
+    spec:
+      automountServiceAccountToken: true
+      serviceAccountName: karpenter
+      securityContext:
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      priorityClassName: system-cluster-critical
+      dnsPolicy: Default
+      schedulerName: default-scheduler
+      containers:
+        - name: controller
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            capabilities:
+              drop:
+                - ALL
+          image: public.ecr.aws/karpenter/controller:1.7.1@sha256:426c3af05c1dca65454663262a82bec57c74f5d69eec157067166738eab8436e
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KUBERNETES_MIN_VERSION
+              value: 1.19.0-0
+            - name: KARPENTER_SERVICE
+              value: karpenter
+            - name: LOG_LEVEL
+              value: info
+            - name: LOG_OUTPUT_PATHS
+              value: stdout
+            - name: LOG_ERROR_OUTPUT_PATHS
+              value: stderr
+            - name: METRICS_PORT
+              value: "8080"
+            - name: HEALTH_PROBE_PORT
+              value: "8081"
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CPU_REQUESTS
+              valueFrom:
+                resourceFieldRef:
+                  containerName: controller
+                  divisor: 1m
+                  resource: requests.cpu
+            - name: MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: controller
+                  divisor: "0"
+                  resource: limits.memory
+            - name: FEATURE_GATES
+              value: ReservedCapacity=true,SpotToSpotConsolidation=false,NodeRepair=false,NodeOverlay=false
+            - name: BATCH_MAX_DURATION
+              value: 10s
+            - name: BATCH_IDLE_DURATION
+              value: 1s
+            - name: PREFERENCE_POLICY
+              value: Respect
+            - name: MIN_VALUES_POLICY
+              value: Strict
+            - name: CLUSTER_NAME
+              value: ksk-use2-staging-eks
+            - name: CLUSTER_ENDPOINT
+              value: https://01FAE4D24863BE8CF6056316CA888EE1.gr7.us-east-2.eks.amazonaws.com
+            - name: VM_MEMORY_OVERHEAD_PERCENT
+              value: "0.075"
+            - name: INTERRUPTION_QUEUE
+              value: Karpenter-ksk-use2-staging-eks
+            - name: RESERVED_ENIS
+              value: "0"
+          ports:
+            - name: http-metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 30
+            httpGet:
+              path: /readyz
+              port: http
+      nodeSelector:
+        karpenter.sh/controller: "true"
+        kubernetes.io/os: linux
+      # The template below patches the .Values.affinity to add a default label selector where not specificed
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.sh/nodepool
+                    operator: DoesNotExist
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: karpenter
+                  app.kubernetes.io/name: karpenter
+              topologyKey: kubernetes.io/hostname
+      # The template below patches the .Values.topologySpreadConstraints to add a default label selector where not specificed
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: karpenter
+              app.kubernetes.io/name: karpenter
+          maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists

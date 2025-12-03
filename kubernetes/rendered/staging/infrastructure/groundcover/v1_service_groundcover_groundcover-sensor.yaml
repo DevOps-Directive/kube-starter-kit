@@ -1,0 +1,66 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/agent/service.yaml
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    groundcover_version: 1.11.61
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    app: sensor
+    app.kubernetes.io/name: sensor
+  name: groundcover-sensor
+  namespace: groundcover
+spec:
+  selector:
+    app.kubernetes.io/name: sensor
+    app.kubernetes.io/part-of: groundcover
+  ports:
+    - protocol: TCP
+      name: dd-traces
+      port: 8126
+      targetPort: 8126
+    - protocol: TCP
+      name: zipkin
+      port: 9411
+      targetPort: 9411
+    - protocol: TCP
+      name: otlp-grpc
+      port: 4317
+      targetPort:
+    - protocol: TCP
+      name: otlp-http
+      port: 4318
+      targetPort:
+    - protocol: TCP
+      name: jeager-grpc
+      port: 14250
+      targetPort: 14250
+    - protocol: TCP
+      name: jeager-thrift-http
+      port: 14268
+      targetPort: 14268
+    - protocol: UDP
+      name: jeager-thrift-binary
+      port: 6832
+      targetPort: 6832
+    - protocol: UDP
+      name: jeager-thrift-compact
+      port: 6831
+      targetPort: 6831
+    - protocol: TCP
+      name: http-json
+      port: 8016
+      targetPort: 8016
+    - protocol: TCP
+      name: loki
+      port: 3100
+      targetPort: 3100
+    - protocol: TCP
+      name: prometheus-remote-write
+      port: 8428
+      targetPort: 8428
+    - protocol: TCP
+      name: health-http
+      port: 2021
+      targetPort: 2021
+  internalTrafficPolicy: Local

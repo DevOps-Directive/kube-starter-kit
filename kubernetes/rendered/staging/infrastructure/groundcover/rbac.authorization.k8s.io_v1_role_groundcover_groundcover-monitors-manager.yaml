@@ -1,0 +1,13 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/monitors-manager/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: groundcover-monitors-manager
+  namespace: groundcover
+  labels:
+    helm.sh/chart: monitors-manager-7.2.0
+    app.kubernetes.io/name: monitors-manager
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v0.0.38-grafana11.3.7
+    app.kubernetes.io/managed-by: Helm
+rules: []

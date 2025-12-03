@@ -1,0 +1,35 @@
+# Source: envoy-gateway-wrapper/charts/gateway-helm/templates/envoy-gateway-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy-gateway
+  namespace: envoy-gateway-system
+  labels:
+    control-plane: envoy-gateway
+    helm.sh/chart: gateway-helm-1.6.0
+    app.kubernetes.io/name: gateway-helm
+    app.kubernetes.io/instance: envoy-gateway
+    app.kubernetes.io/version: v1.6.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  selector:
+    control-plane: envoy-gateway
+    app.kubernetes.io/name: gateway-helm
+    app.kubernetes.io/instance: envoy-gateway
+  ports:
+    - name: grpc
+      port: 18000
+      targetPort: 18000
+    - name: ratelimit
+      port: 18001
+      targetPort: 18001
+    - name: wasm
+      port: 18002
+      targetPort: 18002
+    - name: metrics
+      port: 19001
+      targetPort: 19001
+    - name: webhook
+      port: 9443
+      targetPort: 9443

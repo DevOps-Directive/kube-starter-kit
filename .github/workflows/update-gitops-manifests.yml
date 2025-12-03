@@ -62,6 +62,7 @@ jobs:
             mise run //tools:update-image-tags-service
 
           # TODO: make this configurable
+          # Potential Implementation: add a mise task to the service directory that calls 0-N render-cluster tasks
           mise run //kubernetes/src/${{ inputs.service }}:render-cluster ${{ inputs.environment }}
       - run: |
           git --no-pager diff

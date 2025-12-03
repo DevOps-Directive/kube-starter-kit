@@ -1,0 +1,23 @@
+{{- range $name, $config := .Values.applications }}
+{{- if $config.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: services
+  source:
+    path: kubernetes/rendered/{{ $.Values.cluster }}/services/{{ $name }}
+    repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+    - SkipDryRunOnMissingResource=true
+{{- end }}
+{{- end }}

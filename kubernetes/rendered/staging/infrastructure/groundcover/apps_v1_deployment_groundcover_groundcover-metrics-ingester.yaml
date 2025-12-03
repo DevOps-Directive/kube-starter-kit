@@ -1,0 +1,132 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/metrics-ingester/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: groundcover-metrics-ingester
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/part-of: groundcover
+    helm.sh/chart: metrics-ingester-0.9.17
+    app.kubernetes.io/name: metrics-ingester
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/version: v1.97.1
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: metrics-ingester
+      app.kubernetes.io/instance: groundcover
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: metrics-ingester
+        app.kubernetes.io/instance: groundcover
+        app.groundcover.com/pipeline: metrics
+        app.kubernetes.io/part-of: groundcover
+      annotations:
+        checksum/config: bff5dec2126b8eb7a32118abe5598909f2e3b07aecfe50324d56eee9644364c9
+        prometheus.io/port: "8429"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: groundcover-metrics-ingester
+      securityContext: {}
+      containers:
+        - name: metrics-ingester
+          securityContext: {}
+          image: public.ecr.aws/groundcovercom/vmagent:v1.115.0
+          workingDir: /
+          args:
+            - -promscrape.config=/config/scrape.yml
+            - -remoteWrite.tmpDataPath=/tmpData
+            - -envflag.enable=true
+            - -envflag.prefix=VM_
+            - -loggerFormat=json
+            - -promscrape.dropOriginalLabels=true
+            - -promscrape.streamParse=true
+            - -remoteWrite.disableOnDiskQueue=false
+            - -remoteWrite.disableOnDiskQueue=false
+            - -remoteWrite.forcePromProto=false
+            - -remoteWrite.forcePromProto=true
+            - -remoteWrite.forceVMProto=true
+            - -remoteWrite.forceVMProto=false
+            - -remoteWrite.headers=apikey:%{API_KEY}
+            - -remoteWrite.maxDiskUsagePerURL=10GB
+            - -remoteWrite.maxDiskUsagePerURL=512MB
+            - -remoteWrite.rateLimit=0
+            - -remoteWrite.rateLimit=500000
+            - -remoteWrite.showURL=true
+            - -remoteWrite.tlsInsecureSkipVerify=true
+            - -remoteWrite.url=http://groundcover-victoria-metrics:8428/api/v1/write
+            - -remoteWrite.url=http://groundcover-vector:4599
+            - -tls=false
+            - -tlsCertFile=/etc/ssl/gc-certs/tls.crt
+            - -tlsKeyFile=/etc/ssl/gc-certs/tls.key
+            - -usePromCompatibleNaming=true
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8429
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: groundcover-token
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sleep
+                  - "10"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: tmpdata
+              mountPath: /tmpData
+            - name: config
+              mountPath: /config
+            - mountPath: /etc/ssl/gc-certs
+              name: certificate
+              readOnly: true
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: metrics-ingester
+              app.kubernetes.io/instance: groundcover
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: metrics-ingester
+              app.kubernetes.io/instance: groundcover
+      volumes:
+        - name: tmpdata
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: groundcover-metrics-ingester-config
+        - name: certificate
+          secret:
+            optional: true
+            secretName: metrics-ingester-certificate

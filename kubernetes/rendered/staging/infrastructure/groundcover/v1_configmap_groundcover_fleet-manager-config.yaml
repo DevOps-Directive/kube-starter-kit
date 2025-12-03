@@ -1,0 +1,12 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/backend/fleet-manager/config/config.yaml
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.yaml: "LogLevel: 4\nManageHttpPort: 8080\nHealthProbePort: 8081\nPprof:\n  enabled: true\n  cpuSamplingDuration: 60s\n  httpUploader:\n    enabled: false\n    pushURL: https://metrics.groundcover.com/upload/pprof\n  pyroscopeUploader:\n    enabled: true\n    pushURL: https://metrics.groundcover.com\n  backoffTicker:\n    interval: 10s\n    exponent: 40\n  memoryTicker:\n    enabled: true\n    interval: 60s\n    jumpSizeInBytes: 1e+08\n    windowSize: 12h\n    initialWait: 10m\n  cpuTicker:\n    enabled: true\n    interval: 60s\n    jumpSizeInMCPU: 100\n    windowSize: 12h\n    initialWait: 10m    \nconfigManager:\n  db: \n    host: groundcover-postgresql\n    port: 5432\n    name: fleetmanager\n    user: postgres\n    pass: \n    timeout: 150s\n    interval: 5s\n    sslmode: require\n  skipMigrations: false\n  migrationsPath: /migrations\n  cacheRefreshInterval: 2s\n"
+metadata:
+  labels:
+    app.kubernetes.io/part-of: groundcover
+  annotations:
+    groundcover_version: 1.11.61
+  name: fleet-manager-config
+  namespace: groundcover

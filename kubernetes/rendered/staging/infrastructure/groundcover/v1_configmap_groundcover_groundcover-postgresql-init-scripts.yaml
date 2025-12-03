@@ -1,0 +1,90 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/backend/charts/postgresql/templates/primary/initialization-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: groundcover-postgresql-init-scripts
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-12.6.9
+    app.kubernetes.io/instance: groundcover
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: 15.3.0
+    app.kubernetes.io/part-of: groundcover
+data:
+  01-sync-pg-password.sh: |
+    #!/bin/bash
+
+    info "Syncing pg_authid with secret"
+
+    set -eu -o pipefail
+
+    # Allow passwordless login for local client
+    replace_in_file "$POSTGRESQL_PGHBA_FILE" "^\(local.*\) md5$" "\1 trust" false
+    pg_ctl reload
+
+    # sync password from k8s secret to pg_authid
+    postgresql_alter_postgres_user "${POSTGRESQL_PASSWORD}"
+
+    # Restore password auth constraints
+    postgresql_restrict_pghba
+    pg_ctl reload
+  10-create-dbs.sh: |
+    #!/bin/sh
+
+    set -eu
+
+    export PGHOST=${INITDB_PGHOST}
+    export PGPORT=${INITDB_PGPORT}
+    export PGPASSWORD=${POSTGRES_PASSWORD}
+
+    create_database_if_not_exists() {
+      local target_db="$1"
+
+      echo "10-create-dbs.sh: CREATE DATABASE IF NOT EXISTS ${target_db}"
+      echo "SELECT 'CREATE DATABASE ${target_db}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${target_db}')\gexec" | psql -U postgres
+    }
+    create_database_if_not_exists "keep"
+    create_database_if_not_exists "monitors_manager"
+  11-create-keep-user.sh: |
+    #!/bin/sh
+      set -eu
+
+      export PGHOST=${INITDB_PGHOST}
+      export PGPORT=${INITDB_PGPORT}
+      export PGPASSWORD=${POSTGRES_PASSWORD}
+      export PGKEEPUSER=${POSTGRES_KEEP_USER}
+      export PGKEEPDB=${POSTGRES_KEEP_DB}
+      export PGKEEPPASSWORD=${POSTGRES_KEEP_PASSWORD}
+
+      create_database_if_not_exists() {
+        echo "11-create-keep-user.sh: CREATE DATABASE IF NOT EXISTS '${PGKEEPDB}'"
+        echo "SELECT 'CREATE DATABASE ${PGKEEPDB}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${PGKEEPDB}')\gexec" | psql -U postgres
+      }
+
+      create_user_with_password_if_not_exists() {
+        echo "11-create-keep-user.sh: CREATE USER IF NOT EXISTS '${PGKEEPUSER}'"
+        echo "SELECT 'CREATE USER ${PGKEEPUSER} WITH PASSWORD ''${PGKEEPPASSWORD}'';' WHERE NOT EXISTS (SELECT FROM pg_user WHERE usename = '${PGKEEPUSER}')\gexec" | psql -U postgres
+      }
+
+      grand_all_privileges_on_database_to_user() {
+        echo "11-create-keep-user.sh: GRANT ALL PRIVILEGES ON DATABASE ${PGKEEPDB} TO ${PGKEEPUSER}"
+        echo "GRANT ALL PRIVILEGES ON DATABASE ${PGKEEPDB} TO ${PGKEEPUSER}" | psql -U postgres
+        echo "ALTER DATABASE ${PGKEEPDB} OWNER TO ${PGKEEPUSER}" | psql -U postgres
+      }
+
+      grand_all_privileges_on_schema_public_to_user() {
+        echo "11-create-keep-user.sh: GRANT ALL PRIVILEGES ON SCHEMA public TO ${PGKEEPUSER}"
+        echo "GRANT ALL PRIVILEGES ON SCHEMA public TO ${PGKEEPUSER}" | psql -U postgres -d ${PGKEEPDB}
+      }
+
+      override_user_password() {
+        echo "11-create-keep-user.sh: OVERRIDE PASSWORD FOR USER ${PGKEEPUSER}"
+        echo "ALTER USER ${PGKEEPUSER} WITH PASSWORD '${PGKEEPPASSWORD}';" | psql -U postgres
+      }
+
+      create_database_if_not_exists
+      create_user_with_password_if_not_exists
+      grand_all_privileges_on_database_to_user
+      grand_all_privileges_on_schema_public_to_user
+      override_user_password

@@ -1,0 +1,26 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/monitors-manager/alerting_overrides_configmap.yaml
+apiVersion: v1
+data:
+  alerting_overrides.yaml: |
+    apiVersion: 1
+
+    contactPoints:
+      - name: workflows-webhook
+        receivers:
+          - uid: workflows-webhook
+            type: webhook
+            settings:
+              url: "http://groundcover-keep-backend:8080/alerts/event/grafana"
+              httpMethod: "POST"
+              authorization_scheme: digest
+              authorization_credentials: $KEEP_WEB_HOOK_API_KEY
+    policies:
+      - receiver: workflows-webhook
+        group_by:
+          - '...'
+        group_wait: 30s
+        group_interval: 1m
+        repeat_interval: 4h
+kind: ConfigMap
+metadata:
+  name: alerting-overrides-config

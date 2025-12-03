@@ -9,4 +9,4 @@ spec:
     storageClass: OVERRIDE_ME
   superuserSecret:
     name: go-backend-db-superuser
-  image: ghcr.io/cloudnative-pg/postgresql:17.5
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5

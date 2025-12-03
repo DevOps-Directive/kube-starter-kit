@@ -1,0 +1,51 @@
+apiVersion: v1
+data:
+  index.html: |-
+    <!doctype html>
+    <html lang="en">
+    <head>
+     	<meta charset="utf-8">
+     	<meta http-equiv="refresh" content="10" />
+    	<title>foo</title>
+    	<style>
+    	html { color-scheme: light dark; }
+    	body { width: 35em; margin: 0 auto;
+    	font-family: Tahoma, Verdana, Arial, sans-serif; }
+    	</style>
+    </head>
+    <body>
+    	<h1> Hello Staging from foo!</h1>
+    	<p>If you see this page, the <b>foo</b> instance is successfully deployed in the <b>go-backend-timoni</b> namespace by Timoni.</p>
+    </body>
+    </html>
+  nginx.default.conf: |-
+    server {
+    	listen       8080;
+    	server_name  foo;
+
+    	location / {
+      	root   /usr/share/nginx/html;
+      	index  index.html index.htm;
+    	}
+
+    	location /healthz {
+    		access_log off;
+    		default_type text/plain;
+    		return 200 "OK";
+    	}
+
+    	error_page  404              /404.html;
+      error_page  500 502 503 504  /50x.html;
+      location = /50x.html {
+        root   /usr/share/nginx/html;
+      }
+    }
+immutable: true
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: timoni
+    app.kubernetes.io/name: foo
+    app.kubernetes.io/version: 0.0.0-devel
+  name: foo-0242bdd0
+  namespace: go-backend-timoni

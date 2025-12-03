@@ -1,0 +1,116 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/victoria-metrics-single/templates/server-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: groundcover
+  labels:
+    app: server
+    app.kubernetes.io/name: victoria-metrics-single
+    app.kubernetes.io/instance: groundcover
+    helm.sh/chart: victoria-metrics-single-0.9.15
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: groundcover
+  name: groundcover-victoria-metrics
+spec:
+  serviceName: groundcover-victoria-metrics
+  selector:
+    matchLabels:
+      app: server
+      app.kubernetes.io/name: victoria-metrics-single
+      app.kubernetes.io/instance: groundcover
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8428"
+        prometheus.io/scrape: "true"
+      labels:
+        app: server
+        app.kubernetes.io/name: victoria-metrics-single
+        app.kubernetes.io/instance: groundcover
+        helm.sh/chart: victoria-metrics-single-0.9.15
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: groundcover
+        app.groundcover.com/pipeline: metrics
+    spec:
+      automountServiceAccountToken: true
+      containers:
+        - name: victoria-metrics-single-server
+          image: public.ecr.aws/groundcovercom/victoria-metrics:v1.103.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --retentionPeriod=7d
+            - --storageDataPath=/storage
+            - --envflag.enable=true
+            - --envflag.prefix=VM_
+            - --loggerFormat=json
+            - --maxLabelsPerTimeseries=50
+            - --promscrape.maxScrapeSize=100MB
+            - --search.maxConcurrentRequests=8
+            - --search.maxQueryLen=100000
+            - --search.maxSeries=30000
+            - --search.maxTagKeys=200000
+            - --search.maxTagValues=500000
+            - --search.maxUniqueTimeseries=2000000
+            - --selfScrapeInterval=30s
+            - --streamAggr.config=/extra-config/aggregation_config.yaml
+            - --usePromCompatibleNaming=true
+          ports:
+            - name: http
+              containerPort: 8428
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /health
+              port: 8428
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            limits:
+              memory: 1024Mi
+            requests:
+              cpu: 20m
+              memory: 128Mi
+          volumeMounts:
+            - name: server-volume
+              mountPath: /storage
+              subPath:
+            - mountPath: /extra-config
+              name: extra-config
+              readOnly: true
+      serviceAccountName: groundcover-victoria-metrics-single
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: eks.amazonaws.com/capacityType
+                    operator: NotIn
+                    values:
+                      - SPOT
+              weight: 1
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - configMap:
+            name: victoria-metrics-aggregation-config
+          name: extra-config
+  volumeClaimTemplates:
+    - metadata:
+        name: server-volume
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi

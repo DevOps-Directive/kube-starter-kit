@@ -1,0 +1,5 @@
+# Source: minimal/templates/Namespace.go-backend-helm.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-backend-helm

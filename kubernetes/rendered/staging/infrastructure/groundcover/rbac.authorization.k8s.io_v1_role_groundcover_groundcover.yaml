@@ -1,0 +1,9 @@
+# Source: groundcover-wrapper/charts/groundcover/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: groundcover
+  namespace: groundcover
+  labels:
+    app.kubernetes.io/part-of: groundcover
+rules:

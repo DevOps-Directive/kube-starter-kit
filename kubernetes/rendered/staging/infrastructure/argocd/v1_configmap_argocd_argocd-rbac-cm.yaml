@@ -1,0 +1,27 @@
+# Source: argocd-wrapper/charts/argocd/templates/argocd-configs/argocd-rbac-cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    helm.sh/chart: argocd-7.7.16
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/instance: argocd
+    app.kubernetes.io/component: server
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: v2.13.3
+data:
+  policy.csv: |
+    #####################
+    # NOTE:
+    # p, is a policy mapping (e.g. assign permissions directly)
+    # g, is a group mapping (map github group to argo group)
+    #####################
+    g, DevOps-Directive:Admin, role:admin
+    g, DevOps-Directive:ReadOnly, role:readonly
+    g, role:admin, role:readonly # admin inherits readonly role permissions
+  policy.default: role:readonly
+  policy.matchMode: glob
+  scopes: '[groups]'

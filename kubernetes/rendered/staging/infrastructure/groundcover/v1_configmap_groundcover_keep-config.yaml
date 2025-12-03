@@ -1,0 +1,26 @@
+# Source: groundcover-wrapper/charts/groundcover/charts/backend/templates/keep/keep_configmap.yaml
+apiVersion: v1
+data:
+  provisionedProviders.json: |
+    {
+      "groundcoverVictoriaMetrics": {
+        "type": "victoriametrics",
+        "authentication": {
+          "VMAlertURL": "http://groundcover-victoria-metrics:8428"
+        }
+      },
+      "groundcoverClickhouse": {
+        "type": "clickhouse",
+        "authentication": {
+          "host": "groundcover-clickhouse",
+          "port": "9000",
+          "username": "default",
+          "password": "$(CLICKHOUSE_PASS)",
+          "database": "groundcover"
+        }
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: keep-config
+  namespace: groundcover

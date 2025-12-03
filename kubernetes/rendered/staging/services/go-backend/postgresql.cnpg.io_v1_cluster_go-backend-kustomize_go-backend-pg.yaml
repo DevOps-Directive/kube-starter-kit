@@ -4,7 +4,7 @@ metadata:
   name: go-backend-pg
   namespace: go-backend-kustomize
 spec:
-  image: ghcr.io/cloudnative-pg/postgresql:17.5
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
   instances: 1
   storage:
     size: 1Gi
