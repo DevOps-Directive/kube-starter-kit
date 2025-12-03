@@ -10,4 +10,4 @@ spec:
     storageClass: {{.Values.db.storageClass}}
   superuserSecret:
     name: go-backend-db-superuser
-  image: {{.Values.db.image}}
+  imageName: {{.Values.db.image}}
