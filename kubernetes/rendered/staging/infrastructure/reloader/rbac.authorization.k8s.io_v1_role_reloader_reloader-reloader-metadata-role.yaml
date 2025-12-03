@@ -1,9 +1,9 @@
-# Source: reloader-wrapper/charts/reloader/templates/rolebinding.yaml
+# Source: reloader-wrapper/charts/reloader/templates/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: Role
 metadata:
   annotations:
-    meta.helm.sh/release-namespace: kube-system
+    meta.helm.sh/release-namespace: reloader
     meta.helm.sh/release-name: reloader
   labels:
     app: reloader-reloader
@@ -15,13 +15,16 @@ metadata:
     heritage: Helm
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/version: v1.4.8
-  name: reloader-reloader-metadata-role-binding
-  namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
   name: reloader-reloader-metadata-role
-subjects:
-  - kind: ServiceAccount
-    name: reloader-reloader
-    namespace: kube-system
+  namespace: reloader
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - list
+      - get
+      - watch
+      - create
+      - update

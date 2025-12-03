@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    meta.helm.sh/release-namespace: kube-system
+    meta.helm.sh/release-namespace: reloader
     meta.helm.sh/release-name: reloader
   labels:
     app: reloader-reloader
@@ -19,7 +19,7 @@ metadata:
     provider: stakater
     version: v1.4.8
   name: reloader-reloader
-  namespace: kube-system
+  namespace: reloader
 spec:
   replicas: 1
   revisionHistoryLimit: 2
