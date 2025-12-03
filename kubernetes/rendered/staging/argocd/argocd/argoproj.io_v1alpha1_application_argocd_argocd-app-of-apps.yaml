@@ -14,3 +14,7 @@ spec:
     repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
     # TODO: set to main
     targetRevision: sp/app-of-apps
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
