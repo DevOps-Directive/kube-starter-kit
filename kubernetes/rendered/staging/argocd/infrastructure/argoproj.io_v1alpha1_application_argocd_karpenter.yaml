@@ -11,8 +11,7 @@ spec:
   source:
     path: kubernetes/rendered/staging/infrastructure/karpenter
     repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
-    # TODO: set to main
-    targetRevision: sp/app-of-apps
+    targetRevision: main
   syncPolicy:
     automated:
       prune: true
