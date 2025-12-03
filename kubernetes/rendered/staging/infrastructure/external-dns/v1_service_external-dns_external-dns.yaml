@@ -2,19 +2,19 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: cloudnative-pg-external-dns
+  name: external-dns
   namespace: external-dns
   labels:
     helm.sh/chart: external-dns-1.19.0
     app.kubernetes.io/name: external-dns
-    app.kubernetes.io/instance: cloudnative-pg
+    app.kubernetes.io/instance: external-dns
     app.kubernetes.io/version: 0.19.0
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
   selector:
     app.kubernetes.io/name: external-dns
-    app.kubernetes.io/instance: cloudnative-pg
+    app.kubernetes.io/instance: external-dns
   ports:
     - name: http
       port: 7979
