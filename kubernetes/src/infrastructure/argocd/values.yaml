@@ -39,8 +39,8 @@ argocd:
         # p, is a policy mapping (e.g. assign permissions directly)
         # g, is a group mapping (map github group to argo group)
         #####################
-        g, DevOps-Directive:admins, role:admin
-        g, DevOps-Directive:read-only, role:readonly
+        g, DevOps-Directive:Admin, role:admin
+        g, DevOps-Directive:ReadOnly, role:readonly
         g, role:admin, role:readonly # admin inherits readonly role permissions
       policy.default: role:readonly
       scopes: "[groups]"
