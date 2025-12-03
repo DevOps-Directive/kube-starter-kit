@@ -1,4 +1,6 @@
 applications:
+  # Could specify path for each application here to make it more flexible
   go-backend:
     enabled: true
-    # Could specify path for each application here to make it more flexible
+  go-backend-helm:
+    enabled: true

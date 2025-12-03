@@ -1,6 +1,28 @@
 applications:
+  # Could specify path for each application here to make it more flexible
   argocd:
     enabled: true
   cert-manager:
     enabled: true
-    # Could specify path for each application here to make it more flexible
+  cloudnative-pg:
+    enabled: true
+  ebs-csi-driver-resources:
+    enabled: true
+  envoy-gateway:
+    enabled: false
+  external-dns:
+    enabled: true
+  external-secrets:
+    enabled: true
+  groundcover:
+    enabled: false # TODO: Toggle back on
+  ingress-nginx:
+    enabled: true
+  karpenter:
+    enabled: true
+  reloader:
+    enabled: true
+  datadog-operator:
+    enabled: false
+  istio:
+    enabled: false
