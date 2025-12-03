@@ -1,3 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: go-backend-kustomize
 resources:
   - Cluster.go-backend.yaml
   - Deployment.go-backend.yaml
@@ -5,5 +8,6 @@ resources:
   - Ingress.minimal-istio.yaml
   - Ingress.minimal-nginx.yaml
   - Job.go-backend-migrator.yaml
+  - Namespace.go-backend-kustomize.yaml
   - Secret.go-backend-db-superuser.yaml
   - Service.go-backend.yaml
