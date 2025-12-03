@@ -17,4 +17,5 @@ spec:
     automated:
       prune: true
     syncOptions:
+      - ServerSideApply=true
       - SkipDryRunOnMissingResource=true
