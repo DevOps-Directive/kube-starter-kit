@@ -1,5 +1,0 @@
-# Source: cloudnative-pg-wrapper/templates/Namespace.cloudnative-pg.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cloudnative-pg
