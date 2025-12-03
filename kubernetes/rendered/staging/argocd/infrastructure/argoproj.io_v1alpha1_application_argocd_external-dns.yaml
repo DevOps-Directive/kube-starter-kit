@@ -13,5 +13,6 @@ spec:
     repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git
   syncPolicy:
     automated:
-      enabled: true
       prune: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

@@ -16,5 +16,6 @@ spec:
     targetRevision: sp/app-of-apps
   syncPolicy:
     automated:
-      enabled: true
       prune: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
