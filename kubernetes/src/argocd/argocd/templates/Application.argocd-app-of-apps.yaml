@@ -10,6 +10,6 @@ spec:
   project: argocd
   source:
     path: kubernetes/rendered/{{ .Values.cluster }}/argocd/argocd
-    repoURL: https://github.com/DevOps-Directive/kube-starter-kit.git
+    repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
     # TODO: set to main
     targetRevision: sp/app-of-apps
