@@ -28,12 +28,10 @@ groundcover:
             cpu: 5m
             memory: 40Mi
       # TODO: finish setting up external secret generators to avoid commiting secrets
-      # auth:
-      #   existingSecret: foo
-      #   secretKeys:
-      #     adminPasswordKey: "baz"
-      #     userPasswordKey: "bing"
-      #     replicationPasswordKey: "bong"
+      auth:
+        existingSecret: groundcover-postgresql
+        secretKeys:
+          adminPasswordKey: "postgres-password"
 
       # TODO: If we want encryption we should
       # 1. Set up PKI with cert-manager
