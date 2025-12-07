@@ -1,0 +1,22 @@
+# Source: groundcover-wrapper/templates/Certificate.groundcover-postgresql.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: groundcover-postgresql
+  namespace: groundcover
+spec:
+  secretName: groundcover-postgresql-crt
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  commonName: groundcover-postgresql
+  dnsNames:
+    # Adjust these to match your actual Service / headless service / StatefulSet DNS names
+    - groundcover-postgresql.groundcover.svc
+    - groundcover-postgresql.groundcover.svc.cluster.local
+  issuerRef:
+    name: groundcover-ca
+    kind: ClusterIssuer
+    group: cert-manager.io

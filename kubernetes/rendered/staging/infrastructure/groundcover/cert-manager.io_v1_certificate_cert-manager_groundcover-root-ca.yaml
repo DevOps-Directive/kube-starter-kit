@@ -1,0 +1,17 @@
+# Source: groundcover-wrapper/templates/Certificate.groundcover-root-ca.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: groundcover-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: groundcover-root-ca
+  secretName: groundcover-root-ca
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    name: groundcover-selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io
