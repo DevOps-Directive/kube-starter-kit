@@ -26,7 +26,6 @@ spec:
         checksum/config: 7199b401004c3f2529df8ccad8bcf72c63da4549819f1828ac4708236584b4e7
         checksum/dashboards-json-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
         checksum/sc-dashboard-provider-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/secret: ddbadce793ca490e45179fd80c73dc1e1edb003061b001424593ef754f1ef845
         kubectl.kubernetes.io/default-container: monitors-manager
     spec:
       serviceAccountName: groundcover-monitors-manager

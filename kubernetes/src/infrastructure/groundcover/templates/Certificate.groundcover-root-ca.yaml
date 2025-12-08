@@ -2,7 +2,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: groundcover-root-ca
-  namespace: cert-manager
+  namespace: {{.Release.Namespace}}
 spec:
   isCA: true
   commonName: groundcover-root-ca

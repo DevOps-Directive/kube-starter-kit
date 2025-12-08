@@ -20,7 +20,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9102"
         groundcover_version: 1.11.61
-        checksum/config: c928a9aa7cb5c5f372781e02ee219857b32d20b1e1fbd0cab704c714a33ae75b
+        checksum/config: f7c3465b6e7787d83bae1becda6d091366585cd0efe051f3cb5980ab8fc7cce6
       labels:
         app: k8s-watcher
         app.kubernetes.io/name: k8s-watcher

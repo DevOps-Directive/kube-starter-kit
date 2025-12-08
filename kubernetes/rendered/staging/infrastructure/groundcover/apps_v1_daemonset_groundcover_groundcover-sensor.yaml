@@ -26,7 +26,7 @@ spec:
         vm.io/path: vmetrics
         vm.io/port: "9102"
         groundcover_version: 1.11.61
-        checksum/sensor_config: 9fe7e6facee078a3194251c90d929562feec4e9a230760b5dbb1dc6f24b228ca
+        checksum/sensor_config: ae6c17dc9f8c508d8a27252543caf04314504fdede79bb88566397dfeecd70a6
       labels:
         app: sensor
         app.kubernetes.io/name: sensor

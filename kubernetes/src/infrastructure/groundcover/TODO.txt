@@ -1,0 +1,15 @@
+Certs:
+- ✅✅ groundcover-postgresql (certificate)
+- ✅✅ metrics-ingester-certificate
+
+Passwords:
+- ✅✅ groundcover-monitors-manager (grafana)
+- ✅✅ groundcover-postgresql
+- ✅✅ clickhouse
+- ✅✅ keep-credentials
+- ✅✅ keep-postgres
+
+Verfication:
+- Disable generation via helm
+- Pass existing secret references
+- Confirm certs are valid for necessary dns names

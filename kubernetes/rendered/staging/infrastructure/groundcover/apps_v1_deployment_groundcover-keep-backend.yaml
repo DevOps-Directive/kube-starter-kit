@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/values: 1813c472466c2bc6e791e19eee864a4d7694c96fddccede3a2a2c6294a2970ad
+        checksum/values: 09005d5a1f1f14247e0cbe1916dab8fb07004d3fc2d805a69ee5f4e609046e83
         prometheus.io/path: /metrics/processing
         prometheus.io/port: "8080"
         prometheus.io/scrape: "true"
