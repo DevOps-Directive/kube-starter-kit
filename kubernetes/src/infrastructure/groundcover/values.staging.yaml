@@ -1,5 +1,0 @@
-groundcoverTokenAwsSecret: "ksk-use2-staging-eks-groundcover-token"
-
-groundcover:
-  clusterId: ksk-use2-staging-eks
-  env: staging
