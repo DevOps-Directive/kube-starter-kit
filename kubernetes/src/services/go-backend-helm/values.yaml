@@ -4,4 +4,4 @@ db:
   storageClass: ebs-gp3-encrypted
 replicas: 1
 image:
-  version: 0.2.1-rc0049-g34f890c # staging_services/go-backend
+  version: 0.2.1-rc0054-g4454887 # staging_services/go-backend
