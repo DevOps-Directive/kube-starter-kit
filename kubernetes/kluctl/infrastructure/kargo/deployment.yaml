@@ -1,8 +1,0 @@
-deployments:
-  - path: helm
-  - barrier: true
-  - path: kargo-projects
-  - barrier: true
-  - path: resources
-  - path: resources/go-backend
-  - path: resources/go-backend-no-migrations

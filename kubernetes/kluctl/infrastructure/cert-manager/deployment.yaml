@@ -1,7 +1,0 @@
-deployments:
-  - path: helm
-  - barrier: true
-  - path: resources
-  # To handle case when some env doesn't need custom resources create a placeholder directory
-  # Is there a cleaner way to handle this? 🤔
-  - path: resources/cluster-specific/{{target.name}}

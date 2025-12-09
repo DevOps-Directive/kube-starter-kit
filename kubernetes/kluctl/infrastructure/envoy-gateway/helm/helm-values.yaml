@@ -1,4 +1,0 @@
-topologyInjector:
-  annotations:
-    # Prevents noisy diffs for caBundle which gets updated frequently by certGen helm hook job
-    kluctl.io/ignore-diff-field: "webhooks[0].clientConfig.caBundle"

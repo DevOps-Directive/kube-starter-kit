@@ -1,5 +1,0 @@
-helmChart:
-  repo: oci://ghcr.io/akuity/kargo-charts/kargo
-  chartVersion: 1.8.3
-  releaseName: kargo
-  namespace: kargo

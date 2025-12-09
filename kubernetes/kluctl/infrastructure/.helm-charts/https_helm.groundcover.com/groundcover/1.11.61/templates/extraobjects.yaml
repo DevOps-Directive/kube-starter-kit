@@ -1,4 +1,0 @@
-{{ range $k, $v := .Values.groundcover.extraObjects }}
----
-{{ tpl (toYaml $v ) $ }}
-{{ end }}

@@ -1,1 +1,0 @@
-ALTER TABLE current_executions ADD COLUMN start_time TIMESTAMP NULL;

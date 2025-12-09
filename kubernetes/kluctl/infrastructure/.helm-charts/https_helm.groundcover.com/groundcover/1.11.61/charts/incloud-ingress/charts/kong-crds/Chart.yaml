@@ -1,6 +1,0 @@
-apiVersion: v2
-appVersion: "3.4"
-description: Kong CRDs Hooks
-name: kong-crds
-type: application
-version: 2.32.0
