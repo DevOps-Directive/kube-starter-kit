@@ -1,0 +1,5 @@
+# Source: signoz-wrapper/templates/Namespace.signoz.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: signoz

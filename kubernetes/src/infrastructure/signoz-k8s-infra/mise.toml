@@ -1,5 +1,5 @@
 [env]
-OUTPUT_PATH = "infrastructure/reloader"
+OUTPUT_PATH = "infrastructure/signoz-k8s-infra"
 
 [tasks.render-cluster]
 description = "Render manifests for specified cluster"
@@ -16,11 +16,12 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
-helm template --release-name reloader . \
+helm template --release-name signoz . \
   --include-crds \
   --skip-tests \
-  --namespace reloader \
+  --namespace signoz \
   --values values.yaml \
   --values values.${usage_cluster}.yaml \
   | mise run //tools:render:split-k8s-docs ${OUTPUT_DIR}
+
 """

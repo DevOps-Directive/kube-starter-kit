@@ -1,0 +1,41 @@
+# Source: signoz-wrapper/charts/k8s-infra/templates/otel-agent/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: signoz-k8s-infra-otel-agent
+  namespace: signoz
+  labels:
+    helm.sh/chart: k8s-infra-0.15.0
+    app.kubernetes.io/version: 0.139.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/component: otel-agent
+spec:
+  type: ClusterIP
+  ports:
+    - name: health-check
+      port: 13133
+      targetPort: health-check
+      protocol: TCP
+      nodePort: null
+    - name: metrics
+      port: 8888
+      targetPort: metrics
+      protocol: TCP
+      nodePort: null
+    - name: otlp
+      port: 4317
+      targetPort: otlp
+      protocol: TCP
+      nodePort: null
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+      protocol: TCP
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/component: otel-agent
+  internalTrafficPolicy: Local
