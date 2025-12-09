@@ -3,7 +3,7 @@ output "github_oidc_assume_role_arn" {
 }
 
 # TODO: avoid this magic string
-# github oidc module doesn't allow modifying the trust policy (e.g. to assume from this role...)
+# github oidc terraform module doesn't allow modifying the trust policy (e.g. to assume from this role...)
 # could create a separate role which can be assumed by the admin role (an additional hop)
 
 output "sso_admin_assume_role_arn" {

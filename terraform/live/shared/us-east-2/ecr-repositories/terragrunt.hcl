@@ -18,4 +18,9 @@ dependency "shared__global__ecr_repositories_bootstrapping" {
 
 inputs = {
   terraform_iam_role_arn = dependency.shared__global__ecr_repositories_bootstrapping.outputs.terraform_iam_role_arn
+  repository_read_access_arns = [
+    # BOOTSTRAP: replace account IDs with your own
+    "arn:aws:iam::038198578795:root", # Staging 
+    "arn:aws:iam::964263445142:root", # Production
+  ]
 }

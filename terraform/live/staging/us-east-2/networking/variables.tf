@@ -8,3 +8,8 @@ variable "nat_mode" {
     error_message = "Allowed values for nat_mode are \"fck_nat\", \"single_nat_gateway\", or \"one_nat_gateway_per_az\"."
   }
 }
+
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC."
+  type        = string
+}

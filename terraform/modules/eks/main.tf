@@ -28,12 +28,11 @@ module "eks" {
   version = "21.3.1"
 
   name               = module.this.id
-  kubernetes_version = "1.33"
+  kubernetes_version = var.kubernetes_version
 
   access_entries = {
     sso_admin = {
-      # TODO: make this configurable
-      principal_arn = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AdministratorAccess_47aa578228eb79ff"
+      principal_arn = var.admin_sso_role_arn
 
       policy_associations = {
         cluster_admin = {
@@ -48,23 +47,39 @@ module "eks" {
 
   # # Gives Terraform identity admin access to cluster which will
   # # allow deploying resources (Karpenter) into the cluster
-  # # only necessary if deploying karpenter from TF...
+  # # only necessary if deploying applications from TF (e.g. via https://registry.terraform.io/providers/hashicorp/helm/latest/docs)
   # enable_cluster_creator_admin_permissions = true
 
   enable_irsa            = true
   endpoint_public_access = true
 
-  # TODO: specify versions
   addons = {
-    coredns = {}
+    coredns = {
+      addon_version               = var.eks_addon_versions.coredns
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
+
     eks-pod-identity-agent = {
-      before_compute = true
+      before_compute              = true
+      addon_version               = var.eks_addon_versions.eks_pod_identity_agent
+      resolve_conflicts_on_update = "OVERWRITE"
     }
-    kube-proxy = {}
+
+    kube-proxy = {
+      addon_version               = var.eks_addon_versions.kube_proxy
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
+
     vpc-cni = {
-      before_compute = true
+      before_compute              = true
+      addon_version               = var.eks_addon_versions.vpc_cni
+      resolve_conflicts_on_update = "OVERWRITE"
     }
-    aws-ebs-csi-driver = {}
+
+    aws-ebs-csi-driver = {
+      addon_version               = var.eks_addon_versions.aws_ebs_csi_driver
+      resolve_conflicts_on_update = "OVERWRITE"
+    }
 
   }
 
@@ -73,10 +88,11 @@ module "eks" {
 
   eks_managed_node_groups = {
     base = {
-      ami_type       = "AL2023_x86_64_STANDARD" # Alternative option: BOTTLEROCKET_x86_64
-      instance_types = ["t3.large"]             # TODO: Make this an input
+      # Node group version can be pinned independently:
+      version = var.base_node_group_kubernetes_version
 
-      # TODO: Pin version + add input to avoid unexpected upgrade?
+      ami_type       = var.base_node_group_ami_type
+      instance_types = var.base_node_group_instance_types
 
       min_size     = 2
       max_size     = 3

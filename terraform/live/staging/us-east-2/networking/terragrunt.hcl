@@ -13,4 +13,5 @@ include "environment" {
 
 inputs = {
   nat_mode = "fck_nat"
+  vpc_cidr = "10.0.0.0/16"
 }

@@ -72,8 +72,8 @@ module "cert_manager_pod_identity" {
   name = "${module.eks.cluster_name}-cert-manager"
 
   attach_cert_manager_policy = true
-  # TODO: automate passing this in with terragrunt
-  cert_manager_hosted_zone_arns = ["arn:aws:route53:::hostedzone/Z03296182WJPLRR9N0K21"] # staging.kubestarterkit.com (TODO: make this dynamic)
+  # Extension: Support multiple zones
+  cert_manager_hosted_zone_arns = [var.route53_zone_arn]
 
   association_defaults = {
     namespace       = "cert-manager"

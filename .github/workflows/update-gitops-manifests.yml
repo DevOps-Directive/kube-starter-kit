@@ -10,7 +10,8 @@ on:
         options:
           - services/go-backend
           # TODO: handle the fact that migrations image shouldn't deploy independently (its coupled to application version)
-          # currently, the migration image workflow ends up being a no-op
+          #       currently, the migration image workflow ends up being a no-op
+          # Potential implementation: add mise target or ENV var which returns boolean for whether to run the gitops workflow
           - services/go-backend/migrations
           - services/go-backend-no-migrations
       version:

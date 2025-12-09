@@ -14,7 +14,7 @@ module "secrets_manager_json" {
   # Secret
   name                    = "${module.this.id}-deploy-key"
   description             = "Deploy Key for GitOps Controller"
-  recovery_window_in_days = 7 # TODO: Lengthen?
+  recovery_window_in_days = 7
 
   secret_string = jsonencode({
     # used by kluctl + argocd
