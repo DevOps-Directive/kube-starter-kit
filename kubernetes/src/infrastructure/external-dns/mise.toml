@@ -16,6 +16,7 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
+helm dependency update
 helm template --release-name external-dns . \
   --include-crds \
   --skip-tests \
