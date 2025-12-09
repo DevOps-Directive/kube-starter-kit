@@ -1,5 +1,0 @@
-# Source: groundcover-wrapper/templates/Namespace.groundcover.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: groundcover
