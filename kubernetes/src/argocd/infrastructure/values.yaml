@@ -20,6 +20,8 @@ applications:
     enabled: true
   karpenter:
     enabled: true
+  signoz-k8s-infra:
+    enabled: true
   reloader:
     enabled: true
   datadog-operator:

@@ -1,0 +1,5 @@
+signozApiKeyAwsSecret: ksk-use2-staging-eks-signoz-apikey
+k8s-infra:
+  global:
+    clusterName: ksk-use2-staging-eks
+    deploymentEnvironment: staging
