@@ -1,0 +1,69 @@
+name: Confirm all k8s manifests are rendered
+
+on:
+  pull_request:
+    paths:
+      - kubernetes/**
+      - .github/workflows/check-rendered-manifests.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-rendered-manifests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-rendered-manifests:
+    runs-on: ubuntu-slim
+    strategy:
+      matrix:
+        environment:
+          - staging
+          # - production
+        manifest_group:
+          - argocd
+          - infrastructure
+          - services
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@be3be2260bc02bc3fbf94c5e2fed8b7964baf074 # v3.4.0
+        with:
+          version: 2025.10.21
+          install: false # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
+          experimental: true # [default: false] enable experimental features
+          github_token: ${{ secrets.GITHUB_TOKEN }} # [default: ${{ github.token }}] GitHub token for API authentication
+      - name: Render manifests
+        run: |
+          mise run //kubernetes/src/${{matrix.manifest_group}}:render-all ${{matrix.environment}}
+
+      - name: Check for git diff
+        id: diffcheck
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "diff_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "diff_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Error if git diff exists
+        if: steps.diffcheck.outputs.diff_exists == 'true'
+        run: |
+          set -euo pipefail
+
+          echo "::error::Rendered manifests are out of date. Re-run the render tasks and commit the results."
+          echo ""
+          echo "---- git status ----"
+          git status --porcelain
+          echo ""
+          echo "---- git diff (stat) ----"
+          git diff --stat
+          echo ""
+          echo "---- git diff (patch, first 400 lines) ----"
+          git diff | sed -n '1,400p'
+          exit 1
