@@ -39,7 +39,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }} # [default: ${{ github.token }}] GitHub token for API authentication
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
-          version: v3
+          version: v3.18.3
       - name: Render manifests
         run: |
           mise run //kubernetes/src/${{matrix.manifest_group}}:render-all ${{matrix.environment}}
