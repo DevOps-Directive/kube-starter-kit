@@ -5,6 +5,7 @@ on:
     paths:
       - kubernetes/**
       - .github/workflows/check-rendered-manifests.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
