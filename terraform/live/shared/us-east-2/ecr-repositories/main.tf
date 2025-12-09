@@ -33,12 +33,8 @@ module "ecr" {
   for_each        = toset(local.repos)
   repository_name = each.value
 
-  repository_read_access_arns = [
-    # TODO: establish a better pattern for looking up these account IDs
-    "arn:aws:iam::038198578795:root", # Staging 
-    "arn:aws:iam::964263445142:root", # Production
-  ]
-  create_lifecycle_policy = true
+  repository_read_access_arns = var.repository_read_access_arns
+  create_lifecycle_policy     = true
   repository_lifecycle_policy = jsonencode({
     rules = [
       {

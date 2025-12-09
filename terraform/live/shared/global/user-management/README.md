@@ -1,4 +1,3 @@
-## TODO: 
 1. ✅ Bootstrap IAM user in management account
 2. ✅ Validate octo-sts ability to handle team membership
     https://github.com/DevOps-Directive/kube-starter-kit/pull/50#issuecomment-3598164615
@@ -11,7 +10,7 @@ Blargh...
 https://github.com/DevOps-Directive/kube-starter-kit/actions/runs/19835081090/job/56830284337
 
 
-ACTUALLY I JUST HAD SET READONLY for the org:members permission 🙈
+ACTUALLY I JUST HAD SET READONLY for the org:members permission and it does actually work... 🙈
 
 
 

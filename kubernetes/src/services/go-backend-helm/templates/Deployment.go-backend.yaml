@@ -26,7 +26,6 @@ spec:
                 secretKeyRef:
                   name: go-backend-pg-app
                   key: uri
-            # TODO: load from configmap/secret
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               # The docs tell you to ship directly to signoz cloud... but then every pod needs the api key 🤔
               value: "signoz-k8s-infra-otel-agent.signoz:4317"

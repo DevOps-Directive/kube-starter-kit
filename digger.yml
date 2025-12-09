@@ -9,14 +9,12 @@ workflows:
       steps:
         - run: echo "Starting apply step"
         - init
-        # can change back to `- apply` after https://github.com/diggerhq/digger/pull/2332 is merged
-        # TODO: remove after validating in hosted version of digger
-        - run: terragrunt apply -lock-timeout=3m -auto-approve $DIGGER_PLANFILE
+        - apply
     workflow_configuration:
       on_pull_request_pushed: ["digger plan"]
       on_pull_request_closed: ["digger unlock"]
       on_commit_to_default: ["digger unlock"]
-      skip_merge_check: true # Let Dev Apply before the branch is mergable (TODO: split out prod and enforce this)
+      skip_merge_check: true # Potential extension: Let Dev Apply before the branch is mergable (need to split out prod to enable this)
 
 generate_projects:
   blocks:
@@ -27,11 +25,9 @@ generate_projects:
       terragrunt: true
       workflow: "default"
       workflow_file: digger-workflow.yml
-      # These dont currently seem to be utilized when `terragrunt: true`
-      # See: https://diggertalk.slack.com/archives/C01DVJRK6CX/p1761659562940929?thread_ts=1761641951.832309&cid=C01DVJRK6CX
-      # UPDATE: This is fixed... but the fix doesn't seem to be deployed to the hosted versiion of digger
-      #         Self hosting ghcr.io/diggerhq/digger_backend:v0.6.136 on railway it is working
-      # TODO: Remove this comment after the hosted version is updated
+      # NOTE: include_patterns are only evaluated if at least one project has a change within it.
+      #       added `terraform/live/shared/global/force-plan-no-op` as a hacky workaround to force a
+      #       digger plan workflow to be triggered when only modifying a module and not a project directly.
       include_patterns:
         - terraform/live/shared/global/force-plan-no-op/**
         - terraform/modules/**

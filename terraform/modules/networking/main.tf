@@ -10,8 +10,7 @@ terraform {
 data "aws_availability_zones" "available" {}
 
 locals {
-  # TODO: design private network CIDRs to split across VPCs
-  vpc_cidr = "10.0.0.0/16"
+  vpc_cidr = var.vpc_cidr
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
   vpc_name = module.this.id
@@ -56,6 +55,8 @@ module "vpc" {
 #   }
 # }
 
+# TODO: make planetscale VPC endpoint optional
+
 # Private networking from VPC -> PlanetScale
 # Verified! 
 #   root@ubuntu:/# dig +short aws-us-east-2.private-connect.psdb.cloudt-2.pri
@@ -84,8 +85,7 @@ module "planetscale_vpce" {
 
   endpoints = {
     planetscale = {
-      # TODO: Move this to variable
-      service_name        = "com.amazonaws.vpce.us-east-2.vpce-svc-069f88c102c1a7fba" # us-east-2 endpoint retrieved from https://planetscale.com/docs/vitess/connecting/private-connections
+      service_name        = var.planetscale_endpoint_service_name
       tags                = { Name = "planetscale-vpc-endpoint" }
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnets
@@ -93,47 +93,17 @@ module "planetscale_vpce" {
   }
 }
 
-# TODO: set up grafana VPC Endpoints
-# module "grafana_vpce_sg" {
-#   source  = "terraform-aws-modules/security-group/aws//modules/https-443"
-#   version = "5.3.0"
-
-#   name        = "${module.this.id}-grafana-vpce"
-#   description = "Ingress 443 from VPC to PlanetScale PrivateLink"
-#   vpc_id      = module.vpc.vpc_id
-
-#   ingress_cidr_blocks = [module.vpc.vpc_cidr_block] # could instead allow ingress via specific SGs
-# }
-
-# module "grafana_vpce" {
-#   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
-#   version = "6.4.0"
-
-#   vpc_id             = module.vpc.vpc_id
-#   security_group_ids = [module.grafana_vpce_sg.security_group_id]
-
-#   endpoints = {
-#     grafana = {
-#       # TODO: Move this to variable
-#       # TODO: use a for_each because each service needs its own vpce "com.amazonaws.vpce.us-east-2.vpce-svc-071e7d98821c1698b" # loki 
-#       service_name        = "com.amazonaws.vpce.us-east-2.vpce-svc-0d13a270cd91a0a3a" # prometheus
-#       tags                = { Name = "grafana-vpc-endpoint" }
-#       private_dns_enabled = true
-#       subnet_ids          = module.vpc.private_subnets
-#     }
-#   }
-# }
-
+# NOTE: fck-nat module uses name var in naming of things like security group
+#       if we wanted to deploy multiple VPCs to the same region, our current
+#       naming convention would have a conflict:
+#         ksk-use2-staging-network-nat-gw-0
+# 
 # Do we want to add randomness to the naming avoid collisions?
 # resource "random_id" "server" {
 #   # keepers = {
 #   #   # Generate a new id each time we switch to a new AMI id
 #   #   ami_id = var.ami_id
 #   # }
-
-#   byte_length = 8
-#   prefix      = "nat-gw-${local.vpc_name}-${count.index}"
-# }
 
 module "fck-nat" {
   count   = var.nat_mode == "fck_nat" ? 3 : 0
@@ -143,7 +113,7 @@ module "fck-nat" {
   name                = "${local.vpc_name}-nat-gw-${count.index}"
   vpc_id              = module.vpc.vpc_id
   subnet_id           = module.vpc.public_subnets[count.index]
-  instance_type       = "t4g.nano" # TODO: test to see if this becomes limiting (default for this is t4g.micro...)
+  instance_type       = var.fck-nat_instance_type
   ha_mode             = true
   update_route_tables = true
   route_tables_ids    = { "private" : module.vpc.private_route_table_ids[count.index] }

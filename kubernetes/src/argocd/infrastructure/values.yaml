@@ -14,8 +14,6 @@ applications:
     enabled: true
   external-secrets:
     enabled: true
-  groundcover:
-    enabled: false # TODO: Toggle back on
   ingress-nginx:
     enabled: true
   karpenter:

@@ -25,7 +25,6 @@ spec:
                 secretKeyRef:
                   name: go-backend-pg-app
                   key: uri
-            # TODO: load from configmap/secret
             - name: OTEL_EXPORTER_OTLP_ENDPOINT # gRPC
               value: grafana-k8s-monitoring-alloy-receiver.monitoring:4317
             - name: OTEL_RESOURCE_ATTRIBUTES
