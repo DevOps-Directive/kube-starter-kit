@@ -20,15 +20,15 @@ spec:
     spec:
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.1-rc0047-g619760d
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.1-rc0054-g4454887
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: go-backend-pg-app
                   key: uri
-            # TODO: load from configmap/secret
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              # The docs tell you to ship directly to signoz cloud... but then every pod needs the api key 🤔
               value: signoz-k8s-infra-otel-agent.signoz:4317
             - name: OTEL_SERVICE_NAME
               value: go-backend-helm
