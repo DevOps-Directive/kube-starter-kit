@@ -17,6 +17,8 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
 helm template --release-name cert-manager . \
+  --include-crds \
+  --skip-tests \
   --namespace cert-manager \
   --values values.yaml \
   --values values.${usage_cluster}.yaml \

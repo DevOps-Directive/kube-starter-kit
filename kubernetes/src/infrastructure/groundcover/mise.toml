@@ -17,18 +17,20 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
 helm template --release-name groundcover . \
+  --include-crds \
+  --skip-tests \
   --namespace groundcover \
   --values values.yaml \
   --values values.${usage_cluster}.yaml \
   | mise run //tools:render:split-k8s-docs ${OUTPUT_DIR}
 
-# Remove rendered Secrets, but keep the non-sensitive config secret
-shopt -s nullglob
-for f in "${OUTPUT_DIR}"/v1_secret_*; do
-  [[ "$(basename "$f")" == "v1_secret_groundcover_groundcover-config.yaml" ]] && continue
-  rm -f -- "$f"
-done
-shopt -u nullglob
+# # Remove rendered Secrets, but keep the non-sensitive config secret
+# shopt -s nullglob
+# for f in "${OUTPUT_DIR}"/v1_secret_*; do
+#   [[ "$(basename "$f")" == "v1_secret_groundcover_groundcover-config.yaml" ]] && continue
+#   rm -f -- "$f"
+# done
+# shopt -u nullglob
 """
 
 [tasks.k8s-secret-to-aws]
