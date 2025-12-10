@@ -11,58 +11,47 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "About",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Overview",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "index"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Features",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "about-features/foo"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Design Choices",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "about-design-choices/bar"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Usage Docs",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Getting Started",
             "pages": [
-              "api-reference/introduction"
+              "usage-getting-started/bing"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Operations",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "usage-operations/bongo"
+            ]
+          },
+          {
+            "group": "Extensions",
+            "pages": [
+              "about-design-choices/baz"
             ]
           }
         ]
@@ -71,13 +60,13 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
+          "anchor": "GitHub",
+          "href": "https://github.com/DevOps-Directive/kube-starter-kit",
           "icon": "book-open-cover"
         },
         {
           "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
+          "href": "https://devopsdirective.com/",
           "icon": "newspaper"
         }
       ]
@@ -102,21 +91,21 @@
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/sidpalas",
+      "github": "https://github.com/sidpalas",
+      "linkedin": "https://www.linkedin.com/in/sid-palas/"
     }
   }
 }
