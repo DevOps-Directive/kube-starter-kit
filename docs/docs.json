@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Kube Starter Kit",
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
@@ -9,47 +9,57 @@
   },
   "favicon": "/favicon.svg",
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "About",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "index"
-            ]
-          },
+        "group": "About",
+        "expanded": true,
+        "pages": [
+          "index",
           {
             "group": "Features",
+            "expanded": true,
             "pages": [
-              "about-features/foo"
+              "about-features/01-terraform",
+              "about-features/02-digger",
+              "about-features/03-aws-architecture",
+              "about-features/04-user-management",
+              "about-features/05-gitops",
+              "about-features/06-k8s-baseline"
             ]
           },
           {
             "group": "Design Choices",
+            "expanded": true,
             "pages": [
-              "about-design-choices/bar"
+              "about-design-choices/foo"
             ]
-          }
+          },
+          "about-license-pricing"
         ]
       },
       {
-        "tab": "Usage Docs",
-        "groups": [
+        "group": "Usage Docs",
+        "expanded": true,
+        "pages": [
           {
             "group": "Getting Started",
+            "expanded": true,
             "pages": [
-              "usage-getting-started/bing"
+              "usage-getting-started/01-account-set-up"
             ]
           },
           {
             "group": "Operations",
+            "expanded": true,
             "pages": [
-              "usage-operations/bongo"
+              "usage-operations/01-updating-terraform-infrastructure",
+              "usage-operations/02-updating-1st-party-applications",
+              "usage-operations/03-updating-3rd-party-applications"
             ]
           },
           {
             "group": "Extensions",
+            "expanded": true,
             "pages": [
               "about-design-choices/baz"
             ]
@@ -84,9 +94,8 @@
       }
     ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/DevOps-Directive/kube-starter-kit"
     }
   },
   "contextual": {
