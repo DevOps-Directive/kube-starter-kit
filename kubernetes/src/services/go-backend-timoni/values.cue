@@ -7,11 +7,17 @@ package main
 
 // Defaults
 values: {
-	message: "Hello World"
 	image: {
-		repository: "cgr.dev/chainguard/nginx"
-		digest:     "sha256:3dd8fa303f77d7eb6ce541cb05009a5e8723bd7e3778b95131ab4a2d12fadb8f"
-		tag:        "1.25.3"
+		repository: "857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend"
+		digest:     ""
+		tag:        "0.2.1-rc0054-g4454887"
+	}
+	db: {
+		image:        "ghcr.io/cloudnative-pg/postgresql:17.5"
+		storageClass: "ebs-gp3-encrypted"
+	}
+	migration: {
+		image: "857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations:52e9e33a82f73e4cce1892886237c0dac9f3de3a"
 	}
 	test: image: {
 		repository: "cgr.dev/chainguard/curl"

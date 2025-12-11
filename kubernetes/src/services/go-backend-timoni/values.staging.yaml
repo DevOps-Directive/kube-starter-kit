@@ -1,2 +1,4 @@
 values:
-  message: "Hello Staging"
+  ingress:
+    nginx:
+      hostname: "ingress-nginx-timoni.staging.kubestarterkit.com"

@@ -7,16 +7,19 @@ import (
 
 #Deployment: appsv1.#Deployment & {
 	#config:    #Config
-	#cmName:    string
 	apiVersion: "apps/v1"
 	kind:       "Deployment"
-	metadata:   #config.metadata
+	metadata: {
+		name:      "go-backend"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+	}
 	spec: appsv1.#DeploymentSpec & {
 		replicas: #config.replicas
-		selector: matchLabels: #config.selector.labels
+		selector: matchLabels: app: "go-backend"
 		template: {
 			metadata: {
-				labels: #config.selector.labels
+				labels: app: "go-backend"
 				if #config.podAnnotations != _|_ {
 					annotations: #config.podAnnotations
 				}
@@ -25,62 +28,28 @@ import (
 				serviceAccountName: #config.metadata.name
 				containers: [
 					{
-						name:            #config.metadata.name
+						name:            "go-backend"
 						image:           #config.image.reference
 						imagePullPolicy: #config.image.pullPolicy
-						ports: [
+						env: [
 							{
-								name:          "http"
-								containerPort: 8080
-								protocol:      "TCP"
-							},
-						]
-						livenessProbe: {
-							httpGet: {
-								path: "/healthz"
-								port: "http"
-							}
-						}
-						readinessProbe: {
-							httpGet: {
-								path: "/healthz"
-								port: "http"
-							}
-						}
-						volumeMounts: [
-							{
-								mountPath: "/etc/nginx/conf.d"
-								name:      "config"
+								name: "DATABASE_URL"
+								valueFrom: secretKeyRef: {
+									name: "go-backend-pg-app"
+									key:  "uri"
+								}
 							},
 							{
-								mountPath: "/usr/share/nginx/html"
-								name:      "html"
+								name:  "OTEL_EXPORTER_OTLP_ENDPOINT"
+								value: #config.otel.endpoint
+							},
+							{
+								name:  "OTEL_SERVICE_NAME"
+								value: #config.otel.serviceName
 							},
 						]
 						resources:       #config.resources
 						securityContext: #config.securityContext
-					},
-				]
-				volumes: [
-					{
-						name: "config"
-						configMap: {
-							name: #cmName
-							items: [{
-								key:  "nginx.default.conf"
-								path: key
-							}]
-						}
-					},
-					{
-						name: "html"
-						configMap: {
-							name: #cmName
-							items: [{
-								key:  "index.html"
-								path: key
-							}]
-						}
 					},
 				]
 				if #config.podSecurityContext != _|_ {
