@@ -21,21 +21,23 @@
               "architecture-decisions/index"
             ]
           },
+          {
+            "group": "Features",
+            "icon": "stars",
+            "pages": [
+              "features/01-terraform",
+              "features/02-digger",
+              "features/03-aws-architecture",
+              "features/04-user-management",
+              "features/05-gitops",
+              "features/06-k8s-baseline",
+              "features/07-ci-cd-pipeline",
+              "features/08-release-management",
+              "features/09-demo-applications",
+              "features/10-potential-extensions"
+            ]
+          },
           "license-pricing"
-        ]
-      },
-      {
-        "group": "Features",
-        "pages": [
-          "features/01-terraform",
-          "features/02-digger",
-          "features/03-aws-architecture",
-          "features/04-user-management",
-          "features/05-gitops",
-          "features/06-k8s-baseline",
-          "features/07-ci-cd-pipeline",
-          "features/08-release-management",
-          "features/09-demo-applications"
         ]
       },
       {
@@ -56,8 +58,7 @@
               "usage/operations/02-updating-1st-party-applications",
               "usage/operations/03-updating-3rd-party-applications"
             ]
-          },
-          "usage/extensions"
+          }
         ]
       }
     ],
@@ -93,16 +94,7 @@
     }
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
+    "options": []
   },
   "footer": {
     "socials": {

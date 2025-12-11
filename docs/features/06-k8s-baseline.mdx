@@ -9,7 +9,7 @@ icon: "layer-group"
 A fresh Kubernetes cluster is surprisingly bare. Out of the box, you can't:
 
 - **Expose services to the internet:** No ingress/gateway api controller, no way to route external traffic to your pods.
-- **Get TLS certificates:** No automated certificate management. Manual cert provisioning is tedious and error-prone.
+- **Provision TLS certificates:** No automated certificate management. Manual cert provisioning is tedious and error-prone.
 - **Manage DNS:** Creating an Ingress doesn't create public DNS records. That's a separate manual step.
 - **Handle secrets properly:** Kubernetes Secrets are base64-encoded, not encrypted. Storing them in Git is a security risk.
 - **Scale nodes automatically:** Pods can scale, but if there's no node capacity, they just sit Pending.
