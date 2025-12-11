@@ -59,3 +59,14 @@ variable "admin_sso_role_arn" {
   type    = string
   default = "arn:aws:iam::038198578795:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AdministratorAccess_47aa578228eb79ff"
 }
+
+variable "argocd_hostname" {
+  description = "Hostname for ArgoCD server (used for webhook URL)"
+  type        = string
+}
+
+variable "github_repository" {
+  description = "GitHub repository name for webhook configuration"
+  type        = string
+  default     = "kube-starter-kit"
+}

@@ -31,3 +31,43 @@ EOKH
 
 }
 
+################################################################################
+# ArgoCD GitHub Webhook
+################################################################################
+
+# Generate a random secret for the GitHub webhook
+resource "random_password" "argocd_webhook_secret" {
+  length  = 32
+  special = false
+}
+
+# Store the webhook secret in AWS Secrets Manager for ExternalSecrets to consume
+module "argocd_webhook_secret" {
+  source  = "terraform-aws-modules/secrets-manager/aws"
+  version = "2.0.0"
+
+  name                    = "${module.this.id}-argocd-github-webhook"
+  description             = "GitHub webhook secret for ArgoCD"
+  recovery_window_in_days = 7
+
+  secret_string = jsonencode({
+    "webhookSecret" = random_password.argocd_webhook_secret.result
+  })
+}
+
+# Create GitHub repository webhook for ArgoCD
+resource "github_repository_webhook" "argocd" {
+  repository = var.github_repository
+
+  configuration {
+    url          = "https://${var.argocd_hostname}/api/webhook"
+    content_type = "json"
+    insecure_ssl = false
+    secret       = random_password.argocd_webhook_secret.result
+  }
+
+  active = true
+
+  events = ["push"]
+}
+
