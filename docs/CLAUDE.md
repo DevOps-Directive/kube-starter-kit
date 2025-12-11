@@ -35,6 +35,7 @@
 - Language tags on all code blocks
 - Alt text on all images
 - Relative paths for internal links
+- NEVER use "—" prefer commas/colons/semicolons as appropriate
 
 ## Git workflow
 - NEVER use --no-verify when committing

@@ -87,7 +87,7 @@ The workflow handles AWS authentication via OIDC and runs Digger with the right 
 
 <Steps>
   <Step title="Open a PR">
-    Make changes to any Terraform code—modules or live configurations.
+    Make changes to any Terraform code, whether modules or live configurations.
   </Step>
   <Step title="Automatic Plan">
     Digger detects affected projects and runs `terraform plan` for each. Results appear as PR comments.
@@ -110,7 +110,7 @@ The workflow handles AWS authentication via OIDC and runs Digger with the right 
 
 | Decision | Rationale |
 |----------|-----------|
-| **Digger over Atlantis/Spacelift/Terraform Cloud** | Digger runs in your own GitHub Actions—no external service to trust with your AWS credentials or state. Simpler to set up, easier to understand, lower cost. |
+| **Digger over Atlantis/Spacelift/Terraform Cloud** | Digger runs in your own GitHub Actions, so there's no external service to trust with your AWS credentials or state. Simpler to set up, easier to understand, lower cost. |
 | **Apply before merge (not on merge)** | You see the actual apply result before merging. If something fails, the PR stays open and Git reflects reality. No broken state from failed post-merge applies. |
 | **Mergeable check required** | Applies can't happen until CI passes and approvals are in place. Prevents applying untested or unreviewed changes. |
 | **OIDC over static credentials** | No secrets to rotate. The trust is based on GitHub's identity, not a shared secret. |
