@@ -2,6 +2,30 @@ output "deploy_key_public_key" {
   value = tls_private_key.deploy_key.public_key_openssh
 }
 
+output "deploy_key_setup" {
+  description = "Instructions for setting up the GitHub deploy key"
+  value       = <<-EOT
+    ┌─────────────────────────────────────────────────────────────────────────────┐
+    │ GitHub Deploy Key Setup                                                     │
+    ├─────────────────────────────────────────────────────────────────────────────┤
+    │ Go to: https://github.com/DevOps-Directive/${var.github_repository}/settings/keys/new
+    │                                                                             │
+    │ Configuration:                                                              │
+    │   • Title:        ArgoCD Deploy Key (${module.this.id})                     │
+    │   • Key:          (see public key below)                                    │
+    │   • Allow write:  ☐ (read-only is sufficient for GitOps)                    │
+    │                                                                             │
+    │ Public key to add:                                                          │
+    │   ${tls_private_key.deploy_key.public_key_openssh}
+    │                                                                             │
+    │ The private key is stored in AWS Secrets Manager:                           │
+    │   aws secretsmanager get-secret-value \                                     │
+    │     --secret-id ${module.secrets_manager_json.secret_id} \                  │
+    │     --query 'SecretString' --output text | jq -r '.identity'                │
+    └─────────────────────────────────────────────────────────────────────────────┘
+  EOT
+}
+
 output "eks_cluster_name" {
   value = module.eks.cluster_name
 }
