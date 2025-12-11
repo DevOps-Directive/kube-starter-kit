@@ -4,26 +4,7 @@
       "Bash(mise install*)",
       "Bash(mise run*)",
       "Bash(mise task*)",
-      "Bash(go mod*)",
-      "Bash(go build*)",
-      "Bash(go test*)",
-      "Bash(helm*)",
-      "Bash(kubectl*)",
-      "Bash(terraform init*)",
-      "Bash(terraform plan*)",
-      "Bash(terraform validate*)",
-      "Bash(terraform fmt*)",
-      "Bash(kind*)",
-      "Bash(tilt*)",
-      "Bash(yq*)",
-      "Bash(jq*)",
-      "Read(go.mod)",
-      "Read(go.sum)",
-      "Read(Chart.yaml)",
-      "Read(values.yaml)",
-      "Read(mise.toml)",
-      "Read(*.tf)",
-      "Read(Dockerfile)"
+      "Read(mise.toml)"
     ],
     "deny": [
       "Read(.env)",
@@ -48,16 +29,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/post-edit-check.sh"
-          }
-        ]
-      }
-    ]
+    "PostToolUse": []
   }
 }
