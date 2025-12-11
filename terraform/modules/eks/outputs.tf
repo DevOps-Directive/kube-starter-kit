@@ -12,16 +12,11 @@ output "deploy_key_setup" {
     │                                                                             │
     │ Configuration:                                                              │
     │   • Title:        ArgoCD Deploy Key (${module.this.id})                     │
-    │   • Key:          (see public key below)                                    │
+    │   • Key:          (see below)                                               │
     │   • Allow write:  ☐ (read-only is sufficient for GitOps)                    │
     │                                                                             │
-    │ Public key to add:                                                          │
+    │ Public key:                                                                 │
     │   ${tls_private_key.deploy_key.public_key_openssh}
-    │                                                                             │
-    │ The private key is stored in AWS Secrets Manager:                           │
-    │   aws secretsmanager get-secret-value \                                     │
-    │     --secret-id ${module.secrets_manager_json.secret_id} \                  │
-    │     --query 'SecretString' --output text | jq -r '.identity'                │
     └─────────────────────────────────────────────────────────────────────────────┘
   EOT
 }
