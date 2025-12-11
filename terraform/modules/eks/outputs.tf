@@ -8,7 +8,7 @@ output "deploy_key_setup" {
     ┌─────────────────────────────────────────────────────────────────────────────┐
     │ GitHub Deploy Key Setup                                                     │
     ├─────────────────────────────────────────────────────────────────────────────┤
-    │ Go to: https://github.com/DevOps-Directive/${var.github_repository}/settings/keys/new
+    │ Go to: https://github.com/<GH_ORG>/${var.github_repository}/settings/keys/new
     │                                                                             │
     │ Configuration:                                                              │
     │   • Title:        ArgoCD Deploy Key (${module.this.id})                     │
@@ -43,7 +43,7 @@ output "argocd_webhook_setup" {
     ┌─────────────────────────────────────────────────────────────────────────────┐
     │ ArgoCD GitHub Webhook Setup                                                 │
     ├─────────────────────────────────────────────────────────────────────────────┤
-    │ Go to: https://github.com/DevOps-Directive/${var.github_repository}/settings/hooks/new
+    │ Go to: https://github.com/<GH_ORG>/${var.github_repository}/settings/hooks/new
     │                                                                             │
     │ Configuration:                                                              │
     │   • Payload URL:  https://${var.argocd_hostname}/api/webhook                │
