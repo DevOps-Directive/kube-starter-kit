@@ -9,6 +9,7 @@ permissions:
   administration: write # repo permission
   metadata: read # repo permission
   members: write # org permission
+  repository_hooks: write # required to create/manage webhooks (ArgoCD webhook)
   # For Digger
   contents: write # required to merge PRs
   actions: write # required for plan persistence
