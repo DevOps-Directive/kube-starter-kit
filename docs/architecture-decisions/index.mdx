@@ -4,7 +4,7 @@ description: "Why I chose this technology stack"
 icon: "map"
 ---
 
-This page summarizes the key architectural decisions behind Kube Starter Kit. Each feature page includes detailed rationale in its "Key Design Decisions" section—this is the high-level overview of the philosophy and cross-cutting choices.
+This page summarizes the key architectural decisions behind Kube Starter Kit. Each feature page includes detailed rationale in its "Key Design Decisions" section, this is the high-level overview of the philosophy and cross-cutting choices.
 
 ## Guiding Principles
 
@@ -35,7 +35,7 @@ This page summarizes the key architectural decisions behind Kube Starter Kit. Ea
 
 ### AWS over other clouds
 
-AWS has the largest market share, the most mature Kubernetes offering (EKS), and the best ecosystem of supporting tools. Most engineers have AWS experience. For early-stage companies, AWS is the safe choice.
+AWS has the largest market share and the best ecosystem of supporting services (S3, RDS, SQS, etc.). Most third-party infrastructure tooling runs on AWS, so co-locating your workloads enables reduced latency and the potential for private networking (more secure and more affordable). Most engineers have AWS experience. For early-stage companies, AWS is the safe choice.
 
 ### Terraform over alternatives
 
