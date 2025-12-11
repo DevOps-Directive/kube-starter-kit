@@ -33,3 +33,4 @@ data:
   timeout.hard.reconciliation: 0s
   timeout.reconciliation: 180s
   url: https://argocd.staging.kubestarterkit.com
+  webhook.maxPayloadSizeMB: "25"
