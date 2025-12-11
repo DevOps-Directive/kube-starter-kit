@@ -17,3 +17,26 @@ output "karpenter_interruption_queue" {
 output "karpenter_node_role_name" {
   value = local.karpenter_node_role_name
 }
+
+output "argocd_webhook_setup" {
+  description = "Instructions for setting up the ArgoCD GitHub webhook manually"
+  value       = <<-EOT
+    ┌─────────────────────────────────────────────────────────────────────────────┐
+    │ ArgoCD GitHub Webhook Setup                                                 │
+    ├─────────────────────────────────────────────────────────────────────────────┤
+    │ Go to: https://github.com/DevOps-Directive/${var.github_repository}/settings/hooks/new
+    │                                                                             │
+    │ Configuration:                                                              │
+    │   • Payload URL:  https://${var.argocd_hostname}/api/webhook                │
+    │   • Content type: application/json                                          │
+    │   • Secret:       (see below)                                               │
+    │   • SSL:          Enable SSL verification                                   │
+    │   • Events:       Just the push event                                       │
+    │                                                                             │
+    │ To retrieve the webhook secret from AWS Secrets Manager:                    │
+    │   aws secretsmanager get-secret-value \                                     │
+    │     --secret-id ${module.argocd_webhook_secret.secret_id} \                 │
+    │     --query 'SecretString' --output text | jq -r '.webhookSecret'           │
+    └─────────────────────────────────────────────────────────────────────────────┘
+  EOT
+}

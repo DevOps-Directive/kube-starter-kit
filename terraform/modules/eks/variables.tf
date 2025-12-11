@@ -70,9 +70,3 @@ variable "github_repository" {
   type        = string
   default     = "kube-starter-kit"
 }
-
-variable "create_github_webhook" {
-  description = "Whether to create the GitHub webhook for ArgoCD. Set to false if using octo-sts (no webhook permissions)."
-  type        = bool
-  default     = false
-}

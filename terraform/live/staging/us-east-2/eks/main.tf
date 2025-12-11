@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
-    github = {
-      source  = "integrations/github"
-      version = "~> 6.0"
-    }
   }
 }
 
@@ -16,13 +12,6 @@ provider "aws" {
   assume_role {
     role_arn = var.terraform_iam_role_arn
   }
-}
-
-# Auth:
-#  - local: `gh auth login` (requires admin:repo_hook scope)
-#  - CI/CD: use GITHUB_TOKEN or GitHub App
-provider "github" {
-  owner = "DevOps-Directive"
 }
 
 module "label" {

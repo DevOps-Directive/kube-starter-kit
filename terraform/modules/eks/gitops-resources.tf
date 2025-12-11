@@ -32,7 +32,9 @@ EOKH
 }
 
 ################################################################################
-# ArgoCD GitHub Webhook
+# ArgoCD GitHub Webhook Secret
+# The webhook itself must be created manually in GitHub (see argocd_webhook_setup output)
+# because octo-sts doesn't have webhook permissions.
 ################################################################################
 
 # Generate a random secret for the GitHub webhook
@@ -53,29 +55,5 @@ module "argocd_webhook_secret" {
   secret_string = jsonencode({
     "webhookSecret" = random_password.argocd_webhook_secret.result
   })
-}
-
-# Create GitHub repository webhook for ArgoCD
-# NOTE: Disabled by default because octo-sts doesn't have webhook permissions.
-#       To create manually in GitHub UI:
-#       - Payload URL: https://${var.argocd_hostname}/api/webhook
-#       - Content type: application/json
-#       - Secret: (get from AWS Secrets Manager: ${module.this.id}-argocd-github-webhook)
-#       - Events: Just the push event
-resource "github_repository_webhook" "argocd" {
-  count = var.create_github_webhook ? 1 : 0
-
-  repository = var.github_repository
-
-  configuration {
-    url          = "https://${var.argocd_hostname}/api/webhook"
-    content_type = "json"
-    insecure_ssl = false
-    secret       = random_password.argocd_webhook_secret.result
-  }
-
-  active = true
-
-  events = ["push"]
 }
 
