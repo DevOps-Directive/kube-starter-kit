@@ -1,5 +1,4 @@
 [tools]
-"aqua:kluctl/kluctl" = "2"
 helm = "3"
 kubectl = "1.34"
 kustomize = "5.8"

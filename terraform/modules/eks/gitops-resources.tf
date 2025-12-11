@@ -17,7 +17,7 @@ module "secrets_manager_json" {
   recovery_window_in_days = 7
 
   secret_string = jsonencode({
-    # used by kluctl + argocd
+    # used by argocd
     "identity" = "${tls_private_key.deploy_key.private_key_openssh}"
     "known_hosts" : <<-EOKH
 github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
