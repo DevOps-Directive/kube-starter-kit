@@ -8,10 +8,13 @@ import (
 	#config:    #Config
 	apiVersion: "v1"
 	kind:       "Service"
-	metadata:   #config.metadata
-	metadata: name: "go-backend"
-	if #config.service.annotations != _|_ {
-		metadata: annotations: #config.service.annotations
+	metadata: {
+		name:      "go-backend"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+		if #config.service.annotations != _|_ {
+			annotations: #config.service.annotations
+		}
 	}
 	spec: corev1.#ServiceSpec & {
 		type:     corev1.#ServiceTypeClusterIP

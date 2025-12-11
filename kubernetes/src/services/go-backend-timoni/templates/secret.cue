@@ -8,8 +8,11 @@ import (
 	#config:    #Config
 	apiVersion: "v1"
 	kind:       "Secret"
-	metadata:   #config.metadata
-	metadata: name: "go-backend-db-superuser"
+	metadata: {
+		name:      "go-backend-db-superuser"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+	}
 	stringData: {
 		username: "postgres"
 		password: "password"

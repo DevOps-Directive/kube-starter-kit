@@ -9,10 +9,13 @@ import (
 	#config:    #Config
 	apiVersion: "batch/v1"
 	kind:       "Job"
-	metadata:   #config.metadata
-	metadata: name: "go-backend-migrate"
-	metadata: annotations: {
-		"kluctl.io/hook": "pre-deploy"
+	metadata: {
+		name:      "go-backend-migrate"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+		annotations: {
+			"kluctl.io/hook": "pre-deploy"
+		}
 	}
 	spec: batchv1.#JobSpec & {
 		ttlSecondsAfterFinished: 3600

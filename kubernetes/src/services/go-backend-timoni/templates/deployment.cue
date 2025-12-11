@@ -9,8 +9,11 @@ import (
 	#config:    #Config
 	apiVersion: "apps/v1"
 	kind:       "Deployment"
-	metadata:   #config.metadata
-	metadata: name: "go-backend"
+	metadata: {
+		name:      "go-backend"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+	}
 	spec: appsv1.#DeploymentSpec & {
 		replicas: #config.replicas
 		selector: matchLabels: app: "go-backend"

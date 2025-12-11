@@ -4,8 +4,11 @@ package templates
 	#config:    #Config
 	apiVersion: "postgresql.cnpg.io/v1"
 	kind:       "Cluster"
-	metadata:   #config.metadata
-	metadata: name: "go-backend-pg"
+	metadata: {
+		name:      "go-backend-pg"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+	}
 	spec: {
 		instances: #config.db.instances
 		storage: {

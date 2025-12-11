@@ -8,10 +8,13 @@ import (
 	#config:    #Config
 	apiVersion: "networking.k8s.io/v1"
 	kind:       "Ingress"
-	metadata:   #config.metadata
-	metadata: name: "minimal-nginx"
-	metadata: annotations: {
-		"external-dns.alpha.kubernetes.io/hostname": #config.ingress.nginx.hostname
+	metadata: {
+		name:      "minimal-nginx"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+		annotations: {
+			"external-dns.alpha.kubernetes.io/hostname": #config.ingress.nginx.hostname
+		}
 	}
 	spec: networkingv1.#IngressSpec & {
 		ingressClassName: "nginx"
@@ -33,10 +36,13 @@ import (
 	#config:    #Config
 	apiVersion: "networking.k8s.io/v1"
 	kind:       "Ingress"
-	metadata:   #config.metadata
-	metadata: name: "minimal-istio"
-	metadata: annotations: {
-		"external-dns.alpha.kubernetes.io/hostname": #config.ingress.istio.hostname
+	metadata: {
+		name:      "minimal-istio"
+		namespace: #config.metadata.namespace
+		labels:    #config.metadata.labels
+		annotations: {
+			"external-dns.alpha.kubernetes.io/hostname": #config.ingress.istio.hostname
+		}
 	}
 	spec: networkingv1.#IngressSpec & {
 		ingressClassName: "istio"
