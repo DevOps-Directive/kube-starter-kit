@@ -1,0 +1,130 @@
+---
+title: "Terraform for Base Infrastructure"
+description: "Modular, well-structured Terraform for AWS with multi-environment support via Terragrunt"
+icon: "cube"
+---
+
+## The Problem
+
+Infrastructure as Code is table stakes for any serious engineering team, but getting it *right* is surprisingly hard:
+
+- **Sprawling, copy-pasted modules:** Teams often start with one environment and end up with duplicated Terraform code everywhere, each copy drifting slightly from the others.
+- **State management headaches:** Where do you store state? How do you handle locking? How do you structure state files so changes in one area don't require touching unrelated infrastructure?
+- **No clear patterns for multi-environment:** Development, staging, production... how do you manage the differences without maintaining three separate codebases?
+- **Module versioning chaos:** When your modules evolve, how do you roll out changes safely across environments?
+
+I've seen teams spend months just figuring out their Terraform structure, only to realize six months later that they painted themselves into a corner.
+
+## How Kube Starter Kit Addresses This
+
+I've structured the Terraform in this kit around principles I've refined over years of building and maintaining production infrastructure:
+
+**Terragrunt for DRY configurations:** Rather than copying Terraform code between environments, I use Terragrunt to manage the differences. Each environment defines only what's unique (region, sizing, feature flags), while sharing the same underlying modules.
+
+**Hierarchical configuration:** Settings cascade from root to environment to region to project. Common values like your namespace prefix or IAM roles are defined once and inherited everywhere.
+
+**Isolated state per project:** Each deployable unit (networking, EKS cluster, etc.) has its own state file. This means you can update your VPC without Terraform needing to refresh your entire EKS cluster state.
+
+**Battle-tested community modules:** Rather than reinventing the wheel, I build on top of well-maintained modules from the Terraform AWS Modules project (for VPC, EKS, security groups, etc.), adding the glue and opinions that make them work together.
+
+## What's Included
+
+### Directory Structure
+
+```
+terraform/
+├── bootstrap/          # One-time account setup (state bucket, OIDC)
+├── modules/            # Reusable modules
+│   ├── account-bootstrapping/
+│   ├── eks/
+│   └── networking/
+└── live/               # Environment configurations
+    ├── root.hcl        # Global defaults
+    ├── shared/         # Cross-environment resources
+    ├── staging/
+    │   └── us-east-2/
+    │       ├── networking/
+    │       └── eks/
+    └── production/
+        └── us-east-2/
+            ├── networking/
+            └── eks/
+```
+
+### Core Modules
+
+<AccordionGroup>
+  <Accordion title="Account Bootstrapping">
+    One-time setup for new AWS accounts:
+    - S3 bucket for Terraform state with native locking
+    - GitHub OIDC provider for keyless CI/CD authentication
+    - IAM roles for Terraform automation
+  </Accordion>
+
+  <Accordion title="Networking Module">
+    Creates a production-ready VPC with:
+    - Public and private subnets across 3 availability zones
+    - Configurable NAT gateway options (single, per-AZ, or fck-nat for cost savings)
+    - Proper subnet tagging for Karpenter node discovery
+    - VPC endpoint support for private AWS service access
+  </Accordion>
+
+  <Accordion title="EKS Module">
+    Provisions a fully-configured EKS cluster with:
+    - Managed node group for baseline capacity (runs Karpenter itself)
+    - Essential add-ons pre-configured (CoreDNS, VPC CNI, EBS CSI driver, Pod Identity)
+    - IAM integration via AWS SSO for cluster access
+    - IRSA enabled for pod-level AWS permissions
+    - Security group rules for proper inter-node communication
+  </Accordion>
+
+</AccordionGroup>
+
+### Terragrunt Configuration
+
+The `root.hcl` file defines global settings inherited by all environments:
+
+```hcl
+remote_state {
+  backend = "s3"
+  config  = {
+    bucket       = "ksk-gbl-infra-bootstrap-state"
+    key          = "terraform/live/${path_relative_to_include()}.tfstate"
+    region       = "us-east-2"
+    use_lockfile = "true"
+  }
+}
+
+inputs = {
+  namespace = "ksk"  # Prefix for all resource names
+  github_oidc_assume_role_arn = "arn:aws:iam::..."
+  sso_admin_assume_role_arn = "arn:aws:iam::..."
+}
+```
+
+Each project then only needs to specify its unique configuration:
+
+```hcl
+# staging/us-east-2/networking/terragrunt.hcl
+include "root" {
+  path = find_in_parent_folders("root.hcl")
+}
+
+terraform {
+  source = "../../../modules/networking"
+}
+
+inputs = {
+  vpc_cidr = "10.0.0.0/16"
+  nat_mode = "fck_nat"  # Cost-effective NAT for non-prod
+}
+```
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Terragrunt over Terraform workspaces** | Workspaces share state backends and can lead to accidental cross-environment changes. Terragrunt gives cleaner separation. |
+| **Community modules as building blocks** | The terraform-aws-modules are battle-tested by thousands of users. I layer opinions on top rather than maintaining VPC/EKS code from scratch. |
+| **One state file per project** | Blast radius containment. A networking change shouldn't require EKS state refresh. |
+| **S3 native locking** | Simpler than DynamoDB locking, and sufficient for most teams. |

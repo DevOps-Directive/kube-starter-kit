@@ -1,0 +1,69 @@
+---
+title: "Architecture Decisions"
+description: "Why I chose this technology stack"
+icon: "map"
+---
+
+This page summarizes the key architectural decisions behind Kube Starter Kit. Each feature page includes detailed rationale in its "Key Design Decisions" section—this is the high-level overview of the philosophy and cross-cutting choices.
+
+## Guiding Principles
+
+**Opinionated but escapable:** I've made choices so you don't have to, but nothing locks you in. Every component can be swapped out as your needs evolve.
+
+**Production-ready from day one:** This isn't a learning exercise or demo. It's infrastructure I'd run in production, with proper security, observability, and operational patterns.
+
+**AWS-native where it matters:** Rather than fighting AWS, I lean into its strengths: IAM, managed services, and native integrations. But Kubernetes workloads stay portable.
+
+**GitOps everything:** Infrastructure, configuration, and application deployments all flow through Git. One source of truth, full audit trail.
+
+## Technology Choices
+
+| Category | Choice | Alternatives Considered |
+|----------|--------|------------------------|
+| **Cloud Provider** | AWS | GCP, Azure |
+| **Infrastructure as Code** | Terraform + Terragrunt | Pulumi, CDK, CloudFormation |
+| **Terraform CI/CD** | Digger | Atlantis, Spacelift, Terraform Cloud |
+| **Kubernetes** | EKS | Self-managed, GKE, AKS |
+| **Node Provisioning** | Karpenter | Cluster Autoscaler |
+| **GitOps** | ArgoCD | Flux |
+| **Ingress** | ingress-nginx | AWS ALB Ingress, Traefik |
+| **Secrets** | External Secrets + AWS Secrets Manager | Sealed Secrets, Vault |
+| **Observability** | SigNoz | Datadog, Grafana Stack |
+| **Database** | CloudNativePG | RDS, PlanetScale |
+
+## Why These Choices?
+
+### AWS over other clouds
+
+AWS has the largest market share, the most mature Kubernetes offering (EKS), and the best ecosystem of supporting tools. Most engineers have AWS experience. For early-stage companies, AWS is the safe choice.
+
+### Terraform over alternatives
+
+Terraform has the largest community, most modules, and best tooling ecosystem. Terragrunt solves the DRY problem without abandoning Terraform's strengths. Pulumi and CDK are interesting but add complexity and have smaller ecosystems.
+
+### Digger over other Terraform CI/CD
+
+Digger runs in your own GitHub Actions—no external service with access to your AWS credentials. It's simpler than Atlantis (no separate server), cheaper than Spacelift/Terraform Cloud, and handles Terragrunt natively.
+
+### ArgoCD over Flux
+
+Both are solid. ArgoCD has a better UI for understanding deployment state, which helps teams new to GitOps. The app-of-apps pattern provides clear hierarchical organization.
+
+### External Secrets over Sealed Secrets
+
+Secrets belong in a secrets manager, not encrypted in Git. External Secrets keeps secrets in AWS Secrets Manager where they can be rotated, audited, and access-controlled properly.
+
+### SigNoz over commercial observability
+
+For early-stage companies, Datadog's per-host pricing gets expensive fast. SigNoz gives you metrics, logs, and traces in one open-source platform. You can always migrate to a commercial solution later.
+
+## What's Not Included (Yet)
+
+Some things are intentionally omitted from the initial kit:
+
+- **Service mesh:** Most teams don't need Istio/Linkerd on day one. Add it when you have specific requirements.
+- **Multi-region:** Single region is simpler to operate. The patterns here extend to multi-region when you need it.
+- **Spot-only clusters:** The base node group uses on-demand for reliability. Karpenter can provision spot for workloads.
+- **Advanced networking:** No VPC peering, Transit Gateway, or PrivateLink beyond basics. Add as needed.
+
+These are candidates for the [Extensions](/usage/extensions/placeholder) section as the kit evolves.

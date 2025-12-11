@@ -1,4 +1,59 @@
 ---
-title: "Kube Starter Kit (Overview)"
+title: "Kube Starter Kit"
+sidebarTitle: "Overview"
+icon: "home"
 description: "Bootstrap your Kubernetes Application Platform in a single day."
 ---
+
+# Production-ready DevOps without the wait
+
+Getting Kubernetes right is hard. Not the "spin up a cluster" part, that's easy. The hard part is everything else: setting up proper IAM, configuring GitOps, getting secrets management working, choosing the right ingress controller, setting up observability, and making it all work together without spending months on it.
+
+I've built and maintained Kubernetes platforms at multiple companies. Each time, I found myself solving the same problems, making the same architectural decisions, and wishing I had a solid starting point instead of building from scratch.
+
+**Kube Starter Kit is that starting point.**
+
+It's an opinionated, production-ready platform that gives you everything you need to run applications on Kubernetes—infrastructure, deployment pipelines, and baseline components—all wired together and ready to go.
+
+## What's Included
+
+<CardGroup cols={2}>
+  <Card title="Terraform Infrastructure" icon="cube" href="/features/01-terraform">
+    Modular, well-structured Terraform for AWS with multi-environment support via Terragrunt
+  </Card>
+  <Card title="Automated Terraform CI/CD" icon="robot" href="/features/02-digger">
+    GitHub-integrated Terraform automation with Digger—plan on PR, apply via PR comment
+  </Card>
+  <Card title="AWS Architecture" icon="cloud" href="/features/03-aws-architecture">
+    Multi-account setup with VPC, EKS, and proper IAM boundaries
+  </Card>
+  <Card title="User Management" icon="users" href="/features/04-user-management">
+    Unified identity via GitHub with AWS IAM Identity Center integration
+  </Card>
+  <Card title="GitOps Deployment" icon="code-branch" href="/features/05-gitops">
+    ArgoCD-based GitOps for declarative, auditable deployments
+  </Card>
+  <Card title="Kubernetes Baseline" icon="layer-group" href="/features/06-k8s-baseline">
+    Curated set of components: ingress, cert-manager, external-dns, secrets, observability, and more
+  </Card>
+</CardGroup>
+
+## Who This Is For
+
+Kube Starter Kit is built for **engineering teams at early-stage companies** who:
+
+- Are confident Kubernetes is the right choice for their infrastructure
+- Want to get to production quickly without cutting corners
+- Value having an opinionated path from someone who's done this before
+- Would rather customize a working system than build one from scratch
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Explore Features" icon="magnifying-glass" href="/features/01-terraform">
+    Learn about each component and the decisions behind them
+  </Card>
+  <Card title="Purchase a License" icon="key" href="/license-pricing">
+    Get access to the kit and optional consulting support
+  </Card>
+</CardGroup>

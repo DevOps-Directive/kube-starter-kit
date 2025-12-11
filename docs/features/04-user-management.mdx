@@ -1,0 +1,138 @@
+---
+title: "GitHub + AWS User Management"
+description: "Unified identity management across GitHub and AWS from a single source of truth"
+icon: "users"
+---
+
+## The Problem
+
+User management across multiple systems is a constant source of friction and security risk:
+
+- **Multiple sources of truth:** GitHub org membership in one place, AWS IAM users in another, SSO groups somewhere else. When someone joins or leaves, you're updating three different systems.
+- **Permission drift:** Over time, permissions accumulate. That "temporary" admin access from six months ago? Still there.
+- **Audit nightmares:** "Who has access to production?" requires checking multiple systems and hoping nothing was configured via the console.
+- **Onboarding/offboarding friction:** New hire? Create accounts in five places. Someone leaves? Hope you remember all the places to revoke access.
+
+## How Kube Starter Kit Addresses This
+
+I've built a unified user management system where a single YAML file drives both GitHub and AWS access:
+
+**Single source of truth:** One `users.yaml` file defines who has access to what. GitHub org membership, team assignments, AWS SSO users, and group memberships all flow from this one file.
+
+**Declarative and auditable:** Because it's in version control, you have a complete history of access changes. Who added that user? Check the git log. What permissions did they have last month? Check the commit history.
+
+**Consistent group model:** The same logical groups (Admin, ReadOnly, etc.) map to both GitHub teams and AWS SSO groups. An "Admin" in the users file gets admin access in both systems.
+
+**PR-based access changes:** Adding a user or changing permissions is a pull request. It gets reviewed, approved, and automatically applied via Terraform.
+
+## What's Included
+
+### User Definition Format
+
+Users are defined in a single YAML file with both GitHub and AWS configuration:
+
+```yaml
+users:
+  - github:
+      username: jsmith
+      role: member          # GitHub org role: admin or member
+      teams:
+        Admin:
+          role: maintainer  # GitHub team role: maintainer or member
+    aws:
+      user_name: jane.smith
+      email: jane@company.com
+      group_membership: [Admin]
+      given_name: Jane
+      family_name: Smith
+```
+
+### GitHub Resources
+
+The Terraform configuration manages:
+
+| Resource | Description |
+|----------|-------------|
+| **Org membership** | Adds users to your GitHub organization |
+| **Teams** | Creates teams (Admin, ReadOnly, etc.) |
+| **Team membership** | Assigns users to teams with appropriate roles |
+| **Repository permissions** | Grants teams access to the repository |
+
+### AWS IAM Identity Center
+
+The configuration creates:
+
+<AccordionGroup>
+  <Accordion title="SSO Users">
+    Creates users in IAM Identity Center with email, name, and group assignments.
+  </Accordion>
+
+  <Accordion title="SSO Groups">
+    Pre-configured groups that map to permission levels:
+    - **Admin:** Full administrative access
+    - **PowerUser:** Developer access without IAM management
+    - **ReadOnly:** View-only access for auditing
+  </Accordion>
+
+  <Accordion title="Permission Sets">
+    AWS-managed policies attached to groups:
+    - **AdministratorAccess:** Full AWS access
+    - **PowerUserAccess:** Full access except IAM
+    - **ViewOnlyAccess:** Read-only across services
+  </Accordion>
+
+  <Accordion title="Account Assignments">
+    Groups are assigned to permission sets across all accounts (staging, production, shared, etc.).
+  </Accordion>
+</AccordionGroup>
+
+### Workflow
+
+<Steps>
+  <Step title="Edit users.yaml">
+    Add a new user or modify permissions in the YAML file.
+  </Step>
+  <Step title="Open a PR">
+    Digger runs `terraform plan` and shows exactly what will change.
+  </Step>
+  <Step title="Review">
+    Team members review the access change. Clear diff of who's getting what.
+  </Step>
+  <Step title="Merge">
+    Changes are applied to both GitHub and AWS automatically.
+  </Step>
+</Steps>
+
+### Example: Adding a New Team Member
+
+```yaml
+# Add to users.yaml
+- github:
+    username: newdev
+    role: member
+    teams:
+      Admin:
+        role: member
+  aws:
+    user_name: new.developer
+    email: new@company.com
+    group_membership: [Admin]
+    given_name: New
+    family_name: Developer
+```
+
+This single addition:
+- Invites `newdev` to your GitHub organization
+- Adds them to the Admin team with member permissions
+- Creates an AWS SSO user
+- Adds them to the Admin group with AdministratorAccess across all accounts
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **YAML over UI** | Version control, audit history, and code review for access changes. |
+| **IAM Identity Center over IAM users** | Centralized identity, no long-lived credentials, integrates with external IdPs if needed later. |
+| **Matching group names** | Cognitive simplicity—"Admin" means the same thing in GitHub and AWS. |
+| **PR-based workflow** | Access changes get the same review process as code changes. No shadow IT. |
+

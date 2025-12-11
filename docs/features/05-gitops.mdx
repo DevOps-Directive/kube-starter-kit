@@ -1,0 +1,156 @@
+---
+title: "GitOps with ArgoCD"
+description: "Declarative, auditable Kubernetes deployments driven by Git"
+icon: "code-branch"
+---
+
+## The Problem
+
+Deploying to Kubernetes without GitOps often means:
+
+- **Imperative chaos:** `kubectl apply` from laptops, scripts that "usually work," and no clear record of what's actually running.
+- **Drift:** Someone makes a quick fix directly in the cluster. Now the running state doesn't match any source of truth.
+- **No audit trail:** "Who deployed that change?" requires digging through CI logs, Slack messages, and hoping someone remembers.
+- **Environment inconsistency:** Staging and production diverge over time because deployments are manual and error-prone.
+- **Rollback friction:** Something breaks in production. How do you get back to the previous state? Which commit was that?
+
+## How Kube Starter Kit Addresses This
+
+I've implemented GitOps with ArgoCD, where Git is the single source of truth for your cluster state:
+
+**Git as the source of truth:** Everything running in the cluster is defined in Git. If it's not in the repo, it shouldn't be in the cluster.
+
+**Continuous reconciliation:** ArgoCD watches your Git repository and automatically syncs the cluster to match. Drift gets corrected automatically.
+
+**App of Apps pattern:** A hierarchical structure where one ArgoCD Application manages other Applications. Add a new service by adding a file; ArgoCD picks it up automatically.
+
+**Environment separation:** Each cluster (staging, production) has its own rendered manifests. Same source templates, different configurations.
+
+**Audit everything:** Every deployment is a Git commit. Who changed what, when, and why is all in the commit history.
+
+## What's Included
+
+### ArgoCD Structure
+
+```
+kubernetes/
+├── src/                          # Source templates
+│   ├── argocd/
+│   │   ├── argocd/              # ArgoCD itself (bootstraps everything)
+│   │   ├── infrastructure/      # Infrastructure apps definition
+│   │   └── services/            # Application services definition
+│   ├── infrastructure/          # Infrastructure components
+│   │   ├── cert-manager/
+│   │   ├── external-dns/
+│   │   ├── ingress-nginx/
+│   │   └── ...
+│   └── services/                # Your applications
+│       └── go-backend/
+└── rendered/                    # Environment-specific output
+    ├── staging/
+    └── production/
+```
+
+### App of Apps Hierarchy
+
+ArgoCD uses a three-tier Application structure:
+
+```
+argocd-app-of-apps (root)
+├── infrastructure-app-of-apps
+│   ├── cert-manager
+│   ├── external-dns
+│   ├── ingress-nginx
+│   ├── external-secrets
+│   ├── karpenter
+│   └── ...
+└── services-app-of-apps
+    ├── go-backend
+    └── ...
+```
+
+The root Application manages the infrastructure and services Applications, which in turn manage individual components. This creates a clean separation between platform infrastructure and application workloads.
+
+### Project Isolation
+
+ArgoCD Projects provide security boundaries:
+
+| Project | Purpose | Permissions |
+|---------|---------|-------------|
+| **argocd** | ArgoCD's own configuration | Full access to argocd namespace |
+| **infrastructure** | Platform components | Access to infrastructure namespaces |
+| **services** | Application workloads | Access to application namespaces only |
+
+### Deployment Flow
+
+<Steps>
+  <Step title="Commit changes">
+    Update Kubernetes manifests or Helm values in the `src/` directory.
+  </Step>
+  <Step title="Render manifests">
+    CI renders environment-specific manifests to `rendered/staging/` or `rendered/production/`.
+  </Step>
+  <Step title="ArgoCD detects change">
+    ArgoCD notices the rendered manifests differ from cluster state.
+  </Step>
+  <Step title="Automatic sync">
+    ArgoCD applies the changes to the cluster. With auto-sync enabled, this happens automatically.
+  </Step>
+  <Step title="Verification">
+    ArgoCD reports sync status and health. Failed deployments are visible immediately.
+  </Step>
+</Steps>
+
+### Configuration Management
+
+Applications are enabled/disabled via a simple values file:
+
+```yaml
+# infrastructure/values.yaml
+applications:
+  cert-manager:
+    enabled: true
+  external-dns:
+    enabled: true
+  ingress-nginx:
+    enabled: true
+  karpenter:
+    enabled: true
+  envoy-gateway:
+    enabled: false  # Not using this yet
+```
+
+To add a new infrastructure component, create its directory in `src/infrastructure/` and add an entry to the values file. ArgoCD picks it up on the next sync.
+
+### Repository Access
+
+ArgoCD authenticates to your Git repository using deploy keys stored in AWS Secrets Manager and synced via External Secrets:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: repo-kube-starter-kit
+spec:
+  secretStoreRef:
+    name: aws-secrets-manager
+  target:
+    name: repo-kube-starter-kit
+    template:
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+```
+
+No credentials in Git. No manual secret creation. ArgoCD gets repository access automatically.
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **ArgoCD over Flux** | Better UI for visibility, more mature ecosystem, easier onboarding for teams new to GitOps. |
+| **App of Apps over ApplicationSets** | More explicit control over the hierarchy. ApplicationSets are powerful but can be harder to reason about. |
+| **Rendered manifests in Git** | What's deployed is exactly what's in Git—no runtime templating surprises. Easier to audit and diff. |
+| **External Secrets for repo credentials** | Secrets stay in Secrets Manager, not in Git or manually created. Consistent with the rest of the secrets strategy. |
+| **Auto-sync enabled** | Reduces manual toil. If you commit it, it deploys. Rollback is just reverting a commit. |
+

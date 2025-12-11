@@ -12,56 +12,53 @@
     "groups": [
       {
         "group": "About",
-        "expanded": true,
         "pages": [
           "index",
           {
-            "group": "Features",
-            "expanded": true,
+            "group": "Architecture Decisions",
+            "icon": "scale-balanced",
             "pages": [
-              "about-features/01-terraform",
-              "about-features/02-digger",
-              "about-features/03-aws-architecture",
-              "about-features/04-user-management",
-              "about-features/05-gitops",
-              "about-features/06-k8s-baseline"
+              "architecture-decisions/index"
             ]
           },
-          {
-            "group": "Design Choices",
-            "expanded": true,
-            "pages": [
-              "about-design-choices/foo"
-            ]
-          },
-          "about-license-pricing"
+          "license-pricing"
         ]
       },
       {
-        "group": "Usage Docs",
-        "expanded": true,
+        "group": "Features",
+        "pages": [
+          "features/01-terraform",
+          "features/02-digger",
+          "features/03-aws-architecture",
+          "features/04-user-management",
+          "features/05-gitops",
+          "features/06-k8s-baseline"
+        ]
+      },
+      {
+        "group": "Usage",
         "pages": [
           {
             "group": "Getting Started",
-            "expanded": true,
+            "icon": "rocket",
             "pages": [
-              "usage-getting-started/01-account-set-up"
+              "usage/getting-started/01-account-set-up"
             ]
           },
           {
             "group": "Operations",
-            "expanded": true,
+            "icon": "gears",
             "pages": [
-              "usage-operations/01-updating-terraform-infrastructure",
-              "usage-operations/02-updating-1st-party-applications",
-              "usage-operations/03-updating-3rd-party-applications"
+              "usage/operations/01-updating-terraform-infrastructure",
+              "usage/operations/02-updating-1st-party-applications",
+              "usage/operations/03-updating-3rd-party-applications"
             ]
           },
           {
             "group": "Extensions",
-            "expanded": true,
+            "icon": "puzzle-piece",
             "pages": [
-              "about-design-choices/baz"
+              "usage/extensions/placeholder"
             ]
           }
         ]
