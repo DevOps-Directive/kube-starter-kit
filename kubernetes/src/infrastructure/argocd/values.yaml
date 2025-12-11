@@ -19,6 +19,11 @@ argocd:
     cm:
       url: https://argocd.staging.kubestarterkit.com
       admin.enabled: "false"
+      # Webhook configuration
+      # GitHub webhook URL: https://argocd.staging.kubestarterkit.com/api/webhook
+      # The webhook secret is managed via ExternalSecret (github-webhook) which merges into argocd-secret
+      # Limit webhook payload size to prevent DDoS attacks (default is 50MB)
+      webhook.maxPayloadSizeMB: "25"
       dex.config: |
         connectors:
           # OIDC

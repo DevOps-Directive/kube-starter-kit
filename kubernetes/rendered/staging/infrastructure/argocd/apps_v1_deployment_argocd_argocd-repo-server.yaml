@@ -23,7 +23,7 @@ spec:
     metadata:
       annotations:
         checksum/cmd-params: 62ab49d48dc6fb0edc5f44e8170a0f0a07164edee93c489a40d24455e04a6e41
-        checksum/cm: fb08b73f23149a0e9634f54234a22994bf73399137d228fc7306ace611a1bc39
+        checksum/cm: 7a1b1fa59f032fd369aa5033bead15ee2f48a26582c044c9f6a5cb7b6f80e958
       labels:
         helm.sh/chart: argocd-7.7.16
         app.kubernetes.io/name: argocd-repo-server

@@ -12,4 +12,4 @@ This root module is a hack to work around a couple of digger bugs:
 
 If/when those are fixed, this can be deleted.
 
-CHANGE_ME_VALUE: 1
+CHANGE_ME_VALUE: 2

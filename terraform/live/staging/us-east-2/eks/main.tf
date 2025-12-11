@@ -31,4 +31,7 @@ module "eks-wrapper" {
   private_subnets        = var.private_subnets
   sso_admin_role_arn     = var.sso_admin_role_arn
   context                = module.label.context
+
+  # ArgoCD webhook configuration
+  argocd_hostname = "argocd.staging.kubestarterkit.com"
 }
