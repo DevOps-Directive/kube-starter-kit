@@ -7,5 +7,4 @@ https://kubestarterkit.com/
 - Terraform / OpenTofu
 - Terragrunt
 - Kubectl
-- Kluctl
 - Helm

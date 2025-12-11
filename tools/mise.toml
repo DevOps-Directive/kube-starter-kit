@@ -218,7 +218,7 @@ find "$STARTING_PATH" \
 '''
 
 [tasks.update-image-tags-service]
-description = "Update image tags for kluctl config"
+description = "Update image tags for argocd config"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
