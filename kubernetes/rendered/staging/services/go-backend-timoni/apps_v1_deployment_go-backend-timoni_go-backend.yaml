@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: timoni
+    app.kubernetes.io/name: go-backend
+    app.kubernetes.io/version: 0.0.0-devel
+  name: go-backend
+  namespace: go-backend-timoni
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-backend
+  template:
+    metadata:
+      labels:
+        app: go-backend
+    spec:
+      containers:
+        - env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: uri
+                  name: go-backend-pg-app
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: signoz-k8s-infra-otel-agent.signoz:4317
+            - name: OTEL_SERVICE_NAME
+              value: go-backend-timoni
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.1-rc0054-g4454887
+          imagePullPolicy: IfNotPresent
+          name: go-backend
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+      serviceAccountName: go-backend

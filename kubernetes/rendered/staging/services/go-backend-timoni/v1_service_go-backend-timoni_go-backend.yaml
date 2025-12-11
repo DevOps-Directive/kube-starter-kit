@@ -3,16 +3,16 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/managed-by: timoni
-    app.kubernetes.io/name: foo
+    app.kubernetes.io/name: go-backend
     app.kubernetes.io/version: 0.0.0-devel
-  name: foo
+  name: go-backend
   namespace: go-backend-timoni
 spec:
   ports:
     - name: http
-      port: 80
+      port: 8080
       protocol: TCP
-      targetPort: http
+      targetPort: 8080
   selector:
-    app.kubernetes.io/name: foo
+    app: go-backend
   type: ClusterIP
