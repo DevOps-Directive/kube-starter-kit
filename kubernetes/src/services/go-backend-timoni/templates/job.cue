@@ -32,7 +32,7 @@ import (
 						"-v",
 						"-m",
 						"5",
-						"\(#config.metadata.name):\(#config.service.port)",
+						"go-backend:\(#config.service.port)",
 					]
 				}]
 				restartPolicy: "Never"

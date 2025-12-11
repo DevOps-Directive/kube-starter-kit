@@ -38,7 +38,6 @@ import (
 
 	// The image allows setting the container image repository,
 	// tag, digest and pull policy.
-	// The default image repository and tag is set in `values.cue`.
 	image!: timoniv1.#Image
 
 	// The resources allows setting the container resource requirements.
@@ -55,23 +54,21 @@ import (
 	replicas: *1 | int & >0
 
 	// The securityContext allows setting the container security context.
-	// By default, the container is denined privilege escalation.
+	// By default, the container is denied privilege escalation.
 	securityContext: corev1.#SecurityContext & {
 		allowPrivilegeEscalation: *false | true
 		privileged:               *false | true
 		capabilities:
 		{
 			drop: *["ALL"] | [string]
-			add: *["CHOWN", "NET_BIND_SERVICE", "SETGID", "SETUID"] | [string]
 		}
 	}
 
 	// The service allows setting the Kubernetes Service annotations and port.
-	// By default, the HTTP port is 80.
+	// By default, the HTTP port is 8080.
 	service: {
 		annotations?: timoniv1.#Annotations
-
-		port: *80 | int & >0 & <=65535
+		port: *8080 | int & >0 & <=65535
 	}
 
 	// Pod optional settings.
@@ -82,14 +79,43 @@ import (
 	affinity?: corev1.#Affinity
 	topologySpreadConstraints?: [...corev1.#TopologySpreadConstraint]
 
+	// Database configuration for CNPG PostgreSQL.
+	db: {
+		image!:        string
+		storageClass!: string
+		storageSize:   *"1Gi" | string
+		instances:     *1 | int & >0
+	}
+
+	// Migration job configuration.
+	migration: {
+		image!: string
+	}
+
+	// OTEL telemetry configuration.
+	otel: {
+		endpoint:    *"signoz-k8s-infra-otel-agent.signoz:4317" | string
+		serviceName: *"go-backend-timoni" | string
+	}
+
+	// Ingress configuration.
+	ingress: {
+		enabled: *true | bool
+		nginx: {
+			enabled:  *true | bool
+			hostname: *"ingress-nginx-timoni.staging.kubestarterkit.com" | string
+		}
+		istio: {
+			enabled:  *false | bool
+			hostname: *"minimal-istio-timoni.staging.kubestarterkit.com" | string
+		}
+	}
+
 	// Test Job disabled by default.
 	test: {
 		enabled: *false | bool
 		image!:  timoniv1.#Image
 	}
-
-	// App settings.
-	message!: string
 }
 
 // Instance takes the config values and outputs the Kubernetes objects.
@@ -97,13 +123,18 @@ import (
 	config: #Config
 
 	objects: {
+		ns: #Namespace & {#config: config}
 		sa: #ServiceAccount & {#config: config}
 		svc: #Service & {#config: config}
-		cm: #ConfigMap & {#config: config}
-
-		deploy: #Deployment & {
-			#config: config
-			#cmName: objects.cm.metadata.name
+		secret: #DBSecret & {#config: config}
+		cluster: #CNPGCluster & {#config: config}
+		migrationJob: #MigrationJob & {#config: config}
+		deploy: #Deployment & {#config: config}
+		if config.ingress.enabled && config.ingress.nginx.enabled {
+			ingressNginx: #IngressNginx & {#config: config}
+		}
+		if config.ingress.enabled && config.ingress.istio.enabled {
+			ingressIstio: #IngressIstio & {#config: config}
 		}
 	}
 

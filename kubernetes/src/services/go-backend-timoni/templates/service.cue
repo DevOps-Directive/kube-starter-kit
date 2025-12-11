@@ -9,18 +9,19 @@ import (
 	apiVersion: "v1"
 	kind:       "Service"
 	metadata:   #config.metadata
+	metadata: name: "go-backend"
 	if #config.service.annotations != _|_ {
 		metadata: annotations: #config.service.annotations
 	}
 	spec: corev1.#ServiceSpec & {
 		type:     corev1.#ServiceTypeClusterIP
-		selector: #config.selector.labels
+		selector: app: "go-backend"
 		ports: [
 			{
 				port:       #config.service.port
 				protocol:   "TCP"
 				name:       "http"
-				targetPort: name
+				targetPort: #config.service.port
 			},
 		]
 	}

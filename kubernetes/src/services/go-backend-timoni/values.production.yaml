@@ -1,2 +1,4 @@
 values:
-  message: "Hello production"
+  ingress:
+    nginx:
+      hostname: "ingress-nginx-timoni.production.kubestarterkit.com"
