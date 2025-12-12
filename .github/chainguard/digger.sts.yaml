@@ -13,5 +13,5 @@ permissions:
   contents: write # required to merge PRs
   actions: write # required for plan persistence
   pull_requests: write # required to post PR comments
-  issues: read # required to check if PR number is an issue or not
+  issues: write # required to check if PR number is an issue or not (and write to it for drift detection)
   statuses: write # required to validate combined PR status
