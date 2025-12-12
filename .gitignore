@@ -42,8 +42,5 @@ backend.tf
 
 *.DS_STORE
 
-# Temporarily ignoring this test region to avoid digger execution
-terraform/live/staging/us-east-1
-
 # Used to store random things I may want to reference later
 stash
