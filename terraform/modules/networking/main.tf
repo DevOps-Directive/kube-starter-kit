@@ -58,7 +58,7 @@ module "vpc" {
 # TODO: make planetscale VPC endpoint optional
 
 # Private networking from VPC -> PlanetScale
-# Verified! 
+# Verified!
 #   root@ubuntu:/# dig +short aws-us-east-2.private-connect.psdb.cloudt-2.pri
 #   10.0.1.104
 #   10.0.2.131
@@ -78,7 +78,7 @@ module "planetscale_vpce_sg" {
 
 module "planetscale_vpce" {
   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
-  version = "6.4.0"
+  version = "6.5.1"
 
   vpc_id             = module.vpc.vpc_id
   security_group_ids = [module.planetscale_vpce_sg.security_group_id]

@@ -19,8 +19,9 @@ workflows:
 generate_projects:
   blocks:
     # terraform/live/{env}/{region}/{project}
+    # Excludes: .terraform dirs, prod/**, staging/us-east-1/** (examples only - not deployed)
     - include: "terraform/live/*/*/**"
-      exclude: "**/.terraform/**"
+      exclude: "{**/.terraform/**,prod/**,staging/us-east-1/**}"
       root_dir: "terraform/live/"
       terragrunt: true
       workflow: "default"
