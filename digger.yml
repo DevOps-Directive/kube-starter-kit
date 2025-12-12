@@ -34,5 +34,5 @@ generate_projects:
       #   - terraform/modules/**
       #   - digger.yml
       exclude_patterns:
-        - "**/prod/**"
-        - "**/staging/us-east-1/**"
+        - "terraform/live/prod/**"
+        - "terraform/live/staging/us-east-1/**"
