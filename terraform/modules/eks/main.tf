@@ -1,16 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.0"
-    }
-  }
-}
-
 data "aws_availability_zones" "available" {
   # Exclude local zones
   filter {
@@ -21,7 +8,6 @@ data "aws_availability_zones" "available" {
 
 
 locals {
-  kubernetes_version       = "1.33"
   region                   = var.aws_region
   azs                      = slice(data.aws_availability_zones.available.names, 0, 3)
   karpenter_node_role_name = "${module.this.id}-KarpenterNodeRole"
