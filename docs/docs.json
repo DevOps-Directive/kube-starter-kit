@@ -14,6 +14,7 @@
         "group": "About",
         "pages": [
           "index",
+          "about-me",
           {
             "group": "Architecture Decisions",
             "icon": "scale-balanced",
