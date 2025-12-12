@@ -33,6 +33,3 @@ generate_projects:
       #   - terraform/live/shared/global/force-plan-no-op/**
       #   - terraform/modules/**
       #   - digger.yml
-      exclude_patterns:
-        - "terraform/live/prod/**"
-        - "terraform/live/staging/us-east-1/**"
