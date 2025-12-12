@@ -21,7 +21,7 @@ generate_projects:
     # terraform/live/{env}/{region}/{project}
     # Excludes: .terraform dirs, prod/**, staging/us-east-1/** (examples only - not deployed)
     - include: "terraform/live/*/*/**"
-      exclude: "{**/.terraform/**,terraform/live/prod/**,terraform/live/staging/us-east-1/**}"
+      exclude: "{**/.terraform/**,**/prod/**,**/staging/us-east-1/**}"
       root_dir: "terraform/live/"
       terragrunt: true
       workflow: "default"
