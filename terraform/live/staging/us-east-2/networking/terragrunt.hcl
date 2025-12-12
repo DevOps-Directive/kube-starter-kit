@@ -15,4 +15,6 @@ inputs = {
   nat_mode = "fck_nat"
   vpc_cidr = "10.0.0.0/16"
   planetscale_endpoint_service_name = "com.amazonaws.vpce.us-east-2.vpce-svc-069f88c102c1a7fba"
+  # Can add attributes (used by cloudposse/label/null) to deconfict resource names if deploying multiple copies into a single region
+  # attributes = ["foo"]
 }
