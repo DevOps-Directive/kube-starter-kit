@@ -30,5 +30,3 @@ generate_projects:
       #       digger plan workflow to be triggered when only modifying a module and not a project directly.
       include_patterns:
         - terraform/live/shared/global/force-plan-no-op/**
-        - terraform/modules/**
-        - digger.yml
