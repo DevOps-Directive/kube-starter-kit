@@ -19,7 +19,6 @@ workflows:
 generate_projects:
   blocks:
     # terraform/live/{env}/{region}/{project}
-    # Excludes: .terraform dirs, prod/**, staging/us-east-1/** (examples only - not deployed)
     - include: "terraform/live/*/*/**"
       exclude: "**/.terraform/**"
       root_dir: "terraform/live/"
@@ -29,7 +28,7 @@ generate_projects:
       # NOTE: include_patterns are only evaluated if at least one project has a change within it.
       #       added `terraform/live/shared/global/force-plan-no-op` as a hacky workaround to force a
       #       digger plan workflow to be triggered when only modifying a module and not a project directly.
-      # include_patterns:
-      #   - terraform/live/shared/global/force-plan-no-op/**
-      #   - terraform/modules/**
-      #   - digger.yml
+      include_patterns:
+        - terraform/live/shared/global/force-plan-no-op/**
+        - terraform/modules/**
+        - digger.yml
