@@ -13,3 +13,9 @@ variable "vpc_cidr" {
   description = "CIDR block for the VPC."
   type        = string
 }
+
+variable "planetscale_endpoint_service_name" {
+  description = "PlanetScale VPC endpoint service name for the region"
+  type        = string
+  default     = null
+}
