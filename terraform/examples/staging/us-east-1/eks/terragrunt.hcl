@@ -66,6 +66,9 @@ inputs = {
   route53_zone_arn       = dependency.staging__global__bootstrapping.outputs.zone_arn
   vpc_id                 = dependency.staging__us_east_1__networking.outputs.vpc_id
   private_subnets        = dependency.staging__us_east_1__networking.outputs.private_subnets
+  
+  kubernetes_version = "1.34"
+  base_node_group_kubernetes_version = "1.34"
 
   # ArgoCD webhook configuration
   argocd_hostname = "argocd.staging.kubestarterkit.com"
