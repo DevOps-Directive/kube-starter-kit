@@ -1,3 +1,7 @@
+# Chart dependency versions for staging
+chartVersions:
+  karpenter: "1.7.1"
+
 nodeRoleName: "ksk-use2-staging-eks-KarpenterNodeRole"
 
 amiSelectorTerms:

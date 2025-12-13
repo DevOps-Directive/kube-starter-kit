@@ -1,0 +1,3 @@
+# Chart dependency versions for staging
+chartVersions:
+  ingress-nginx: "4.13.3"

@@ -1,3 +1,7 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  argo-cd: "7.7.16"
+
 argocd:
   server:
     ingress:

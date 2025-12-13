@@ -1,3 +1,7 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  k8s-infra: "0.15.0"
+
 k8s-infra:
   global:
     cloud: aws

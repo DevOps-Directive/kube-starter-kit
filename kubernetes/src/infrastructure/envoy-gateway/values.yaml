@@ -1,3 +1,8 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  gateway-helm: "1.6.0"
+  gateway-crds-helm: "1.6.0"
+
 gateway-helm:
   topologyInjector:
     annotations:

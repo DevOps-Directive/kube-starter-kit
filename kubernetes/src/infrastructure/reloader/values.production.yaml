@@ -1,0 +1,3 @@
+# Chart dependency versions for production
+chartVersions:
+  reloader: "2.2.3"

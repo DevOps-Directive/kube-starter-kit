@@ -1,3 +1,7 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  external-secrets: "0.20.2"
+
 external-secrets:
   webhook:
     certManager:
