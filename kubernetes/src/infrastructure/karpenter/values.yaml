@@ -1,3 +1,7 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  karpenter: "1.7.1"
+
 karpenter:
   nodeSelector:
     karpenter.sh/controller: "true"

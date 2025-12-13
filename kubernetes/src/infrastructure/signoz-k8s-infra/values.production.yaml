@@ -1,0 +1,3 @@
+# Chart dependency versions for production
+chartVersions:
+  k8s-infra: "0.15.0"

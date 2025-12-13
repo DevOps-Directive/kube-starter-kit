@@ -356,6 +356,34 @@ if [[ "$OUTPUT_DIR" != "/" ]]; then
 fi
 """
 
+[tasks."render:inject-chart-versions"]
+description = "Inject chart versions from values files into Chart.yaml template"
+usage = '''
+arg "<template>" help="Chart.yaml template file"
+arg "<output>" help="Output Chart.yaml file"
+arg "<base-values>" help="Base values file with chartVersions"
+arg "<env-values>" help="Environment values file (overrides base)"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+TEMPLATE="${usage_template:?}"
+OUTPUT="${usage_output:?}"
+BASE_VALUES="${usage_base_values:?}"
+ENV_VALUES="${usage_env_values:?}"
+
+cp "$TEMPLATE" "$OUTPUT"
+for chart in $(yq -r '.chartVersions | keys | .[]' "$BASE_VALUES"); do
+  export CHART_NAME="$chart"
+  export CHART_VERSION=$(yq '.chartVersions.[env(CHART_NAME)] // null' "$ENV_VALUES")
+  if [[ -z "$CHART_VERSION" || "$CHART_VERSION" == "null" ]]; then
+    export CHART_VERSION=$(yq '.chartVersions.[env(CHART_NAME)]' "$BASE_VALUES")
+  fi
+  yq -i '(.dependencies[] | select(.name == env(CHART_NAME))).version = env(CHART_VERSION)' "$OUTPUT"
+done
+"""
+
 [tasks."render:split-k8s-docs"]
 description = "Read multi-doc YAML on stdin and write Kustomize-style files into output dir"
 usage = '''

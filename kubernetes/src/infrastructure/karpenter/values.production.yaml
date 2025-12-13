@@ -1,0 +1,3 @@
+# Chart dependency versions for production
+chartVersions:
+  karpenter: "1.7.1"
