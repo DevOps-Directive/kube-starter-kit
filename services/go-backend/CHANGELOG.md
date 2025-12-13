@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.2.0...services/go-backend@0.2.1) (2025-12-13)
+
+
+### Chores
+
+* force go-backend build ([55d88c6](https://github.com/DevOps-Directive/kube-starter-kit/commit/55d88c62d80f11a8ca109d922f35555c72f5b187))
+
 ## [0.2.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.1.1...services/go-backend@0.2.0) (2025-11-10)
 
 ### Features
