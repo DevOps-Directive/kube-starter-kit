@@ -1,0 +1,10 @@
+apiVersion: v2
+name: cert-manager-wrapper
+description: Umbrella chart that installs Cert Manater plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: cert-manager
+    repository: "oci://quay.io/jetstack/charts"
+    version: ${CHART_VERSION}
