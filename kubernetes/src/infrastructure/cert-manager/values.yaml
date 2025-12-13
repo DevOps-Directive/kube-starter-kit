@@ -1,5 +1,6 @@
-# Chart dependency version (default, can be overridden per environment)
-chartVersion: "1.17.1"
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  cert-manager: "1.19.1"
 
 cert-manager:
   crds:
