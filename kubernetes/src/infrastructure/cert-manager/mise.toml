@@ -17,15 +17,11 @@ export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
 mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
 
 # Generate Chart.yaml from template with injected versions
-cp Chart.yaml.tmpl Chart.yaml
-for chart in $(yq -r '.chartVersions | keys | .[]' values.yaml); do
-  export CHART_NAME="$chart"
-  export CHART_VERSION=$(yq '.chartVersions.[env(CHART_NAME)] // null' values.${usage_cluster}.yaml)
-  if [[ -z "$CHART_VERSION" || "$CHART_VERSION" == "null" ]]; then
-    export CHART_VERSION=$(yq '.chartVersions.[env(CHART_NAME)]' values.yaml)
-  fi
-  yq -i '(.dependencies[] | select(.name == env(CHART_NAME))).version = env(CHART_VERSION)' Chart.yaml
-done
+mise run //tools:render:inject-chart-versions \
+  "${PWD}/Chart.yaml.tmpl" \
+  "${PWD}/Chart.yaml" \
+  "${PWD}/values.yaml" \
+  "${PWD}/values.${usage_cluster}.yaml"
 
 helm dependency update
 helm template --release-name cert-manager . \
