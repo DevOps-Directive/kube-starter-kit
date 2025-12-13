@@ -1,6 +1,6 @@
 {
   "services/container-only-dummy": "0.2.2",
-  "services/go-backend": "0.2.0",
-  "services/go-backend/migrations": "0.2.0",
+  "services/go-backend": "0.2.1",
+  "services/go-backend/migrations": "0.2.1",
   "services/go-backend-no-migrations": "0.3.0"
 }

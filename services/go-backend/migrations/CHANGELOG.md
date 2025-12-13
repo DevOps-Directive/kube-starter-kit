@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.2.0...services/go-backend/migrations@0.2.1) (2025-12-13)
+
+
+### Bug Fixes
+
+* fix workflow name typo ([72b0c51](https://github.com/DevOps-Directive/kube-starter-kit/commit/72b0c5128898f4eb6cf96a05bf7792deb44c9663))
+* move actions:write permission to job level ([9819c8d](https://github.com/DevOps-Directive/kube-starter-kit/commit/9819c8d9e28989a7d189df55d59833615a811d6b))
+
 ## [0.2.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.1.1...services/go-backend/migrations@0.2.0) (2025-11-10)
 
 
