@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    kluctl.io/hook: pre-deploy
+  name: go-backend-migrate
+  namespace: go-backend-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - args:
+            - migrate
+            - apply
+            - --dir
+            - file://migrations
+            - --url
+            - $(DATABASE_URL)
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: uri
+                  name: go-backend-pg-app
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations:52e9e33a82f73e4cce1892886237c0dac9f3de3a
+          name: apply
+      restartPolicy: Never
+  ttlSecondsAfterFinished: 3600
