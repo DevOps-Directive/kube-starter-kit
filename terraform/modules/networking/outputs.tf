@@ -12,5 +12,5 @@ output "public_subnets" {
 
 output "bastion_instance_id" {
   description = "Instance ID of the bastion host (for SSM sessions)"
-  value       = var.enable_bastion ? aws_instance.bastion[0].id : null
+  value       = var.enable_bastion ? module.bastion[0].id : null
 }
