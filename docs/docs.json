@@ -57,7 +57,8 @@
             "pages": [
               "usage/operations/01-updating-terraform-infrastructure",
               "usage/operations/02-updating-1st-party-applications",
-              "usage/operations/03-updating-3rd-party-applications"
+              "usage/operations/03-updating-3rd-party-applications",
+              "usage/operations/04-overlays-and-feature-flags"
             ]
           }
         ]

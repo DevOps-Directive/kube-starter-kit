@@ -1,0 +1,338 @@
+---
+title: "Overlays and Feature Flags"
+description: "Validating Kubernetes configuration changes in staging before production"
+icon: "layer-group"
+---
+
+## The Problem
+
+Deploying Kubernetes configuration changes directly to production is risky:
+
+- **Configuration drift:** Staging and production environments diverge, making staging validation meaningless.
+- **No safe testing ground:** Changes to resource limits, replica counts, or infrastructure components go straight to production.
+- **Version mismatches:** Different chart versions or image tags across environments cause unexpected behavior.
+- **All-or-nothing deployments:** You cannot gradually roll out infrastructure changes or easily disable problematic components.
+- **Hidden differences:** Without explicit environment configs, differences between staging and production are scattered and hard to track.
+
+## How Kube Starter Kit Addresses This
+
+The kit uses environment overlays and component flags to create a safe path from staging to production:
+
+**Environment overlays:** Both Kustomize and Helm configurations have explicit staging and production variants. Same base configuration, environment-specific overrides.
+
+**Component feature flags:** Infrastructure components can be enabled or disabled per environment via simple boolean flags in values files.
+
+**Rendered manifests in Git:** Templates are pre-rendered to environment-specific directories. What you see in Git is exactly what gets deployed.
+
+**CI validation:** Pull requests automatically verify that rendered manifests match source templates. No stale manifests slip through.
+
+## Environment Overlay Patterns
+
+### Kustomize Overlays
+
+Kustomize uses a base + overlay pattern where environment-specific patches extend shared resources:
+
+```
+kubernetes/src/services/go-backend/
+├── base/                    # Shared resources
+│   ├── kustomization.yaml
+│   ├── Deployment.go-backend.yaml
+│   ├── Service.go-backend.yaml
+│   └── ...
+├── staging/                 # Staging overrides
+│   ├── kustomization.yaml
+│   └── Deployment.go-backend.yaml
+└── production/              # Production overrides
+    ├── kustomization.yaml
+    └── Deployment.go-backend.yaml
+```
+
+The overlay's `kustomization.yaml` references the base and applies patches:
+
+```yaml
+# staging/kustomization.yaml
+namespace: go-backend-kustomize
+resources:
+  - ../base
+patches:
+  - path: Deployment.go-backend.yaml
+```
+
+Environment-specific patches contain only the differences:
+
+<CodeGroup>
+```yaml staging/Deployment.go-backend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend
+spec:
+  template:
+    spec:
+      containers:
+        - name: go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.2-rc0000-g808175d
+```
+
+```yaml production/Deployment.go-backend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.1
+```
+</CodeGroup>
+
+Staging runs a single replica with release candidate tags. Production runs multiple replicas with stable release tags.
+
+### Helm Values Overrides
+
+Helm charts follow a similar pattern with base values and environment-specific overrides:
+
+```
+kubernetes/src/infrastructure/ingress-nginx/
+├── Chart.yaml
+├── values.yaml              # Base configuration
+├── values.staging.yaml      # Staging overrides
+└── values.production.yaml   # Production overrides
+```
+
+During rendering, values are merged in order:
+
+```bash
+helm template ingress-nginx . \
+  --values values.yaml \
+  --values values.staging.yaml
+```
+
+This allows you to define shared configuration once and override only what differs:
+
+```yaml
+# values.yaml (base)
+chartVersions:
+  ingress-nginx: "4.13.3"
+
+ingress-nginx:
+  controller:
+    admissionWebhooks:
+      enabled: true
+```
+
+```yaml
+# values.staging.yaml (overrides)
+chartVersions:
+  ingress-nginx: "4.13.3"  # Can test newer versions here first
+```
+
+## Infrastructure Feature Flags
+
+Infrastructure components are enabled or disabled via the ArgoCD app-of-apps values:
+
+```yaml
+# kubernetes/src/argocd/infrastructure/values.yaml
+applications:
+  cert-manager:
+    enabled: true
+  external-dns:
+    enabled: true
+  ingress-nginx:
+    enabled: true
+  karpenter:
+    enabled: true
+  envoy-gateway:
+    enabled: false    # Not using yet
+  istio:
+    enabled: false    # Not using yet
+  datadog-operator:
+    enabled: false    # Using SigNoz instead
+```
+
+This pattern provides several benefits:
+
+| Benefit | Description |
+|---------|-------------|
+| **Safe rollout** | Enable a new component in staging first, validate it works, then enable in production |
+| **Quick rollback** | Set `enabled: false` and sync to immediately remove a problematic component |
+| **Environment flexibility** | Run different component sets in staging vs production |
+| **Clear inventory** | One file shows exactly which infrastructure is deployed |
+
+### Testing New Infrastructure
+
+To safely add a new infrastructure component:
+
+<Steps>
+  <Step title="Add component disabled">
+    Create the component directory in `src/infrastructure/` and add it to values with `enabled: false`.
+  </Step>
+  <Step title="Enable in staging">
+    Set `enabled: true` in staging values, render, and merge.
+  </Step>
+  <Step title="Validate in staging">
+    Verify the component works correctly in the staging cluster.
+  </Step>
+  <Step title="Enable in production">
+    Set `enabled: true` in production values, render, and merge.
+  </Step>
+</Steps>
+
+## Rendered Manifests and Validation
+
+### Why Rendered Manifests?
+
+Templates (Kustomize overlays, Helm charts) are rendered to plain YAML and committed to Git:
+
+```
+kubernetes/rendered/
+├── staging/
+│   ├── infrastructure/
+│   │   ├── ingress-nginx/
+│   │   ├── cert-manager/
+│   │   └── ...
+│   └── services/
+│       └── go-backend/
+└── production/
+    ├── infrastructure/
+    └── services/
+```
+
+This approach provides:
+
+- **Auditability:** Git history shows exactly what changed in the final manifests, not just template changes.
+- **No runtime surprises:** ArgoCD applies pre-rendered YAML, eliminating template rendering failures at deploy time.
+- **Easy diffing:** Compare staging and production manifests directly with standard diff tools.
+- **Review clarity:** Pull request reviewers see the actual Kubernetes resources being deployed.
+
+### CI Validation
+
+The `check-rendered-manifests` workflow runs on every pull request that touches `kubernetes/`:
+
+```yaml
+# .github/workflows/check-rendered-manifests.yml
+- name: Render manifests
+  run: |
+    mise run //kubernetes/src/${{matrix.manifest_group}}:render-all ${{matrix.environment}}
+
+- name: Check for git diff
+  run: |
+    if [[ -n "$(git status --porcelain)" ]]; then
+      echo "diff_exists=true" >> "$GITHUB_OUTPUT"
+    fi
+
+- name: Error if git diff exists
+  if: steps.diffcheck.outputs.diff_exists == 'true'
+  run: |
+    echo "::error::Rendered manifests are out of date."
+    git diff --stat
+    exit 1
+```
+
+If you modify a template but forget to re-render, CI fails with a clear error showing exactly which files are out of date.
+
+### Rendering Workflow
+
+<Steps>
+  <Step title="Edit source templates">
+    Modify files in `kubernetes/src/` (Kustomize overlays, Helm values, etc.).
+  </Step>
+  <Step title="Render manifests">
+    Run the appropriate render task from `kubernetes/`:
+    ```bash
+    mise run //kubernetes/src/services:render-all staging
+    mise run //kubernetes/src/infrastructure:render-all staging
+    ```
+  </Step>
+  <Step title="Review changes">
+    Check `git diff` to see both template and rendered manifest changes.
+  </Step>
+  <Step title="Commit everything">
+    Commit source templates AND rendered manifests together.
+  </Step>
+  <Step title="CI validates">
+    Pull request checks verify rendered manifests are current.
+  </Step>
+  <Step title="ArgoCD syncs">
+    After merge, ArgoCD applies the pre-rendered manifests to the cluster.
+  </Step>
+</Steps>
+
+## Staging to Production Workflow
+
+### Configuration Changes
+
+For infrastructure or application configuration changes:
+
+<Steps>
+  <Step title="Modify staging overlay">
+    Update the staging-specific Kustomize patch or Helm values file.
+  </Step>
+  <Step title="Render and commit">
+    Render staging manifests and commit both source and rendered files.
+  </Step>
+  <Step title="Validate in staging">
+    After merge, verify the change works correctly in staging.
+  </Step>
+  <Step title="Promote to production">
+    Apply the same change to production overlay/values and render.
+  </Step>
+</Steps>
+
+### Version Upgrades
+
+For chart or image version upgrades:
+
+<Steps>
+  <Step title="Update staging version">
+    Change the version in `values.staging.yaml` or the staging overlay.
+  </Step>
+  <Step title="Render and test">
+    Render, merge, and validate in staging.
+  </Step>
+  <Step title="Update production version">
+    After validation, apply the same version to production files.
+  </Step>
+</Steps>
+
+### Example: Upgrading ingress-nginx
+
+```yaml
+# 1. Update staging first
+# values.staging.yaml
+chartVersions:
+  ingress-nginx: "4.14.0"  # New version
+```
+
+```bash
+# 2. Render and commit
+mise run //kubernetes/src/infrastructure:render-all staging
+git add -A && git commit -m "chore: upgrade ingress-nginx to 4.14.0 in staging"
+```
+
+```yaml
+# 3. After staging validation, update production
+# values.production.yaml
+chartVersions:
+  ingress-nginx: "4.14.0"
+```
+
+```bash
+# 4. Render and commit
+mise run //kubernetes/src/infrastructure:render-all production
+git add -A && git commit -m "chore: upgrade ingress-nginx to 4.14.0 in production"
+```
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Explicit overlays over implicit** | Each environment has its own directory/file rather than relying on variable substitution. Changes are visible and reviewable. |
+| **Rendered manifests in Git** | Eliminates "works on my machine" template issues. What you review is what gets deployed. |
+| **CI validation of rendered state** | Catches forgotten render steps before they reach the cluster. |
+| **Boolean component flags** | Simple, explicit control over what runs where. No complex conditional logic. |
+| **Staging-first workflow** | All changes flow through staging. Production never sees untested configuration. |
+| **Version pinning per environment** | Staging can run ahead to validate upgrades before production follows. |
