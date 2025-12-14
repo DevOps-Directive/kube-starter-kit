@@ -409,3 +409,118 @@ yq -P --no-doc '
     "." + strenv(OUTPUT_EXT)
   '
 """
+
+###############################################################################
+# Bastion / SOCKS Proxy Tasks
+###############################################################################
+
+[tasks."bastion:start-proxy"]
+description = "Start a SOCKS5 proxy via SSM to the bastion host"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  INSTANCE_ID=<id> AWS_PROFILE=<profile> mise run //tools:bastion:start-proxy
+  mise run //tools:bastion:start-proxy <instance_id> [port] [profile]
+
+where:
+  INSTANCE_ID   EC2 instance ID of the bastion host (e.g., i-0abc123def456)
+  SOCKS_PORT    Local port for SOCKS5 proxy (default: 1080)
+  AWS_PROFILE   AWS profile to use for SSM session
+
+Starts a SOCKS5 proxy on localhost:<port> via SSM Session Manager.
+Use with: HTTPS_PROXY=socks5://localhost:<port> kubectl ...
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+INSTANCE_ID="${1:-${INSTANCE_ID:-}}"
+SOCKS_PORT="${2:-${SOCKS_PORT:-1080}}"
+: "${AWS_PROFILE:?Set AWS_PROFILE}"
+
+if [[ -z "$INSTANCE_ID" ]]; then
+  usage
+  exit 2
+fi
+
+echo "Starting SOCKS5 proxy on localhost:${SOCKS_PORT} via bastion ${INSTANCE_ID}..."
+echo ""
+echo "To use with kubectl, run in another terminal:"
+echo "  HTTPS_PROXY=socks5://localhost:${SOCKS_PORT} kubectl get nodes"
+echo ""
+echo "Or update your kubeconfig with:"
+echo "  kubectl config set-cluster <cluster-name> --proxy-url=socks5://localhost:${SOCKS_PORT}"
+echo ""
+echo "Press Ctrl+C to stop the proxy."
+echo ""
+
+# Use SSH over SSM with dynamic port forwarding (-D creates SOCKS proxy)
+# This requires ~/.ssh/config to have the SSM ProxyCommand configured
+ssh -N -D "localhost:${SOCKS_PORT}" "ec2-user@${INSTANCE_ID}"
+'''
+
+[tasks."bastion:setup-ssh-config"]
+description = "Print SSH config needed for SSM-based SSH connections"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+cat <<'EOF'
+Add the following to your ~/.ssh/config file to enable SSH over SSM:
+
+# AWS SSM Session Manager SSH proxy
+Host i-* mi-*
+    User ec2-user
+    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
+
+After adding this config, you can:
+1. SSH directly: ssh ec2-user@<instance-id>
+2. Start SOCKS proxy: ssh -ND 1080 ec2-user@<instance-id>
+3. Use mise task: mise run //tools:bastion:start-proxy <instance-id>
+
+Requirements:
+- AWS CLI v2 installed
+- Session Manager plugin installed (mise installs this via aqua:aws/session-manager-plugin)
+- Valid AWS credentials with ssm:StartSession permission
+EOF
+'''
+
+[tasks."bastion:get-instance-id"]
+description = "Get the bastion instance ID for an environment"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  AWS_PROFILE=<profile> mise run //tools:bastion:get-instance-id <environment>
+
+where:
+  environment   Environment name (e.g., staging, production)
+  AWS_PROFILE   AWS profile to use
+
+Looks up the bastion instance ID by the Name tag pattern: *-<environment>-network-bastion
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+ENVIRONMENT="${1:-}"
+: "${AWS_PROFILE:?Set AWS_PROFILE}"
+
+if [[ -z "$ENVIRONMENT" ]]; then
+  usage
+  exit 2
+fi
+
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=*-${ENVIRONMENT}-network-bastion" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[0].Instances[0].InstanceId' \
+  --output text
+'''

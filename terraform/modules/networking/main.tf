@@ -109,5 +109,3 @@ module "fck-nat" {
   update_route_tables = true
   route_tables_ids    = { "private" : module.vpc.private_route_table_ids[count.index] }
 }
-
-# TODO: Add bastion host for private EKS connectivity

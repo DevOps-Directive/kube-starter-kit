@@ -40,8 +40,9 @@ module "eks" {
   # # only necessary if deploying applications from TF (e.g. via https://registry.terraform.io/providers/hashicorp/helm/latest/docs)
   # enable_cluster_creator_admin_permissions = true
 
-  enable_irsa            = true
-  endpoint_public_access = true
+  enable_irsa             = true
+  endpoint_public_access  = var.endpoint_public_access
+  endpoint_private_access = var.endpoint_private_access
 
   addons = {
     coredns = {

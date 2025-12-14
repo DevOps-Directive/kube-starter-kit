@@ -27,3 +27,16 @@ variable "fck-nat_instance_type" {
   type    = string
   default = "t4g.nano" # TODO: test to see if this becomes limiting (default for this is t4g.micro...)
 }
+
+# Bastion host configuration
+variable "enable_bastion" {
+  description = "Whether to create a bastion host for private resource access via SSM"
+  type        = bool
+  default     = false
+}
+
+variable "bastion_instance_type" {
+  description = "Instance type for the bastion host (must be ARM64/Graviton)"
+  type        = string
+  default     = "t4g.nano"
+}
