@@ -3,12 +3,14 @@ workflows:
     plan:
       steps:
         - run: echo "Starting plan step"
-        - init
+        - init:
+            extra_args: ["--terragrunt-provider-cache=false"]
         - plan
     apply:
       steps:
         - run: echo "Starting apply step"
-        - init
+        - init:
+            extra_args: ["--terragrunt-provider-cache=false"]
         - apply
     workflow_configuration:
       on_pull_request_pushed: ["digger plan"]
