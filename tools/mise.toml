@@ -424,12 +424,13 @@ usage() {
   cat >&2 <<'EOF'
 usage:
   INSTANCE_ID=<id> AWS_PROFILE=<profile> mise run //tools:bastion:start-proxy
-  mise run //tools:bastion:start-proxy <instance_id> [port] [profile]
+  mise run //tools:bastion:start-proxy <instance_id> [port]
 
 where:
   INSTANCE_ID   EC2 instance ID of the bastion host (e.g., i-0abc123def456)
   SOCKS_PORT    Local port for SOCKS5 proxy (default: 1080)
   AWS_PROFILE   AWS profile to use for SSM session
+  SSH_PUBLIC_KEY Path to SSH public key (default: ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub)
 
 Starts a SOCKS5 proxy on localhost:<port> via SSM Session Manager.
 Use with: HTTPS_PROXY=socks5://localhost:<port> kubectl ...
@@ -447,6 +448,35 @@ if [[ -z "$INSTANCE_ID" ]]; then
   exit 2
 fi
 
+# Find SSH public key
+if [[ -n "${SSH_PUBLIC_KEY:-}" ]]; then
+  PUB_KEY_FILE="$SSH_PUBLIC_KEY"
+elif [[ -f ~/.ssh/id_ed25519.pub ]]; then
+  PUB_KEY_FILE=~/.ssh/id_ed25519.pub
+elif [[ -f ~/.ssh/id_rsa.pub ]]; then
+  PUB_KEY_FILE=~/.ssh/id_rsa.pub
+else
+  echo "ERROR: No SSH public key found. Set SSH_PUBLIC_KEY or create ~/.ssh/id_ed25519.pub" >&2
+  exit 1
+fi
+
+# Get instance availability zone
+echo "Looking up instance availability zone..."
+AZ=$(aws ec2 describe-instances \
+  --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].Placement.AvailabilityZone' \
+  --output text)
+
+# Push SSH public key via EC2 Instance Connect (valid for 60 seconds)
+echo "Pushing SSH public key to instance via EC2 Instance Connect..."
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id "$INSTANCE_ID" \
+  --instance-os-user ec2-user \
+  --ssh-public-key "file://${PUB_KEY_FILE}" \
+  --availability-zone "$AZ" \
+  --no-cli-pager
+
+echo ""
 echo "Starting SOCKS5 proxy on localhost:${SOCKS_PORT} via bastion ${INSTANCE_ID}..."
 echo ""
 echo "To use with kubectl, run in another terminal:"
@@ -460,7 +490,10 @@ echo ""
 
 # Use SSH over SSM with dynamic port forwarding (-D creates SOCKS proxy)
 # This requires ~/.ssh/config to have the SSM ProxyCommand configured
-ssh -N -D "localhost:${SOCKS_PORT}" "ec2-user@${INSTANCE_ID}"
+ssh -N -D "localhost:${SOCKS_PORT}" \
+  -o StrictHostKeyChecking=accept-new \
+  -o UserKnownHostsFile=/dev/null \
+  "ec2-user@${INSTANCE_ID}"
 '''
 
 [tasks."bastion:setup-ssh-config"]

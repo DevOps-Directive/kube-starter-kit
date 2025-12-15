@@ -46,7 +46,7 @@ resource "random_password" "argocd_webhook_secret" {
 # Store the webhook secret in AWS Secrets Manager for ExternalSecrets to consume
 module "argocd_webhook_secret" {
   source  = "terraform-aws-modules/secrets-manager/aws"
-  version = "2.0.0"
+  version = "2.0.1"
 
   name                    = "${module.this.id}-argocd-github-webhook"
   description             = "GitHub webhook secret for ArgoCD"

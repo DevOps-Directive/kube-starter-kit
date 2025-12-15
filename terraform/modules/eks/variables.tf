@@ -77,6 +77,12 @@ variable "endpoint_private_access" {
   default     = true
 }
 
+variable "vpc_cidr" {
+  description = "VPC CIDR block (used for private endpoint security group rules)"
+  type        = string
+  default     = null
+}
+
 variable "github_repository" {
   description = "GitHub repository name for webhook configuration"
   type        = string

@@ -59,6 +59,8 @@ module "ssm_endpoints" {
       subnet_ids          = module.vpc.private_subnets
       tags                = { Name = "${module.this.id}-ec2messages" }
     }
+    # Note: EC2 Instance Connect VPC endpoint not available in all regions
+    # The SendSSHPublicKey API call goes over the internet from the caller
   }
 
   tags = module.this.tags
@@ -106,6 +108,7 @@ module "bastion" {
   iam_role_name               = "${module.this.id}-bastion"
   iam_role_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    EC2InstanceConnect           = "arn:aws:iam::aws:policy/EC2InstanceConnect"
   }
 
   # Security group - all traffic stays within VPC
