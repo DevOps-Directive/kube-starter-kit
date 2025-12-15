@@ -59,3 +59,31 @@ if copy_to_clipboard <<< "$CMD"; then
   echo "(^ copied to clipboard)"
 fi
 '''
+
+[tasks.worktree-add]
+description = ""
+usage = '''
+arg "<branch>" help="git branch name" {}
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIR="../kube-starter-kit-worktrees/${usage_branch}"
+git worktree add ${DIR} -b ${usage_branch}
+cd ${DIR} && mise trust
+echo "cd ${DIR}" | pbcopy
+'''
+
+[tasks.worktree-remove]
+description = ""
+usage = '''
+arg "<branch>" help="git branch name" {}
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIR="../kube-starter-kit-worktrees/${usage_branch}"
+git worktree remove ${DIR}
+'''

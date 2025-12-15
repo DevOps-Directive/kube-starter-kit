@@ -1,3 +1,5 @@
+# TODO: This shouldn't be needed now that we are usng Leapp instead
+#       Leaving for now in case I run into any edge cases with stale sessions 
 aws_sso_login() {
   local profile="$1"
 
@@ -23,18 +25,26 @@ aws_sso_login() {
 aws_get_eks_creds () {
   profile=$1
   cluster=$2
-  aws_sso_login ${profile}
-  aws eks update-kubeconfig --name ${cluster}
+  is_session_active=$(leapp session current 2>/dev/null | grep "${profile}")
+  if [[ -z "$is_session_active" ]]; then
+    echo "No leapp session exits for ${profile}, starting one now!"
+    leapp session start "${profile}"
+  else;
+    echo "Leapp session exits!"
+  fi
+  aws eks update-kubeconfig --name "${cluster}"
+  echo "If EKS cluster is using private only endpoint you will need to establish a proxy session via the bastion host"
+  echo "e.g.: mise run //tools:bastion:start-proxy <INSTANCE_ID>"
 }
 
 unset_env_vars () {
   unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 }
 
-aws_sso_infrastructure () { aws_sso_login infrastructure; }
-aws_sso_staging () { aws_sso_login staging; }
-aws_sso_production () { aws_sso_login production; }
-aws_sso_repositories () { aws_sso_login repositories; }
+aws_sso_infrastructure () { leapp session start "Infrastructure"; }
+aws_sso_staging () { leapp session start "Staging"; }
+aws_sso_production () { leapp session start "Production"; }
+aws_sso_repositories () { leapp session start "ECR Repositories"; }
 
-aws_eks_staging () { aws_get_eks_creds staging ksk-use2-staging-eks }
-aws_eks_production () { aws_get_eks_creds production ksk-use2-production-eks } # This cluster doesnt exist yet
+aws_eks_staging () { aws_get_eks_creds Staging ksk-use2-staging-eks }
+aws_eks_production () { aws_get_eks_creds Production ksk-use2-production-eks } # This cluster doesnt exist yet
