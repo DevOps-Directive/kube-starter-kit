@@ -16,6 +16,7 @@ spec:
       #   # Go Requires an additional annotation to the path of the binary on the container
       #   instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/bin/server"
     spec:
+      serviceAccountName: go-backend
       containers:
         - name: go-backend
           image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:OVERRIDE_ME

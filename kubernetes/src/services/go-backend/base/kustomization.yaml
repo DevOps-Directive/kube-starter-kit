@@ -11,3 +11,4 @@ resources:
   - Namespace.go-backend-kustomize.yaml
   - Secret.go-backend-db-superuser.yaml
   - Service.go-backend.yaml
+  - ServiceAccount.go-backend.yaml

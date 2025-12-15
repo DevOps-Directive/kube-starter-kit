@@ -26,3 +26,4 @@ spec:
               value: deployment.environment=staging
           image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.2-rc0000-g808175d
           name: go-backend
+      serviceAccountName: go-backend
