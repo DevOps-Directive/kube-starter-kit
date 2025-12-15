@@ -40,8 +40,21 @@ module "eks" {
   # # only necessary if deploying applications from TF (e.g. via https://registry.terraform.io/providers/hashicorp/helm/latest/docs)
   # enable_cluster_creator_admin_permissions = true
 
-  enable_irsa            = true
-  endpoint_public_access = true
+  enable_irsa             = true
+  endpoint_public_access  = var.endpoint_public_access
+  endpoint_private_access = var.endpoint_private_access
+
+  # Allow VPC traffic to reach the private API endpoint (for bastion access)
+  security_group_additional_rules = var.vpc_cidr != null ? {
+    ingress_vpc_443 = {
+      description = "HTTPS from VPC (for private endpoint access)"
+      protocol    = "tcp"
+      from_port   = 443
+      to_port     = 443
+      type        = "ingress"
+      cidr_blocks = [var.vpc_cidr]
+    }
+  } : {}
 
   addons = {
     coredns = {

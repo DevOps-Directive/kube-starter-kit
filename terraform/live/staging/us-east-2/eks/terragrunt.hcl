@@ -55,7 +55,10 @@ dependency "staging__us_east_2__networking" {
 
   mock_outputs = {
     vpc_id = "PLACEHOLDER_VPC_ID"
+    vpc_cidr = "10.0.0.0/16"
     private_subnets = ["PLACEHOLDER_sub1","PLACEHOLDER_sub2","PLACEHOLDER_sub3"]
+    public_subnets = ["PLACEHOLDER_pub1","PLACEHOLDER_pub2","PLACEHOLDER_pub3"]
+    bastion_instance_id = "PLACEHOLDER_BASTION_ID"
   }
   mock_outputs_allowed_terraform_commands = ["plan"]
   mock_outputs_merge_with_state = true
@@ -68,7 +71,12 @@ inputs = {
   admin_sso_role_arn     = include.stage.inputs.sso_admin_role_arn
   route53_zone_arn       = dependency.staging__global__bootstrapping.outputs.zone_arn
   vpc_id                 = dependency.staging__us_east_2__networking.outputs.vpc_id
+  vpc_cidr               = dependency.staging__us_east_2__networking.outputs.vpc_cidr
   private_subnets        = dependency.staging__us_east_2__networking.outputs.private_subnets
+
+  # Private endpoint - access via bastion SOCKS proxy
+  endpoint_public_access  = false
+  endpoint_private_access = true
 
   kubernetes_version = "1.34"
   base_node_group_kubernetes_version = "1.34"

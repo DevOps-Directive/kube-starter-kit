@@ -65,6 +65,24 @@ variable "argocd_hostname" {
   type        = string
 }
 
+variable "endpoint_public_access" {
+  description = "Whether the EKS cluster API endpoint is publicly accessible. Set to false for private-only access (requires bastion/VPN)."
+  type        = bool
+  default     = false
+}
+
+variable "endpoint_private_access" {
+  description = "Whether the EKS cluster API endpoint is accessible from within the VPC."
+  type        = bool
+  default     = true
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block (used for private endpoint security group rules)"
+  type        = string
+  default     = null
+}
+
 variable "github_repository" {
   description = "GitHub repository name for webhook configuration"
   type        = string

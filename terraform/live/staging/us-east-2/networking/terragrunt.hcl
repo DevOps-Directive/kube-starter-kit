@@ -49,6 +49,9 @@ inputs = {
   vpc_cidr = "10.0.0.0/16"
   planetscale_endpoint_service_name = "com.amazonaws.vpce.us-east-2.vpce-svc-069f88c102c1a7fba"
 
+  # Bastion host for private EKS access
+  enable_bastion = true
+
   # Cloudposse label context
   # Can add attributes to deconflict resource names if deploying multiple copies into a single region
   # attributes = ["foo"]
