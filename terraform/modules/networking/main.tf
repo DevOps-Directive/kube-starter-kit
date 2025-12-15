@@ -29,19 +29,56 @@ module "vpc" {
   }
 }
 
-# TODO: add vpc endpoints
-# module "endpoints" {
-#   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
-#   version = "6.4.0"
+# S3 Gateway Endpoint (free, uses route tables)
+module "s3_vpce" {
+  source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
+  version = "6.5.1"
 
-#   vpc_id = module.vpc.vpc_id
-#   # security_group_ids = ["sg-12345678"]
+  vpc_id = module.vpc.vpc_id
+
+  endpoints = {
+    s3 = {
+      service         = "s3"
+      service_type    = "Gateway"
+      route_table_ids = module.vpc.private_route_table_ids
+      tags            = { Name = "${module.this.id}-s3-vpce" }
+    }
+  }
+}
+
+# TODO: Uncomment if you want to use VPC Endpoints for ECR
+
+# # ECR Interface Endpoints (for private image pulls)
+# module "ecr_vpce_sg" {
+#   source  = "terraform-aws-modules/security-group/aws//modules/https-443"
+#   version = "5.3.0"
+
+#   name        = "${module.this.id}-ecr-vpce"
+#   description = "Ingress 443 from VPC to ECR endpoints"
+#   vpc_id      = module.vpc.vpc_id
+
+#   ingress_cidr_blocks = [module.vpc.vpc_cidr_block]
+# }
+
+# module "ecr_vpce" {
+#   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
+#   version = "6.5.1"
+
+#   vpc_id             = module.vpc.vpc_id
+#   security_group_ids = [module.ecr_vpce_sg.security_group_id]
 
 #   endpoints = {
-#     s3 = {
-#       # interface endpoint
-#       service = "s3"
-#       tags    = { Name = "s3-vpc-endpoint" }
+#     ecr_api = {
+#       service             = "ecr.api"
+#       private_dns_enabled = true
+#       subnet_ids          = module.vpc.private_subnets
+#       tags                = { Name = "${module.this.id}-ecr-api-vpce" }
+#     }
+#     ecr_dkr = {
+#       service             = "ecr.dkr"
+#       private_dns_enabled = true
+#       subnet_ids          = module.vpc.private_subnets
+#       tags                = { Name = "${module.this.id}-ecr-dkr-vpce" }
 #     }
 #   }
 # }
