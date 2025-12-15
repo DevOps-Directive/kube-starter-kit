@@ -46,40 +46,42 @@ module "s3_vpce" {
   }
 }
 
-# ECR Interface Endpoints (for private image pulls)
-module "ecr_vpce_sg" {
-  source  = "terraform-aws-modules/security-group/aws//modules/https-443"
-  version = "5.3.0"
+# TODO: Uncomment if you want to use VPC Endpoints for ECR
 
-  name        = "${module.this.id}-ecr-vpce"
-  description = "Ingress 443 from VPC to ECR endpoints"
-  vpc_id      = module.vpc.vpc_id
+# # ECR Interface Endpoints (for private image pulls)
+# module "ecr_vpce_sg" {
+#   source  = "terraform-aws-modules/security-group/aws//modules/https-443"
+#   version = "5.3.0"
 
-  ingress_cidr_blocks = [module.vpc.vpc_cidr_block]
-}
+#   name        = "${module.this.id}-ecr-vpce"
+#   description = "Ingress 443 from VPC to ECR endpoints"
+#   vpc_id      = module.vpc.vpc_id
 
-module "ecr_vpce" {
-  source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
-  version = "6.5.1"
+#   ingress_cidr_blocks = [module.vpc.vpc_cidr_block]
+# }
 
-  vpc_id             = module.vpc.vpc_id
-  security_group_ids = [module.ecr_vpce_sg.security_group_id]
+# module "ecr_vpce" {
+#   source  = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
+#   version = "6.5.1"
 
-  endpoints = {
-    ecr_api = {
-      service             = "ecr.api"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      tags                = { Name = "${module.this.id}-ecr-api-vpce" }
-    }
-    ecr_dkr = {
-      service             = "ecr.dkr"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      tags                = { Name = "${module.this.id}-ecr-dkr-vpce" }
-    }
-  }
-}
+#   vpc_id             = module.vpc.vpc_id
+#   security_group_ids = [module.ecr_vpce_sg.security_group_id]
+
+#   endpoints = {
+#     ecr_api = {
+#       service             = "ecr.api"
+#       private_dns_enabled = true
+#       subnet_ids          = module.vpc.private_subnets
+#       tags                = { Name = "${module.this.id}-ecr-api-vpce" }
+#     }
+#     ecr_dkr = {
+#       service             = "ecr.dkr"
+#       private_dns_enabled = true
+#       subnet_ids          = module.vpc.private_subnets
+#       tags                = { Name = "${module.this.id}-ecr-dkr-vpce" }
+#     }
+#   }
+# }
 
 # TODO: make planetscale VPC endpoint optional
 
