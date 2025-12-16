@@ -6,7 +6,7 @@ watch_settings(ignore=[
 ])
 
 ################ CERT MANAGER #################
-local('CHART_DIR="$PWD/cert-manager" mise run //tools:render:inject-chart-versions && cd cert-manager && helm dependency update')
+local('export CHART_DIR="$PWD/cert-manager" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
 k8s_yaml(
   helm(
     './cert-manager',
@@ -48,7 +48,7 @@ k8s_resource('cert-manager-startupapicheck', labels=['cert-manager'])
 ################ END CERT MANAGER #################
 
 ################ CLOUDNATIVE-PG #################
-local('CHART_DIR="$PWD/cloudnative-pg" mise run //tools:render:inject-chart-versions && cd cloudnative-pg && helm dependency update')
+local('export CHART_DIR="$PWD/cloudnative-pg" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
 k8s_yaml(
   helm(
     './cloudnative-pg',
@@ -77,7 +77,7 @@ local_resource('cloudnative-pg-wait',
 ################ END CLOUDNATIVE-PG #################
 
 ################ INGRESS-NGINX #################
-local('CHART_DIR="$PWD/ingress-nginx" mise run //tools:render:inject-chart-versions && cd ingress-nginx && helm dependency update')
+local('export CHART_DIR="$PWD/ingress-nginx" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
 k8s_yaml(
   helm(
     './ingress-nginx',

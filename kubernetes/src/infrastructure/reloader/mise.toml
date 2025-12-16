@@ -23,7 +23,7 @@ mise run //tools:render:inject-chart-versions \
   "${PWD}/values.yaml" \
   "${PWD}/values.${usage_cluster}.yaml"
 
-helm dependency update
+CHART_DIR="$PWD" mise run //tools:render:helm-dep-build
 helm template --release-name reloader . \
   --include-crds \
   --skip-tests \
