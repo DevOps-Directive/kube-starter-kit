@@ -5,11 +5,11 @@ metadata:
   name: minimal-nginx
   namespace: go-backend-helm
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: ingress-nginx-helm.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: go-backend-helm.staging.kubestarterkit.com
 spec:
   ingressClassName: nginx
   rules:
-    - host: ingress-nginx-helm.staging.kubestarterkit.com
+    - host: go-backend-helm.staging.kubestarterkit.com
       http:
         paths:
           - path: /

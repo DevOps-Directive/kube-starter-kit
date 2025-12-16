@@ -22,6 +22,13 @@ import (
 		template: corev1.#PodTemplateSpec & {
 			spec: {
 				restartPolicy: "Never"
+				securityContext: {
+					runAsNonRoot: true
+					runAsUser:    1001
+					runAsGroup:   1001
+					fsGroup:      1001
+					seccompProfile: type: "RuntimeDefault"
+				}
 				containers: [{
 					name:  "apply"
 					image: #config.migration.image
@@ -40,6 +47,19 @@ import (
 							key:  "uri"
 						}
 					}]
+					resources: {
+						requests: {
+							cpu:    "50m"
+							memory: "64Mi"
+						}
+						limits: memory: "128Mi"
+					}
+					securityContext: {
+						allowPrivilegeEscalation: false
+						privileged:               false
+						readOnlyRootFilesystem:   true
+						capabilities: drop: ["ALL"]
+					}
 				}]
 			}
 		}
