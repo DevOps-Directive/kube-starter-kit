@@ -1,4 +1,4 @@
-# cert-manager
+################ CERT MANAGER #################
 k8s_yaml(
   helm(
     './cert-manager',
@@ -10,12 +10,36 @@ k8s_yaml(
     ]
   )
 )
-k8s_resource('cert-manager', labels=['infra'])
-k8s_resource('cert-manager-cainjector', labels=['infra'])
-k8s_resource('cert-manager-webhook', labels=['infra'])
-k8s_resource('cert-manager-startupapicheck', labels=['infra'])
+k8s_resource('cert-manager', labels=['cert-manager'])
+k8s_resource('cert-manager-cainjector', labels=['cert-manager'])
+k8s_resource('cert-manager-webhook',
+  objects=[
+    'cert-manager-webhook:mutatingwebhookconfiguration',
+    'cert-manager-webhook:validatingwebhookconfiguration'
+  ],
+  resource_deps=['cert-manager'],
+  labels=['cert-manager']
+)
+local_resource('cert-manager-webhook-wait',
+  cmd='kubectl wait --namespace cert-manager --for=condition=ready pod -l app.kubernetes.io/component=webhook --timeout=120s',
+  resource_deps=['cert-manager-webhook'],
+  labels=['cert-manager'],
+  allow_parallel=True
+)
+k8s_resource(
+  new_name='cert-manager-issuers',
+  objects=[
+    'letsencrypt-prod-dns:clusterissuer',
+    'letsencrypt-staging-dns:clusterissuer',
+    'selfsigned:clusterissuer'
+  ],
+  resource_deps=['cert-manager-webhook-wait'],
+  labels=['cert-manager']
+)
+k8s_resource('cert-manager-startupapicheck', labels=['cert-manager'])
+################ END CERT MANAGER #################
 
-# cloudnative-pg
+################ CLOUDNATIVE-PG #################
 k8s_yaml(
   helm(
     './cloudnative-pg',
@@ -27,13 +51,23 @@ k8s_yaml(
     ]
   )
 )
-k8s_resource(
-  'cloudnative-pg',
-  labels=['infra'],
-  resource_deps=['cert-manager-webhook']
+k8s_resource('cloudnative-pg',
+  objects=[
+    'cnpg-mutating-webhook-configuration:mutatingwebhookconfiguration',
+    'cnpg-validating-webhook-configuration:validatingwebhookconfiguration',
+  ],
+  resource_deps=['cert-manager-webhook-wait'],
+  labels=['cloudnative-pg']
 )
+local_resource('cloudnative-pg-wait',
+  cmd='kubectl wait --namespace cnpg-system --for=condition=ready pod -l app.kubernetes.io/instance=cloudnative-pg --timeout=120s',
+  resource_deps=['cloudnative-pg'],
+  labels=['cloudnative-pg'],
+  allow_parallel=True
+)
+################ END CLOUDNATIVE-PG #################
 
-# ingress-nginx
+################ INGRESS-NGINX #################
 k8s_yaml(
   helm(
     './ingress-nginx',
@@ -45,18 +79,16 @@ k8s_yaml(
     ]
   )
 )
-k8s_resource('ingress-nginx-controller', labels=['infra'])
-
-# reloader
-k8s_yaml(
-  helm(
-    './reloader',
-    name='reloader',
-    namespace='reloader',
-    values=[
-      './reloader/values.yaml',
-      './reloader/values.local.yaml'
-    ]
-  )
+k8s_resource('ingress-nginx-controller',
+  objects=[
+    'ingress-nginx-admission:validatingwebhookconfiguration',
+  ],
+  labels=['ingress-nginx']
 )
-k8s_resource('reloader-reloader', labels=['infra'])
+local_resource('ingress-nginx-wait',
+  cmd='kubectl wait --namespace ingress-nginx --for=condition=ready pod -l app.kubernetes.io/component=controller --timeout=120s',
+  resource_deps=['ingress-nginx-controller'],
+  labels=['ingress-nginx'],
+  allow_parallel=True
+)
+################ END INGRESS-NGINX #################

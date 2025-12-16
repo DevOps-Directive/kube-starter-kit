@@ -14,15 +14,35 @@ k8s_yaml(
   )
 )
 
+# NOTE: The -db-wait step could be skipped if relying on migrator job retries instead.
+# Waiting explicitly provides a cleaner Tilt UI and faster feedback.
+k8s_resource(
+  new_name='go-backend-helm-db',
+  objects=['go-backend-pg:cluster:go-backend-helm'],
+  resource_deps=['cloudnative-pg-wait'],
+  extra_pod_selectors=[{
+    'cnpg.io/cluster': 'go-backend-pg',
+    'cnpg.io/podRole': 'instance'
+  }],
+  labels=['go-backend-helm']
+)
+local_resource('go-backend-helm-db-wait',
+  cmd='kubectl wait --namespace go-backend-helm --for=condition=ready cluster go-backend-pg --timeout=120s',
+  resource_deps=['go-backend-helm-db'],
+  labels=['go-backend-helm']
+)
 k8s_resource(
   workload='go-backend:deployment:go-backend-helm',
   new_name='go-backend-helm',
+  objects=[
+    'minimal-nginx:ingress:go-backend-helm'
+  ],
   labels=['go-backend-helm'],
-  resource_deps=['cloudnative-pg']
+  resource_deps=['go-backend-helm-db-wait', 'ingress-nginx-wait']
 )
 k8s_resource(
   workload='go-backend-migrate:job:go-backend-helm',
   new_name='go-backend-helm-migrate',
   labels=['go-backend-helm'],
-  resource_deps=['cloudnative-pg']
+  resource_deps=['go-backend-helm-db-wait']
 )
