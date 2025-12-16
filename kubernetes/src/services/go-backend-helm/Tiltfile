@@ -1,0 +1,28 @@
+# go-backend-helm
+
+# NOTE: Docker images are built in go-backend/Tiltfile (shared across all variants)
+
+k8s_yaml(
+  helm(
+    '.',
+    name='go-backend-helm',
+    namespace='go-backend-helm',
+    values=[
+      './values.yaml',
+      './values.local.yaml'
+    ]
+  )
+)
+
+k8s_resource(
+  workload='go-backend:deployment:go-backend-helm',
+  new_name='go-backend-helm',
+  labels=['go-backend-helm'],
+  resource_deps=['cloudnative-pg']
+)
+k8s_resource(
+  workload='go-backend-migrate:job:go-backend-helm',
+  new_name='go-backend-helm-migrate',
+  labels=['go-backend-helm'],
+  resource_deps=['cloudnative-pg']
+)

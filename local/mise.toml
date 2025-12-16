@@ -1,5 +1,3 @@
-
-
 [tasks.create-cluster]
 description = "Create KinD development cluster"
 run = '''

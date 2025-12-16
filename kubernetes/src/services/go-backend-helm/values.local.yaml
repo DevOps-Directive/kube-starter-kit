@@ -1,0 +1,4 @@
+db:
+  storageClass: standard
+image:
+  version: local-version

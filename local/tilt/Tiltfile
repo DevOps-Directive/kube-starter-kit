@@ -1,6 +1,6 @@
 # Apply these manually with kluctl (ordering of things matters more)
-include('../../kubernetes/kluctl/infrastructure/Tiltfile')
+include('../../kubernetes/src/infrastructure/Tiltfile')
 
-include('../../kubernetes/kluctl/apps/Tiltfile')
+include('../../kubernetes/src/services/Tiltfile')
 
-k8s_yaml('../kind/Service.dockerhost.yaml')
+# k8s_yaml('../kind/Service.dockerhost.yaml')

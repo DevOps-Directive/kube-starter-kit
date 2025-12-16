@@ -1,0 +1,62 @@
+# cert-manager
+k8s_yaml(
+  helm(
+    './cert-manager',
+    name='cert-manager',
+    namespace='cert-manager',
+    values=[
+      './cert-manager/values.yaml',
+      './cert-manager/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('cert-manager', labels=['infra'])
+k8s_resource('cert-manager-cainjector', labels=['infra'])
+k8s_resource('cert-manager-webhook', labels=['infra'])
+k8s_resource('cert-manager-startupapicheck', labels=['infra'])
+
+# cloudnative-pg
+k8s_yaml(
+  helm(
+    './cloudnative-pg',
+    name='cloudnative-pg',
+    namespace='cnpg-system',
+    values=[
+      './cloudnative-pg/values.yaml',
+      './cloudnative-pg/values.local.yaml'
+    ]
+  )
+)
+k8s_resource(
+  'cloudnative-pg',
+  labels=['infra'],
+  resource_deps=['cert-manager-webhook']
+)
+
+# ingress-nginx
+k8s_yaml(
+  helm(
+    './ingress-nginx',
+    name='ingress-nginx',
+    namespace='ingress-nginx',
+    values=[
+      './ingress-nginx/values.yaml',
+      './ingress-nginx/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('ingress-nginx-controller', labels=['infra'])
+
+# reloader
+k8s_yaml(
+  helm(
+    './reloader',
+    name='reloader',
+    namespace='reloader',
+    values=[
+      './reloader/values.yaml',
+      './reloader/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('reloader-reloader', labels=['infra'])
