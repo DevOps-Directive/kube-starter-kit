@@ -392,6 +392,34 @@ for chart in $(yq -r '.chartVersions | keys | .[]' "$BASE_VALUES"); do
 done
 """
 
+[tasks."render:helm-dep-build"]
+description = "Build helm dependencies, skipping if Chart.lock unchanged"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+CHART_DIR="${CHART_DIR:-$PWD}"
+cd "$CHART_DIR"
+
+# Check if we need to rebuild: compare stored checksum with current Chart.lock
+if [ -f charts/.chart-lock-sum ] && [ "$(cat charts/.chart-lock-sum)" = "$(md5sum Chart.lock | cut -d' ' -f1)" ]; then
+  exit 0
+fi
+
+# For non-OCI repos (https://), we need to ensure the repo is added
+# Extract unique non-OCI repositories from Chart.lock and add them
+for repo in $(yq -r '.dependencies[].repository | select(. != null) | select(test("^https?://"))' Chart.lock | sort -u); do
+  # Generate a repo name from the URL (use last path segment or domain)
+  repo_name=$(echo "$repo" | sed 's|https\?://||; s|/$||' | tr '/.' '-')
+  # Add repo if not already added (ignore errors if it exists)
+  helm repo add "$repo_name" "$repo" 2>/dev/null || true
+done
+
+# Rebuild dependencies and store checksum
+helm dependency build --skip-refresh
+md5sum Chart.lock | cut -d' ' -f1 > charts/.chart-lock-sum
+'''
+
 [tasks."render:split-k8s-docs"]
 description = "Read multi-doc YAML on stdin and write Kustomize-style files into output dir"
 usage = '''

@@ -23,8 +23,7 @@ mise run //tools:render:inject-chart-versions \
   "${PWD}/values.yaml" \
   "${PWD}/values.${usage_cluster}.yaml"
 
-# TODO: make dependency update smarter (skip when not needed locally)
-helm dependency update
+CHART_DIR="$PWD" mise run //tools:render:helm-dep-build
 helm template --release-name signoz . \
   --include-crds \
   --skip-tests \
