@@ -23,6 +23,11 @@ kind = "0.30"
 tilt = "0.35"
 fzf = "latest"
 "github:kubernetes-sigs/cloud-provider-kind" = "0.9"
+helm = "3"
+kubectl = "1.34"
+kustomize = "5.8"
+argocd = "3.2"
+timoni = "0.25"
 
 [tasks.mise-fzf]
 description = "[Mise] Pick one task; print it and copy the run command"

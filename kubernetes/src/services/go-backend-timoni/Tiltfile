@@ -1,0 +1,40 @@
+# go-backend-timoni
+
+# NOTE: Docker images are built in go-backend/Tiltfile (shared across all variants)
+
+k8s_yaml(
+  local(
+    'timoni build go-backend . -n go-backend-timoni --values values.yaml --values values.local.yaml',
+    quiet=True
+  )
+)
+
+# NOTE: The -db-wait step could be skipped if relying on migrator job retries instead.
+# Waiting explicitly provides a cleaner Tilt UI and faster feedback.
+k8s_resource(
+  new_name='go-backend-timoni-db',
+  objects=['go-backend-pg:cluster:go-backend-timoni'],
+  resource_deps=['cloudnative-pg-wait'],
+  extra_pod_selectors=[{
+    'cnpg.io/cluster': 'go-backend-pg',
+    'cnpg.io/podRole': 'instance'
+  }],
+  labels=['go-backend-timoni']
+)
+local_resource('go-backend-timoni-db-wait',
+  cmd='kubectl wait --namespace go-backend-timoni --for=condition=ready cluster go-backend-pg --timeout=120s',
+  resource_deps=['go-backend-timoni-db'],
+  labels=['go-backend-timoni']
+)
+k8s_resource(
+  workload='go-backend:deployment:go-backend-timoni',
+  new_name='go-backend-timoni',
+  labels=['go-backend-timoni'],
+  resource_deps=['go-backend-timoni-db-wait', 'ingress-nginx-wait']
+)
+k8s_resource(
+  workload='go-backend-migrate:job:go-backend-timoni',
+  new_name='go-backend-timoni-migrate',
+  labels=['go-backend-timoni'],
+  resource_deps=['go-backend-timoni-db-wait']
+)

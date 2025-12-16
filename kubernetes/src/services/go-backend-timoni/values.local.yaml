@@ -1,0 +1,8 @@
+values:
+  db:
+    storageClass: standard
+  image:
+    tag: local-version
+  ingress:
+    nginx:
+      hostname: go-backend-timoni.local.kubestarterkit.com

@@ -1,0 +1,7 @@
+db:
+  storageClass: standard
+image:
+  version: local-version
+ingress:
+  nginx:
+    hostname: go-backend-helm.local.kubestarterkit.com
