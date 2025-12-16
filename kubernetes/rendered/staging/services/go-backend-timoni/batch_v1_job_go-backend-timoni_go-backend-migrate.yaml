@@ -28,5 +28,25 @@ spec:
                   name: go-backend-pg-app
           image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations:52e9e33a82f73e4cce1892886237c0dac9f3de3a
           name: apply
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
       restartPolicy: Never
+      securityContext:
+        fsGroup: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+        runAsUser: 1001
+        seccompProfile:
+          type: RuntimeDefault
   ttlSecondsAfterFinished: 3600

@@ -23,6 +23,7 @@ import (
 			let _checksum = uuid.SHA1(uuid.ns.DNS, yaml.Marshal(#config))
 			metadata: annotations: "timoni.sh/checksum": "\(_checksum)"
 			spec: {
+				securityContext: #config.podSecurityContext
 				containers: [{
 					name:            "curl"
 					image:           #config.test.image.reference
@@ -34,11 +35,21 @@ import (
 						"5",
 						"go-backend:\(#config.service.port)",
 					]
+					resources: {
+						requests: {
+							cpu:    "10m"
+							memory: "16Mi"
+						}
+						limits: memory: "32Mi"
+					}
+					securityContext: {
+						allowPrivilegeEscalation: false
+						privileged:               false
+						readOnlyRootFilesystem:   true
+						capabilities: drop: ["ALL"]
+					}
 				}]
 				restartPolicy: "Never"
-				if #config.podSecurityContext != _|_ {
-					securityContext: #config.podSecurityContext
-				}
 				if #config.topologySpreadConstraints != _|_ {
 					topologySpreadConstraints: #config.topologySpreadConstraints
 				}

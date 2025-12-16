@@ -25,12 +25,18 @@ import (
 				}
 			}
 			spec: corev1.#PodSpec & {
-				serviceAccountName: #config.metadata.name
+				serviceAccountName:            #config.metadata.name
+				terminationGracePeriodSeconds: #config.terminationGracePeriodSeconds
+				securityContext:               #config.podSecurityContext
 				containers: [
 					{
 						name:            "go-backend"
 						image:           #config.image.reference
 						imagePullPolicy: #config.image.pullPolicy
+						ports: [{
+							containerPort: #config.service.port
+							protocol:      "TCP"
+						}]
 						env: [
 							{
 								name: "DATABASE_URL"
@@ -48,13 +54,12 @@ import (
 								value: #config.otel.serviceName
 							},
 						]
+						readinessProbe:  #config.probes.readiness
+						livenessProbe:   #config.probes.liveness
 						resources:       #config.resources
 						securityContext: #config.securityContext
 					},
 				]
-				if #config.podSecurityContext != _|_ {
-					securityContext: #config.podSecurityContext
-				}
 				if #config.topologySpreadConstraints != _|_ {
 					topologySpreadConstraints: #config.topologySpreadConstraints
 				}

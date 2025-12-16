@@ -41,11 +41,14 @@ import (
 	image!: timoniv1.#Image
 
 	// The resources allows setting the container resource requirements.
-	// By default, the container requests 10m CPU and 32Mi memory.
+	// By default, the container requests 100m CPU and 128Mi memory with a 256Mi limit.
 	resources: timoniv1.#ResourceRequirements & {
 		requests: {
-			cpu:    *"10m" | timoniv1.#CPUQuantity
-			memory: *"32Mi" | timoniv1.#MemoryQuantity
+			cpu:    *"100m" | timoniv1.#CPUQuantity
+			memory: *"128Mi" | timoniv1.#MemoryQuantity
+		}
+		limits: {
+			memory: *"256Mi" | timoniv1.#MemoryQuantity
 		}
 	}
 
@@ -54,15 +57,42 @@ import (
 	replicas: *1 | int & >0
 
 	// The securityContext allows setting the container security context.
-	// By default, the container is denied privilege escalation.
+	// By default, the container is denied privilege escalation and uses read-only root filesystem.
 	securityContext: corev1.#SecurityContext & {
 		allowPrivilegeEscalation: *false | true
 		privileged:               *false | true
-		capabilities:
-		{
-			drop: *["ALL"] | [string]
+		readOnlyRootFilesystem:   *true | false
+		capabilities: {
+			drop: *["ALL"] | [...string]
 		}
 	}
+
+	// The probes configure health check endpoints for the container.
+	probes: {
+		readiness: corev1.#Probe & {
+			httpGet: {
+				path: *"/healthz" | string
+				port: *8080 | int
+			}
+			initialDelaySeconds: *5 | int
+			periodSeconds:       *10 | int
+			timeoutSeconds:      *5 | int
+			failureThreshold:    *3 | int
+		}
+		liveness: corev1.#Probe & {
+			httpGet: {
+				path: *"/livez" | string
+				port: *8080 | int
+			}
+			initialDelaySeconds: *10 | int
+			periodSeconds:       *15 | int
+			timeoutSeconds:      *5 | int
+			failureThreshold:    *3 | int
+		}
+	}
+
+	// terminationGracePeriodSeconds allows configuring the pod termination grace period.
+	terminationGracePeriodSeconds: *30 | int & >0
 
 	// The service allows setting the Kubernetes Service annotations and port.
 	// By default, the HTTP port is 8080.
@@ -73,11 +103,22 @@ import (
 
 	// Pod optional settings.
 	podAnnotations?: {[string]: string}
-	podSecurityContext?: corev1.#PodSecurityContext
 	imagePullSecrets?: [...timoniv1.#ObjectReference]
 	tolerations?: [...corev1.#Toleration]
 	affinity?: corev1.#Affinity
 	topologySpreadConstraints?: [...corev1.#TopologySpreadConstraint]
+
+	// The podSecurityContext configures pod-level security settings.
+	// By default, the pod runs as non-root with seccomp enabled.
+	podSecurityContext: corev1.#PodSecurityContext & {
+		runAsNonRoot: *true | false
+		runAsUser:    *1001 | int
+		runAsGroup:   *1001 | int
+		fsGroup:      *1001 | int
+		seccompProfile: {
+			type: *"RuntimeDefault" | string
+		}
+	}
 
 	// Database configuration for CNPG PostgreSQL.
 	db: {
