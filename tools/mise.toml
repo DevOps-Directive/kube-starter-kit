@@ -359,19 +359,27 @@ fi
 [tasks."render:inject-chart-versions"]
 description = "Inject chart versions from values files into Chart.yaml template"
 usage = '''
-arg "<template>" help="Chart.yaml template file"
-arg "<output>" help="Output Chart.yaml file"
-arg "<base-values>" help="Base values file with chartVersions"
-arg "<env-values>" help="Environment values file (overrides base)"
+arg "[template]" help="Chart.yaml template file (default: $CHART_DIR/Chart.yaml.tmpl)"
+arg "[output]" help="Output Chart.yaml file (default: $CHART_DIR/Chart.yaml)"
+arg "[base-values]" help="Base values file with chartVersions (default: $CHART_DIR/values.yaml)"
+arg "[env-values]" help="Environment values file (default: $CHART_DIR/values.$VALUES_ENV.yaml)"
 '''
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
-TEMPLATE="${usage_template:?}"
-OUTPUT="${usage_output:?}"
-BASE_VALUES="${usage_base_values:?}"
-ENV_VALUES="${usage_env_values:?}"
+# Support env vars with sensible defaults for simpler invocation
+# Can be called from chart directory with just: mise run //tools:render:inject-chart-versions
+# Or with env: VALUES_ENV=staging mise run //tools:render:inject-chart-versions
+# Or fully explicit: CHART_DIR=/path VALUES_ENV=local mise run //tools:render:inject-chart-versions
+
+CHART_DIR="${CHART_DIR:-$PWD}"
+VALUES_ENV="${VALUES_ENV:-local}"
+
+TEMPLATE="${usage_template:-${CHART_DIR}/Chart.yaml.tmpl}"
+OUTPUT="${usage_output:-${CHART_DIR}/Chart.yaml}"
+BASE_VALUES="${usage_base_values:-${CHART_DIR}/values.yaml}"
+ENV_VALUES="${usage_env_values:-${CHART_DIR}/values.${VALUES_ENV}.yaml}"
 
 cp "$TEMPLATE" "$OUTPUT"
 for chart in $(yq -r '.chartVersions | keys | .[]' "$BASE_VALUES"); do
