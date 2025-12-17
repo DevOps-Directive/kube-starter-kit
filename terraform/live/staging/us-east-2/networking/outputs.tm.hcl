@@ -1,4 +1,6 @@
 # Outputs for sharing with dependent stacks
+# Generated from: modules/networking/outputs.tf
+
 output "vpc_id" {
   backend = "terraform"
   value   = module.networking.vpc_id
@@ -23,3 +25,4 @@ output "bastion_instance_id" {
   backend = "terraform"
   value   = module.networking.bastion_instance_id
 }
+
