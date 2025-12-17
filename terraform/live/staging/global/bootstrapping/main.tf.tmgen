@@ -1,0 +1,20 @@
+module "bootstrapping" {
+  source = "../../../../modules//account-bootstrapping"
+
+  # CloudPosse context
+  name        = "bootstrap"
+  namespace   = global.namespace
+  stage       = global.stage
+  environment = global.environment
+
+  # Module inputs
+  aws_region                  = global.bootstrapping.aws_region
+  terraform_iam_role_arn      = global.terraform_iam_role_arn
+  github_oidc_assume_role_arn = global.github_oidc_assume_role_arn
+  sso_admin_assume_role_arn   = global.sso_admin_assume_role_arn
+
+  # Route53 zone
+  create_zone             = global.bootstrapping.create_zone
+  zone_name               = global.bootstrapping.zone_name
+  zone_external_dns_owner = global.bootstrapping.zone_external_dns_owner
+}

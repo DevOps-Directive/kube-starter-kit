@@ -2,7 +2,7 @@ variable "aws_region" {}
 
 variable "terraform_iam_role_arn" {}
 
-variable "sso_admin_role_arn" {}
+# REMOVED: sso_admin_role_arn - was unused, admin_sso_role_arn is the correct variable
 
 variable "vpc_id" {}
 
