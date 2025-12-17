@@ -5,4 +5,4 @@ values:
     tag: local-version
   ingress:
     nginx:
-      hostname: go-backend-timoni.local.kubestarterkit.com
+      hostname: go-backend-timoni.172-20-0-100.sslip.io

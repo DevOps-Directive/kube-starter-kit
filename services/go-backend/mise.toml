@@ -14,3 +14,24 @@ run-service = "DATABASE_URL=postgres://postgres:password@localhost:5432/postgres
 
 [tasks.build-image]
 run = "docker build ."
+
+[tasks.mirrord-run]
+description = "Run go-backend locally with mirrord (steals traffic from cluster)"
+usage = 'arg "[namespace]" help="Target namespace (default: go-backend-kustomize)" default="go-backend-kustomize" {}'
+run = '''
+mirrord exec \
+  --config-file .mirrord/mirrord.json \
+  --target-namespace "${usage_namespace}" \
+  -- go run ./cmd
+'''
+
+[tasks.mirrord-run-mirror]
+description = "Run go-backend locally with mirrord in mirror mode (copies traffic, non-invasive)"
+usage = 'arg "[namespace]" help="Target namespace (default: go-backend-kustomize)" default="go-backend-kustomize" {}'
+run = '''
+mirrord exec \
+  --config-file .mirrord/mirrord.json \
+  --target-namespace "${usage_namespace}" \
+  --override feature.network.incoming=mirror \
+  -- go run ./cmd
+'''

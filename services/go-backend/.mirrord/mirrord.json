@@ -1,0 +1,16 @@
+{
+  "target": {
+    "path": "deployment/go-backend"
+  },
+  "feature": {
+    "network": {
+      "incoming": "steal",
+      "outgoing": true
+    },
+    "fs": "local",
+    "env": true
+  },
+  "agent": {
+    "startup_timeout": 60
+  }
+}
