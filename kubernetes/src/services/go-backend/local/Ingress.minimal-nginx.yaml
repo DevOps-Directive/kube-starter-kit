@@ -2,11 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: minimal-nginx
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: go-backend-kustomize.local.kubestarterkit.com
 spec:
   rules:
-    - host: "go-backend-kustomize.local.kubestarterkit.com"
+    - host: "go-backend-kustomize.172-20-0-100.sslip.io"
       http:
         paths:
           - path: /

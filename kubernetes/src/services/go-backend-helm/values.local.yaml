@@ -4,4 +4,4 @@ image:
   version: local-version
 ingress:
   nginx:
-    hostname: go-backend-helm.local.kubestarterkit.com
+    hostname: go-backend-helm.172-20-0-100.sslip.io

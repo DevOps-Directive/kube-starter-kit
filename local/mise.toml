@@ -1,6 +1,17 @@
 [tasks.create-cluster]
-description = "Create KinD development cluster"
+description = "Create KinD development cluster with stable network"
 run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure the kind network exists with a fixed subnet for stable LoadBalancer IPs
+if ! docker network inspect kind &>/dev/null; then
+  echo "Creating Docker network 'kind' with subnet 172.20.0.0/16..."
+  docker network create --subnet=172.20.0.0/16 kind
+else
+  echo "Docker network 'kind' already exists"
+fi
+
 kind create cluster --config ./kind/cluster-config.yaml
 ./kind/create-local-registry.sh
 '''
@@ -20,3 +31,12 @@ kind delete cluster
 run = "tilt up --file ./tilt/Tiltfile"
 
 # TODO: Use tmux to run + stop tilt & cloud-provider-kind together
+
+[tasks.ingress-urls]
+description = "Print sslip.io URLs for local services"
+run = '''
+echo "Service URLs (sslip.io):"
+echo "  go-backend-kustomize: http://go-backend-kustomize.172-20-0-100.sslip.io"
+echo "  go-backend-helm:      http://go-backend-helm.172-20-0-100.sslip.io"
+echo "  go-backend-timoni:    http://go-backend-timoni.172-20-0-100.sslip.io"
+'''
