@@ -73,13 +73,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Run drift detection in all deployed stacks (if deploy skipped)
-        if: steps.list-changed.outputs.stdout && ! cancelled() && steps.deploy.outcome != 'skipped'
-        run: |
-          terramate script run \
-            -C terraform/live/staging/us-east-2 \
-            --parallel 5 \
-            --changed \
-            drift detect
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
