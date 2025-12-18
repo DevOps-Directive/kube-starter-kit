@@ -8,14 +8,14 @@ on:
 jobs:
   deploy:
     name: Deploy Terraform changes in changed Terramate stacks
-
+    runs-on: ubuntu-24.04
+    env:
+      AWS_REGION: us-east-2
     permissions:
       id-token: write
       contents: read
       pull-requests: read
       checks: read
-
-    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout

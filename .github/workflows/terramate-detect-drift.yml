@@ -9,14 +9,14 @@ on:
 jobs:
   drift-detection:
     name: Detect and reconcile drift in Terraform stacks
-
+    runs-on: ubuntu-24.04
+    env:
+      AWS_REGION: us-east-2
     permissions:
       id-token: write
       contents: read
       pull-requests: read
       checks: read
-
-    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
