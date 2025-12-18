@@ -53,7 +53,6 @@ script "preview" {
 
   job {
     commands = [
-      ["terraform", "init", "-lock-timeout=5m"],
       ["terraform", "validate"],
       ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
         sync_preview        = true
