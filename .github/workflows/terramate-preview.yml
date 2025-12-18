@@ -63,16 +63,17 @@ jobs:
 
       ### Run the Terraform preview via Terramate in each changed stack
 
-      - name: Run Terraform init in all changed stacks
-        if: steps.list-changed.outputs.stdout
-        run: |
-          terramate script run \
-            -C terraform/live/staging/us-east-2/services/go-backend \
-            --changed \
-            --parallel 1 \
-            init
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      # Moved init to the plan step
+      # - name: Run Terraform init in all changed stacks
+      #   if: steps.list-changed.outputs.stdout
+      #   run: |
+      #     terramate script run \
+      #       -C terraform/live/staging/us-east-2/services/go-backend \
+      #       --changed \
+      #       --parallel 1 \
+      #       init
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
 
       - name: Plan Terraform changes in changed stacks
         if: steps.list-changed.outputs.stdout
