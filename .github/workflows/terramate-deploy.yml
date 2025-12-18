@@ -49,13 +49,14 @@ jobs:
         run: aws sts get-caller-identity
 
       ### Run the Terraform deployment via Terramate in each changed stack
-      - name: Run Terraform init in all changed stacks
+      - name: Run Terraform init on changed stacks and direct dependencies
         if: steps.list-changed.outputs.stdout
         run: |
           terramate script run \
             -C terraform/live/staging/us-east-2 \
-            --parallel 1 \
             --changed \
+            --include-direct-dependencies \
+            --parallel 1 \
             init
         env:
           GITHUB_TOKEN: ${{ github.token }}
