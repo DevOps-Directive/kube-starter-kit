@@ -1,4 +1,4 @@
-name: Scheduled Terraform Drift Detection
+name: Scheduled Terraform Drift Detection + Reconciliation
 
 on:
   workflow_dispatch:
@@ -73,17 +73,17 @@ jobs:
             --status=drifted \
             --tags reconcile
 
-      # - name: Run drift reconciliation
-      #   id: drift-reconcile
-      #   if: steps.find-drifted.outputs.stdout
-      #   run: |
-      #     terramate script run \
-      #       -C terraform/live/staging/us-east-2 \
-      #       --tags reconcile \
-      #       --status=drifted \
-      #       --parallel 5 \
-      #       --continue-on-error \
-      #       -- \
-      #       drift reconcile
-      #   env:
-      #     GITHUB_TOKEN: ${{ github.token }}
+      - name: Run drift reconciliation
+        id: drift-reconcile
+        if: steps.find-drifted.outputs.stdout
+        run: |
+          terramate script run \
+            -C terraform/live/staging/us-east-2 \
+            --tags reconcile \
+            --status=drifted \
+            --parallel 5 \
+            --continue-on-error \
+            -- \
+            drift reconcile
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

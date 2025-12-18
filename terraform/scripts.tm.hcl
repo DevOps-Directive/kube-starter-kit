@@ -76,6 +76,20 @@ script "apply" {
   }
 }
 
+script "drift" "detect" {
+  name        = "Terraform Drift Check"
+  description = "Detect drifts in Terraform configuration and synchronize it to Terramate Cloud"
+
+  job {
+    commands = [
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+        sync_drift_status   = true
+        terraform_plan_file = "out.tfplan"
+      }],
+    ]
+  }
+}
+
 script "destroy" {
   description = "Destroy Terraform resources"
   job {
