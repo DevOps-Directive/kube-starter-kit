@@ -42,7 +42,7 @@ generate_hcl "_main.tf" {
 # Generate outputs for sharing with dependent stacks
 # Note: Requires running `terramate generate` twice - first creates this file,
 # second run parses it and updates _sharing.tf
-generate_hcl "_outputs.tm.hcl" {
+generate_hcl "_outputs_shared.tm.hcl" {
   condition = tm_contains(terramate.stack.tags, "networking")
 
   content {
