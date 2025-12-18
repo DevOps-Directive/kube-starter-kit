@@ -1,0 +1,6 @@
+# Generated default values for CloudPosse label context
+
+namespace   = global.namespace
+environment = global.environment
+stage       = "infra"
+name        = "bootstrap"

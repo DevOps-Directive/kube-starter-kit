@@ -1,0 +1,26 @@
+# Generated variables for inline stack (non-CloudPosse)
+# CloudPosse context variables are in context.tf
+
+variable "terraform_iam_role_arn" {
+  description = "IAM role ARN for Terraform to assume"
+  type        = string
+  default     = global.terraform_iam_role_arn
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-2"
+}
+
+variable "github_oidc_assume_role_arn" {
+  description = "GitHub OIDC role ARN for CI/CD"
+  type        = string
+  default     = global.infra.github_oidc_assume_role_arn
+}
+
+variable "sso_admin_assume_role_arn" {
+  description = "SSO admin role ARN"
+  type        = string
+  default     = global.infra.sso_admin_assume_role_arn
+}

@@ -1,3 +1,7 @@
 [tools]
 terraform = "1"
-terragrunt = "0.92"
+terramate = "0.11"
+
+[tasks.generate-outputs]
+description = "Generate outputs.tm.hcl from a module's outputs.tf. Usage: mise run generate-outputs -- <module_path> <wrapper_name> [output_file]"
+run = "scripts/generate-outputs.sh {{arg(name='module_path')}} {{arg(name='wrapper_name')}} {{arg(name='output_file', default='')}}"
