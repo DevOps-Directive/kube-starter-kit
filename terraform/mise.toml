@@ -1,6 +1,6 @@
 [tools]
 terraform = "1"
-terramate = "0.11"
+terramate = "0.15"
 
 [tasks.generate-outputs]
 description = "Generate outputs.tm.hcl from a module's outputs.tf. Usage: mise run generate-outputs -- <module_path> <wrapper_name> [output_file]"
