@@ -2,6 +2,6 @@
 # This enables cross-stack dependency management via Terraform outputs
 sharing_backend "terraform" {
   type     = terraform
-  filename = "_outputs_shared.tf"
+  filename = "_shared.tf"
   command  = ["terraform", "output", "-json"]
 }
