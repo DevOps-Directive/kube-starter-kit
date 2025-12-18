@@ -29,6 +29,7 @@ jobs:
         uses: terramate-io/terramate-action@0500f8a40b57a793a41edd2aea0a49e31c7204e8 # v3.2.0
         with:
           version: "0.15.1"
+          cloud_organization: devops-directive
       - name: HashiCorp - Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
