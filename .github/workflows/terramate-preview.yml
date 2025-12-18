@@ -51,6 +51,43 @@ jobs:
             -C terraform/live/staging \
             --changed
 
+      ### Determine stacks to initialize (changed + sharing dependencies)
+
+      - name: Get sharing dependencies
+        id: sharing-deps
+        if: steps.list-changed.outputs.stdout
+        run: |
+          # Pass the changed stack paths to only scan those stacks for dependencies
+          DEPS=$(echo "${{ steps.list-changed.outputs.stdout }}" | \
+            terraform/scripts/get-sharing-dependencies.sh terraform/live/staging)
+          echo "ids<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$DEPS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve stacks to initialize
+        id: stacks-to-init
+        if: steps.list-changed.outputs.stdout
+        run: |
+          # Get changed stack IDs
+          CHANGED_IDS=""
+          while IFS= read -r stack_path; do
+            [ -z "$stack_path" ] && continue
+            id=$(terramate -C "terraform/live/staging/$stack_path" \
+              experimental get-config-value terramate.stack.id 2>/dev/null || true)
+            [ -n "$id" ] && CHANGED_IDS+="$id"$'\n'
+          done <<< "${{ steps.list-changed.outputs.stdout }}"
+
+          # Combine changed + dependency IDs, dedupe
+          ALL_IDS=$(echo -e "${CHANGED_IDS}${{ steps.sharing-deps.outputs.ids }}" \
+            | sort -u | grep -v '^$' || true)
+
+          # Resolve to paths
+          PATHS=$(echo "$ALL_IDS" | terraform/scripts/resolve-stack-ids.sh terraform/live/staging)
+
+          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$PATHS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
       ### Configure cloud credentials
       - name: "Configure AWS Credentials"
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
@@ -63,15 +100,15 @@ jobs:
 
       ### Run the Terraform preview via Terramate in each changed stack
 
-      # Moved init to the plan step
-      - name: Run Terraform init in all changed stacks
-        if: steps.list-changed.outputs.stdout
+      - name: Run Terraform init on changed stacks and dependencies
+        if: steps.stacks-to-init.outputs.paths
         run: |
-          terramate script run \
-            -C terraform/live/staging \
-            --changed \
-            --parallel 1 \
-            init
+          while IFS= read -r stack_path; do
+            [ -z "$stack_path" ] && continue
+            echo "::group::Init $stack_path"
+            terramate run -C "$stack_path" -- terraform init -input=false
+            echo "::endgroup::"
+          done <<< "${{ steps.stacks-to-init.outputs.paths }}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
