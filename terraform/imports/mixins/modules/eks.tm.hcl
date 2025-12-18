@@ -1,5 +1,5 @@
 # EKS module generation for stacks tagged with "eks"
-# Generates main.tf with module call
+# Generates main.tf with module call and _outputs.tm.hcl for outputs sharing
 #
 # Required globals:
 #   - global.namespace
@@ -20,7 +20,7 @@
 #   - private_subnets (from networking stack)
 #   - route53_zone_arn (from bootstrapping stack)
 
-generate_hcl "main.tf" {
+generate_hcl "_main.tf" {
   condition = tm_contains(terramate.stack.tags, "eks")
 
   content {
@@ -50,6 +50,50 @@ generate_hcl "main.tf" {
       endpoint_public_access             = global.eks.endpoint_public_access
       endpoint_private_access            = global.eks.endpoint_private_access
       argocd_hostname                    = global.eks.argocd_hostname
+    }
+  }
+}
+
+# Generate outputs for sharing with dependent stacks
+# Note: Requires running `terramate generate` twice - first creates this file,
+# second run parses it and updates _sharing.tf
+generate_hcl "_outputs.tm.hcl" {
+  condition = tm_contains(terramate.stack.tags, "eks")
+
+  content {
+    output "eks_cluster_name" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.eks_cluster_name")
+    }
+
+    output "eks_cluster_endpoint" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.eks_cluster_endpoint")
+    }
+
+    output "deploy_key_public_key" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.deploy_key_public_key")
+    }
+
+    output "deploy_key_setup" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.deploy_key_setup")
+    }
+
+    output "karpenter_interruption_queue" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.karpenter_interruption_queue")
+    }
+
+    output "karpenter_node_role_name" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.karpenter_node_role_name")
+    }
+
+    output "argocd_webhook_setup" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.eks.argocd_webhook_setup")
     }
   }
 }

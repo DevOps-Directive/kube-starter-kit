@@ -1,5 +1,5 @@
 # Account bootstrapping module generation for stacks tagged with "bootstrapping"
-# Generates main.tf with module call
+# Generates main.tf with module call and _outputs.tm.hcl for outputs sharing
 #
 # Note: Only applies to environment-specific bootstrapping stacks (staging, prod)
 # Shared bootstrapping stacks (terraform-bootstrapping, ecr-repositories-bootstrapping, etc.)
@@ -17,7 +17,7 @@
 #   - global.bootstrapping.zone_name
 #   - global.bootstrapping.zone_external_dns_owner
 
-generate_hcl "main.tf" {
+generate_hcl "_main.tf" {
   # Only generate for environment-specific bootstrapping, not shared inline stacks
   condition = tm_alltrue([
     tm_contains(terramate.stack.tags, "bootstrapping"),
@@ -44,6 +44,34 @@ generate_hcl "main.tf" {
       create_zone             = global.bootstrapping.create_zone
       zone_name               = global.bootstrapping.zone_name
       zone_external_dns_owner = global.bootstrapping.zone_external_dns_owner
+    }
+  }
+}
+
+# Generate outputs for sharing with dependent stacks
+# Note: Requires running `terramate generate` twice - first creates this file,
+# second run parses it and updates _sharing.tf
+generate_hcl "_outputs.tm.hcl" {
+  # Only generate for environment-specific bootstrapping, not shared inline stacks
+  condition = tm_alltrue([
+    tm_contains(terramate.stack.tags, "bootstrapping"),
+    !tm_contains(terramate.stack.tags, "shared"),
+  ])
+
+  content {
+    output "terraform_iam_role_arn" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.bootstrapping.terraform_iam_role_arn")
+    }
+
+    output "zone_arn" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.bootstrapping.zone_arn")
+    }
+
+    output "zone_name_servers" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.bootstrapping.zone_name_servers")
     }
   }
 }

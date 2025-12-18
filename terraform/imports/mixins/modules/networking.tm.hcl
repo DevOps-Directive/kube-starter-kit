@@ -1,5 +1,5 @@
 # Networking module generation for stacks tagged with "networking"
-# Generates main.tf with module call
+# Generates main.tf with module call and _outputs.tm.hcl for outputs sharing
 #
 # Required globals:
 #   - global.namespace
@@ -12,7 +12,7 @@
 #   - global.networking.enable_bastion
 #   - global.networking.planetscale_endpoint_service_name
 
-generate_hcl "main.tf" {
+generate_hcl "_main.tf" {
   condition = tm_contains(terramate.stack.tags, "networking")
 
   content {
@@ -35,6 +35,40 @@ generate_hcl "main.tf" {
       enable_bastion = global.networking.enable_bastion
 
       planetscale_endpoint_service_name = global.networking.planetscale_endpoint_service_name
+    }
+  }
+}
+
+# Generate outputs for sharing with dependent stacks
+# Note: Requires running `terramate generate` twice - first creates this file,
+# second run parses it and updates _sharing.tf
+generate_hcl "_outputs.tm.hcl" {
+  condition = tm_contains(terramate.stack.tags, "networking")
+
+  content {
+    output "vpc_id" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.networking.vpc_id")
+    }
+
+    output "vpc_cidr" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.networking.vpc_cidr")
+    }
+
+    output "private_subnets" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.networking.private_subnets")
+    }
+
+    output "public_subnets" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.networking.public_subnets")
+    }
+
+    output "bastion_instance_id" {
+      backend = "terraform"
+      value   = tm_hcl_expression("module.networking.bastion_instance_id")
     }
   }
 }
