@@ -15,7 +15,7 @@ module "s3_bucket" {
 
 # IAM policy for S3 bucket access
 resource "aws_iam_policy" "s3_access" {
-  name        = "${module.this.id}-s3-access-foo"
+  name        = "${module.this.id}-s3-access"
   description = "IAM policy for go-backend service to access its S3 bucket"
 
   policy = jsonencode({
