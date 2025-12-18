@@ -3,5 +3,8 @@ stack {
   name        = "eks"
   description = "EKS cluster for production us-east-2 (example)"
   tags        = ["prod", "us-east-2", "eks", "infrastructure", "example"]
-  after       = ["example-prod-use2-networking", "example-prod-gbl-bootstrapping"]
+  after = [
+    "/terraform/live/prod/us-east-2/networking",
+    "/terraform/live/prod/global/bootstrapping",
+  ]
 }

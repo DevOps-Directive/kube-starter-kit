@@ -34,8 +34,8 @@ module "zone" {
   # Without this, it will create a record initially, but will not update/delete
   records = var.zone_external_dns_owner != null ? {
     _extdns = {
-      type = "TXT"
-      ttl  = 300
+      type    = "TXT"
+      ttl     = 300
       records = ["heritage=external-dns,external-dns/owner=${var.zone_external_dns_owner}"]
     }
   } : {}

@@ -1,5 +1,5 @@
 # Terramate scripts for Terraform orchestration
-script "terraform" "init" {
+script "init" {
   description = "Initialize Terraform"
   job {
     name     = "terraform init"
@@ -7,7 +7,21 @@ script "terraform" "init" {
   }
 }
 
-script "terraform" "validate" {
+script "lock" {
+  description = "Update provider lock file with cross-platform hashes"
+  job {
+    name = "terraform providers lock"
+    commands = [
+      ["terraform", "providers", "lock",
+        "-platform=linux_amd64",
+        "-platform=darwin_amd64",
+        "-platform=darwin_arm64",
+      ],
+    ]
+  }
+}
+
+script "validate" {
   description = "Validate Terraform configuration"
   job {
     name = "terraform validate"
@@ -18,7 +32,7 @@ script "terraform" "validate" {
   }
 }
 
-script "terraform" "plan" {
+script "plan" {
   description = "Plan Terraform changes with outputs sharing"
   job {
     name = "terraform plan"
@@ -33,7 +47,24 @@ script "terraform" "plan" {
   }
 }
 
-script "terraform" "apply" {
+script "preview" {
+  name        = "Terraform Deployment Preview"
+  description = "Create a preview of Terraform changes and synchronize it to Terramate Cloud"
+
+  job {
+    commands = [
+      ["terraform", "validate"],
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+        sync_preview        = true
+        terraform_plan_file = "out.tfplan"
+        enable_sharing      = true
+        mock_on_fail        = true
+      }],
+    ]
+  }
+}
+
+script "apply" {
   description = "Apply Terraform changes with outputs sharing"
   job {
     name = "terraform apply"
@@ -46,7 +77,7 @@ script "terraform" "apply" {
   }
 }
 
-script "terraform" "destroy" {
+script "destroy" {
   description = "Destroy Terraform resources"
   job {
     name = "terraform destroy"
@@ -57,7 +88,7 @@ script "terraform" "destroy" {
   }
 }
 
-script "terraform" "fmt" {
+script "fmt" {
   description = "Format Terraform files"
   job {
     name     = "terraform fmt"

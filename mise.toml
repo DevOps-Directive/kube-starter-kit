@@ -15,7 +15,7 @@
 experimental_monorepo_root = true
 
 [tools]
-terramate = "0.11"
+terramate = "0.15"
 yq = "4"
 jq = "1"
 aws-cli = "2"

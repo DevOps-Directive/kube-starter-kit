@@ -6,6 +6,11 @@ terramate {
       default_branch = "main"
     }
 
+    cloud {
+      organization = "devops-directive"
+      location     = "us"
+    }
+
     # Enable experimental features
     experiments = [
       "outputs-sharing",
