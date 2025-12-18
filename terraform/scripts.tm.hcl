@@ -2,9 +2,16 @@
 script "init" {
   description = "Initialize Terraform"
   job {
-    name = "terraform init"
+    name     = "terraform init"
+    commands = [["terraform", "init", "-lock-timeout=5m"]]
+  }
+}
+
+script "lock" {
+  description = "Update provider lock file with cross-platform hashes"
+  job {
+    name = "terraform providers lock"
     commands = [
-      ["terraform", "init", "-lock-timeout=5m"],
       ["terraform", "providers", "lock",
         "-platform=linux_amd64",
         "-platform=darwin_amd64",
