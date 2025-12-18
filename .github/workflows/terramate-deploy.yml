@@ -1,0 +1,84 @@
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Terraform changes in changed Terramate stacks
+
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: read
+      checks: read
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      ### Install tooling
+      - name: Install Terramate
+        uses: terramate-io/terramate-action@0500f8a40b57a793a41edd2aea0a49e31c7204e8 # v3.2.0
+        with:
+          version: "0.15.1"
+      - name: HashiCorp - Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.14.3"
+
+      ### Check for changed stacks
+      - name: List changed stacks
+        id: list-changed
+        run: terramate list -C terraform/live/staging/us-east-2 --changed
+
+      ### Configure cloud credentials
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
+      - name: Verify AWS credentials
+        if: steps.list-changed.outputs.stdout
+        run: aws sts get-caller-identity
+
+      ### Run the Terraform deployment via Terramate in each changed stack
+      - name: Run Terraform init in all changed stacks
+        if: steps.list-changed.outputs.stdout
+        run: |
+          terramate script run \
+            -C terraform/live/staging/us-east-2 \
+            --parallel 1 \
+            --changed \
+            init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run Terraform apply in all changed stacks
+        id: deploy
+        if: steps.list-changed.outputs.stdout
+        run: |
+          terramate script run \
+            -C terraform/live/staging/us-east-2 \
+            --parallel 5 \
+            --changed \
+            deploy
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run drift detection in all deployed stacks (if deploy skipped)
+        if: steps.list-changed.outputs.stdout && ! cancelled() && steps.deploy.outcome != 'skipped'
+        run: |
+          terramate script run \
+            -C terraform/live/staging/us-east-2 \
+            --parallel 5 \
+            --changed \
+            drift detect
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
