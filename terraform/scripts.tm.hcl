@@ -58,7 +58,6 @@ script "preview" {
         sync_preview        = true
         terraform_plan_file = "out.tfplan"
         enable_sharing      = true
-        mock_on_fail        = true
       }],
     ]
   }
