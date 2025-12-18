@@ -3,7 +3,7 @@ name: Terraform Deployment
 on:
   push:
     branches:
-      - main
+      - main_TEMP_DISABLE
 
 jobs:
   deploy:
