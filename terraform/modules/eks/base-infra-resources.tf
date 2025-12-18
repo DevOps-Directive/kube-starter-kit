@@ -38,7 +38,10 @@ module "aws_ebs_csi_pod_identity" {
 
   associations = {
     this = {
-      cluster_name = module.eks.cluster_name
+      # NOTE: We don't use module.eks.cluster_name output to prevent implicit dependency 
+      #       the addon pods will crash (and the AddOn will be stuck in "creating" 
+      #       unless pod identity exists to grant it the necessary permissions
+      cluster_name = module.this.id
     }
   }
 }
