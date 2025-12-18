@@ -9,6 +9,7 @@ jobs:
   preview:
     name: Plan Terraform changes in changed stacks
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     env:
       AWS_REGION: us-east-2
     permissions:
