@@ -1,8 +1,5 @@
 // TERRAMATE: GENERATED AUTOMATICALLY DO NOT EDIT
 
-variable "eks_cluster_name" {
-  type = any
-}
 output "s3_bucket_id" {
   value = module.go_backend.s3_bucket_id
 }

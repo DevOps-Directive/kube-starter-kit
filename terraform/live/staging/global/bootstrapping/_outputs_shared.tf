@@ -6,6 +6,3 @@ output "terraform_iam_role_arn" {
 output "zone_arn" {
   value = module.bootstrapping.zone_arn
 }
-output "zone_name_servers" {
-  value = module.bootstrapping.zone_name_servers
-}

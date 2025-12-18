@@ -68,10 +68,20 @@ generate_hcl "_outputs.tm.hcl" {
       backend = "terraform"
       value   = tm_hcl_expression("module.bootstrapping.zone_arn")
     }
+  }
+}
 
+# Generate informational outputs (not shared with other stacks)
+generate_hcl "_outputs_info.tf" {
+  # Only generate for environment-specific bootstrapping, not shared inline stacks
+  condition = tm_alltrue([
+    tm_contains(terramate.stack.tags, "bootstrapping"),
+    !tm_contains(terramate.stack.tags, "shared"),
+  ])
+
+  content {
     output "zone_name_servers" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.bootstrapping.zone_name_servers")
+      value = tm_hcl_expression("module.bootstrapping.zone_name_servers")
     }
   }
 }
