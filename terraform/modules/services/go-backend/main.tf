@@ -3,7 +3,7 @@ module "s3_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "5.7.0"
 
-  bucket        = "${module.this.id}-data-foo"
+  bucket        = "${module.this.id}-data"
   force_destroy = var.force_destroy
 
   versioning = {
@@ -15,7 +15,7 @@ module "s3_bucket" {
 
 # IAM policy for S3 bucket access
 resource "aws_iam_policy" "s3_access" {
-  name        = "${module.this.id}-s3-access"
+  name        = "${module.this.id}-s3-access-foo"
   description = "IAM policy for go-backend service to access its S3 bucket"
 
   policy = jsonencode({
