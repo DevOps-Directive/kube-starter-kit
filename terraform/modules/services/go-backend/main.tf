@@ -3,7 +3,7 @@ module "s3_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "5.7.0"
 
-  bucket        = "${module.this.id}-data"
+  bucket        = "${module.this.id}-data-foo"
   force_destroy = var.force_destroy
 
   versioning = {
