@@ -12,11 +12,3 @@ output "private_subnets" {
   backend = "terraform"
   value   = module.networking.private_subnets
 }
-output "public_subnets" {
-  backend = "terraform"
-  value   = module.networking.public_subnets
-}
-output "bastion_instance_id" {
-  backend = "terraform"
-  value   = module.networking.bastion_instance_id
-}

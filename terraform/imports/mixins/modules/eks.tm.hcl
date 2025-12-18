@@ -65,35 +65,36 @@ generate_hcl "_outputs.tm.hcl" {
       backend = "terraform"
       value   = tm_hcl_expression("module.eks.eks_cluster_name")
     }
+  }
+}
 
+# Generate informational outputs (not shared with other stacks)
+generate_hcl "_outputs_info.tf" {
+  condition = tm_contains(terramate.stack.tags, "eks")
+
+  content {
     output "eks_cluster_endpoint" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.eks.eks_cluster_endpoint")
+      value = tm_hcl_expression("module.eks.eks_cluster_endpoint")
     }
 
     output "deploy_key_public_key" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.eks.deploy_key_public_key")
+      value = tm_hcl_expression("module.eks.deploy_key_public_key")
     }
 
     output "deploy_key_setup" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.eks.deploy_key_setup")
+      value = tm_hcl_expression("module.eks.deploy_key_setup")
     }
 
     output "karpenter_interruption_queue" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.eks.karpenter_interruption_queue")
+      value = tm_hcl_expression("module.eks.karpenter_interruption_queue")
     }
 
     output "karpenter_node_role_name" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.eks.karpenter_node_role_name")
+      value = tm_hcl_expression("module.eks.karpenter_node_role_name")
     }
 
     output "argocd_webhook_setup" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.eks.argocd_webhook_setup")
+      value = tm_hcl_expression("module.eks.argocd_webhook_setup")
     }
   }
 }

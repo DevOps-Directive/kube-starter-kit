@@ -60,15 +60,20 @@ generate_hcl "_outputs.tm.hcl" {
       backend = "terraform"
       value   = tm_hcl_expression("module.networking.private_subnets")
     }
+  }
+}
 
+# Generate informational outputs (not shared with other stacks)
+generate_hcl "_outputs_info.tf" {
+  condition = tm_contains(terramate.stack.tags, "networking")
+
+  content {
     output "public_subnets" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.networking.public_subnets")
+      value = tm_hcl_expression("module.networking.public_subnets")
     }
 
     output "bastion_instance_id" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.networking.bastion_instance_id")
+      value = tm_hcl_expression("module.networking.bastion_instance_id")
     }
   }
 }
