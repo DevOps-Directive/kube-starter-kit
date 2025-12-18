@@ -53,8 +53,8 @@ script "preview" {
 
   job {
     commands = [
-      ["Terraform", "validate"],
-      ["Terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+      ["terraform", "validate"],
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
         sync_preview        = true
         terraform_plan_file = "out.tfplan"
       }],
