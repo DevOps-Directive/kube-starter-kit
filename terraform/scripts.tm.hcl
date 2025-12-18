@@ -2,8 +2,15 @@
 script "init" {
   description = "Initialize Terraform"
   job {
-    name     = "terraform init"
-    commands = [["terraform", "init", "-lock-timeout=5m"]]
+    name = "terraform init"
+    commands = [
+      ["terraform", "init", "-lock-timeout=5m"],
+      ["terraform", "providers", "lock",
+        "-platform=linux_amd64",
+        "-platform=darwin_amd64",
+        "-platform=darwin_arm64",
+      ],
+    ]
   }
 }
 
