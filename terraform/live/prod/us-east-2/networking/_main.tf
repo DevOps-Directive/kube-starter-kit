@@ -7,7 +7,7 @@ module "networking" {
   environment_name                  = "prod"
   name                              = "network"
   namespace                         = "ksk"
-  nat_mode                          = "nat_gateway"
+  nat_mode                          = "one_nat_gateway_per_az"
   planetscale_endpoint_service_name = "com.amazonaws.vpce.us-east-2.vpce-svc-069f88c102c1a7fba"
   source                            = "../../../../../terraform/modules//networking"
   stage                             = "prod"

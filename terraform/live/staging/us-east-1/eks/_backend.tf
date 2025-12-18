@@ -3,7 +3,7 @@
 terraform {
   backend "s3" {
     bucket       = "ksk-gbl-infra-bootstrap-state"
-    key          = "terraform/examples/prod/global/bootstrapping.tfstate"
+    key          = "terraform/live/staging/us-east-1/eks.tfstate"
     region       = "us-east-2"
     use_lockfile = true
   }
