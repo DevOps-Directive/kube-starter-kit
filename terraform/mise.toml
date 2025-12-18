@@ -5,19 +5,3 @@ terramate = "0.15"
 [tasks.generate-outputs]
 description = "Generate outputs.tm.hcl from a module's outputs.tf. Usage: mise run generate-outputs -- <module_path> <wrapper_name> [output_file]"
 run = "scripts/generate-outputs.sh {{arg(name='module_path')}} {{arg(name='wrapper_name')}} {{arg(name='output_file', default='')}}"
-
-[tasks.get-sharing-deps]
-description = "Get stack IDs that stacks in a directory depend on for output sharing"
-run = "scripts/get-sharing-dependencies.sh {{arg(name='dir', default='live/staging')}}"
-
-[tasks.resolve-stack-ids]
-description = "Resolve stack IDs to paths. Pass IDs via stdin or as second arg"
-run = "scripts/resolve-stack-ids.sh {{arg(name='search_dir', default='live/staging')}} {{arg(name='stack_ids', default='')}}"
-
-[tasks.list-stacks-to-init]
-description = "List all stacks needing init (changed + their sharing dependencies)"
-run = "scripts/list-stacks-to-init.sh {{arg(name='dir', default='live/staging')}}"
-
-[tasks.test-sharing-scripts]
-description = "Test the sharing dependency scripts"
-run = "scripts/test-sharing-scripts.sh"
