@@ -31,7 +31,7 @@ jobs:
         id: cache-check
         uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
-          path: ${{ github.workspace }}/.terraform-plugin-cache
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
           key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
           lookup-only: true
 
@@ -47,12 +47,7 @@ jobs:
         with:
           terraform_version: "1.14.3"
 
-      ### Create plugin cache directory
-      - name: Create Terraform plugin cache directory
-        if: steps.cache-check.outputs.cache-hit != 'true'
-        run: mkdir -p ${{ github.workspace }}/.terraform-plugin-cache
-
-      ### Initialize all stacks to download providers
+      ### Initialize all stacks to download providers (TF_PLUGIN_CACHE_DIR set by Terramate)
       - name: Initialize all Terraform stacks (providers only)
         if: steps.cache-check.outputs.cache-hit != 'true'
         run: |
@@ -60,13 +55,11 @@ jobs:
             -C terraform/live \
             --parallel 1 \
             init-providers
-        env:
-          TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform-plugin-cache
 
       ### Save the provider cache
       - name: Save Terraform provider cache
         if: steps.cache-check.outputs.cache-hit != 'true'
         uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
-          path: ${{ github.workspace }}/.terraform-plugin-cache
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
           key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}

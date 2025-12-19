@@ -1,8 +1,9 @@
 # Local .terraform directories
 .terraform/
 
-# Terraform plugin cache (used in CI)
-.terraform-plugin-cache/
+# Terraform plugin cache (used locally and in CI via Terramate run.env)
+.tf_plugin_cache_dir/*
+!.tf_plugin_cache_dir/.gitkeep
 
 # .tfstate files
 *.tfstate

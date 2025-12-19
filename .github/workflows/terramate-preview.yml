@@ -12,7 +12,6 @@ jobs:
     timeout-minutes: 60
     env:
       AWS_REGION: us-east-2
-      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform-plugin-cache
     permissions:
       id-token: write
       contents: read
@@ -38,13 +37,10 @@ jobs:
           terraform_version: "1.14.3"
 
       ### Restore provider cache
-      - name: Create Terraform plugin cache directory
-        run: mkdir -p ${{ github.workspace }}/.terraform-plugin-cache
-
       - name: Restore Terraform provider cache
         uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
-          path: ${{ github.workspace }}/.terraform-plugin-cache
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
           key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
           restore-keys: |
             terraform-providers-
