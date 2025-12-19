@@ -23,14 +23,16 @@ local/          # Local dev (KinD + Tilt)
 
 ## Key Features
 
-- **Terraform Infrastructure** - Modular Terraform for AWS with multi-environment support
-- **Terramate Orchestration** - Stack-based orchestration with change detection and CI/CD integration
-- **AWS Architecture** - Multi-account setup with VPC, EKS, and secure account boundaries
-- **User Management** - Unified identity via GitHub with AWS IAM Identity Center
-- **GitOps Deployment** - ArgoCD-based declarative, auditable deployments
-- **Kubernetes Baseline** - Ingress, cert-manager, external-dns, secrets, observability
-- **CI/CD Pipelines** - Automated container builds and staging deployments
-- **Image CVE Scanning** - Automated vulnerability scanning with daily scheduled scans
-- **Release Management** - Automated release PRs with release-please
-- **Demo Applications** - Fully functional examples demonstrating end-to-end patterns
-- **Local Development** - KinD, Tilt, and mirrord for fast local development
+| Feature | Description |
+|---------|-------------|
+| Terraform Infrastructure | Modular Terraform for AWS with multi-environment support |
+| Terramate Orchestration | Stack-based orchestration with change detection and CI/CD integration |
+| AWS Architecture | Multi-account setup with VPC, EKS, and secure account boundaries |
+| User Management | Unified identity via GitHub with AWS IAM Identity Center |
+| GitOps Deployment | ArgoCD-based declarative, auditable deployments |
+| Kubernetes Baseline | Ingress, cert-manager, external-dns, secrets, observability |
+| CI/CD Pipelines | Automated container builds and staging deployments |
+| Image CVE Scanning | Automated vulnerability scanning with daily scheduled scans |
+| Release Management | Automated release PRs with release-please |
+| Demo Applications | Fully functional examples demonstrating end-to-end patterns |
+| Local Development | KinD, Tilt, and mirrord for fast local development |
