@@ -1,6 +1,6 @@
 ---
 title: "Terraform for Base Infrastructure"
-description: "Modular, well-structured Terraform for AWS with multi-environment support via Terramate"
+description: "Modular, well-structured Terraform for AWS with isolated state and battle-tested modules"
 icon: "cube"
 ---
 
@@ -11,43 +11,83 @@ Infrastructure as Code is table stakes for any serious engineering team, but get
 - **Sprawling, copy-pasted modules:** Teams often start with one environment and end up with duplicated Terraform code everywhere, each copy drifting slightly from the others.
 - **State management headaches:** Where do you store state? How do you handle locking? How do you structure state files so changes in one area don't require touching unrelated infrastructure?
 - **No clear patterns for multi-environment:** Development, staging, production... how do you manage the differences without maintaining three separate codebases?
-- **Module versioning chaos:** When your modules evolve, how do you roll out changes safely across environments?
-
-I've seen teams spend months just figuring out their Terraform structure, only to realize six months later that they painted themselves into a corner.
+- **Reinventing the wheel:** Writing VPC, EKS, and IAM configurations from scratch means debugging problems that others have already solved.
 
 ## How Kube Starter Kit Addresses This
 
-I've structured the Terraform in this kit around principles I've refined over years of building and maintaining production infrastructure:
+### Isolated State Per Stack
 
-**Terramate for DRY configurations:** Rather than copying Terraform code between environments, I use Terramate to orchestrate stacks and manage the differences. Each environment defines only what's unique (region, sizing, feature flags), while sharing the same underlying modules through code generation and hierarchical configuration.
+Each deployable unit (networking, EKS cluster, app-resources) has its own state file. This means you can update your EKS cluster without Terraform needing to refresh your entire VPC state. A bad apply in one area doesn't risk corrupting unrelated infrastructure.
 
-**Hierarchical configuration:** Settings cascade from root to environment to region to project. Common values like your namespace prefix or IAM roles are defined once and inherited everywhere.
+### Battle-Tested Community Modules
 
-**Isolated state per project:** Each deployable unit (networking, EKS cluster, etc.) has its own state file. This means you can update your EKS cluster without Terraform needing to refresh your entire VPC state.
+Rather than maintaining VPC and EKS code from scratch, I build on top of well-maintained modules from the [Terraform AWS Modules](https://github.com/terraform-aws-modules) project. These are used by thousands of teams and handle edge cases you'd otherwise discover the hard way. The kit adds the glue and opinions that make them work together.
 
-**Battle-tested community modules:** Rather than reinventing the wheel, I build on top of well-maintained modules from the Terraform AWS Modules project (for VPC, EKS, security groups, etc.), adding the glue and opinions that make them work together.
+### Hierarchical Configuration
 
-## What's Included
+Settings cascade from root to environment to region to stack. Common values like your namespace prefix, provider versions, and IAM roles are defined once and inherited everywhere. Each environment only defines what's unique: region, sizing, feature flags.
 
-### Directory Structure
+### Application Resources Pattern
+
+Per-application AWS resources (IAM roles for Pod Identity, Secrets Manager entries, database credentials) are provisioned alongside infrastructure but in separate stacks. This keeps application concerns isolated while maintaining the same workflow for all Terraform changes.
+
+## What's Provisioned
+
+<AccordionGroup>
+  <Accordion title="Account Bootstrapping">
+    One-time setup for new AWS accounts:
+    - S3 bucket for Terraform state with native locking (no DynamoDB needed)
+    - GitHub OIDC provider for keyless CI/CD authentication
+    - IAM roles for Terraform automation
+  </Accordion>
+
+  <Accordion title="Networking">
+    Production-ready VPC with:
+    - Public and private subnets across 3 availability zones
+    - Configurable NAT gateway options (single, per-AZ, or fck-nat for cost savings)
+    - Proper subnet tagging for Karpenter node discovery
+    - VPC endpoint support for private AWS service access
+  </Accordion>
+
+  <Accordion title="EKS Cluster">
+    Fully-configured EKS cluster with:
+    - Managed node group for baseline capacity (runs Karpenter itself)
+    - Essential add-ons pre-configured (CoreDNS, VPC CNI, EBS CSI driver, Pod Identity)
+    - IAM integration via AWS SSO for cluster access
+    - Security group rules for proper inter-node communication
+  </Accordion>
+
+  <Accordion title="Application Resources">
+    Per-application resources provisioned via dedicated stacks:
+    - IAM roles for Pod Identity (AWS access from Kubernetes pods)
+    - Secrets Manager entries for application secrets
+    - Database credentials and connection strings
+    - Any other AWS or third-party resources specific to an application
+
+    These resources are referenced by Kubernetes deployments via External Secrets.
+  </Accordion>
+
+  <Accordion title="User Management">
+    GitHub and AWS IAM Identity Center from a single source of truth:
+    - GitHub organization membership and team assignments
+    - AWS SSO users and group memberships
+    - Permission sets mapped to AWS accounts
+
+    See [User Management](/features/04-user-management) for details.
+  </Accordion>
+</AccordionGroup>
+
+## Directory Structure
 
 ```
 terraform/
-├── config.tm.hcl       # Root globals (namespace, backend, provider versions)
-├── imports.tm.hcl      # Import mixins for all stacks
-├── scripts.tm.hcl      # Terramate scripts for orchestration
 ├── bootstrap/          # One-time account setup (state bucket, OIDC)
-├── imports/
-│   └── mixins/         # Code generation templates
-│       ├── backend.tm.hcl   # Generates _backend.tf
-│       ├── provider.tm.hcl  # Generates _provider.tf
-│       └── modules/         # Module-specific mixins
 ├── modules/            # Reusable Terraform modules
 │   ├── eks/
 │   ├── networking/
 │   └── app-resources/
 └── live/               # Stack definitions by environment
-    ├── shared/         # Cross-account resources (IAM, ECR, etc.)
+    ├── shared/         # Cross-account resources (IAM, ECR)
     │   └── global/
     └── {stage}/        # staging, prod, etc.
         ├── global/     # Account-level resources (bootstrapping, DNS)
@@ -57,99 +97,17 @@ terraform/
             └── app-resources/
 ```
 
-### Infrastructure Modules
-
-<AccordionGroup>
-  <Accordion title="Account Bootstrapping">
-    One-time setup for new AWS accounts:
-    - S3 bucket for Terraform state with native locking
-    - GitHub OIDC provider for keyless CI/CD authentication
-    - IAM roles for Terraform automation
-  </Accordion>
-
-  <Accordion title="Networking">
-    Creates a production-ready VPC with:
-    - Public and private subnets across 3 availability zones
-    - Configurable NAT gateway options (single, per-AZ, or fck-nat for cost savings)
-    - Proper subnet tagging for Karpenter node discovery
-    - VPC endpoint support for private AWS service access
-  </Accordion>
-
-  <Accordion title="EKS">
-    Provisions a fully-configured EKS cluster with:
-    - Managed node group for baseline capacity (runs Karpenter itself)
-    - Essential add-ons pre-configured (CoreDNS, VPC CNI, EBS CSI driver, Pod Identity)
-    - IAM integration via AWS SSO for cluster access
-    - IRSA enabled for pod-level AWS permissions
-    - Security group rules for proper inter-node communication
-  </Accordion>
-
-  <Accordion title="User Management">
-    Manages GitHub and AWS IAM Identity Center from a single source of truth:
-    - GitHub organization membership and team assignments
-    - AWS SSO users and group memberships
-    - Permission sets mapped to AWS accounts
-
-    See [User Management](/features/04-user-management) for details.
-  </Accordion>
-
-</AccordionGroup>
-
-### Application Resources
-
-Per-application resources are provisioned via Terraform stacks in `terraform/live/{stage}/{region}/app-resources/`. Each application has a corresponding module in `terraform/modules/app-resources/` to keep things DRY across environments. These typically include:
-
-- IAM roles for Pod Identity (AWS access from Kubernetes pods)
-- Secrets Manager entries for application secrets
-- Database credentials and connection strings
-- Any other resources specific to an application (AWS or third-party like PlanetScale)
-
-These resources are referenced by Kubernetes deployments via External Secrets.
-
-### Terramate Configuration
-
-The `config.tm.hcl` at the root defines globals inherited by all stacks:
-
-```hcl
-globals {
-  namespace                = "ksk"
-  github_oidc_role_arn     = "arn:aws:iam::..."
-  sso_admin_role_arn       = "arn:aws:iam::..."
-  terraform_state_bucket   = "ksk-gbl-infra-bootstrap-state"
-  terraform_state_region   = "us-east-2"
-  terraform_version        = ">= 1.10"
-  aws_provider_version     = "~> 6.27"
-}
-```
-
-Each stack defines its configuration with Terramate files:
-
-```hcl
-# staging/us-east-2/networking/stack.tm.hcl
-stack {
-  id          = "staging-use2-networking"
-  name        = "networking"
-  description = "VPC and networking for staging us-east-2"
-  tags        = ["staging", "us-east-2", "networking", "infrastructure"]
-}
-```
-
-```hcl
-# staging/us-east-2/networking/config.tm.hcl
-globals {
-  vpc_cidr = "10.0.0.0/16"
-  nat_mode = "fck_nat"  # Cost-effective NAT for non-prod
-}
-```
-
-Terramate generates the backend, provider, and module invocation from mixins, keeping stack definitions minimal.
-
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **Terramate over Terraform workspaces** | Workspaces share state backends and can lead to accidental cross-environment changes. Terramate's stack model provides clean separation with explicit dependencies. |
-| **Terramate over Terragrunt** | Native HCL syntax without a wrapper, code generation via mixins, and integrated CI/CD visibility via Terramate Cloud. |
-| **Community modules as building blocks** | The terraform-aws-modules are battle-tested by thousands of users. I layer opinions on top rather than maintaining VPC/EKS code from scratch. |
-| **One state file per stack** | Blast radius containment. A networking change shouldn't require EKS state refresh. |
-| **S3 native locking** | Simpler than DynamoDB locking (requires Terraform 1.10+ or OpenTofu 1.8+). |
+| **One state file per stack** | Blast radius containment. A networking change shouldn't require EKS state refresh. Failures are isolated. |
+| **Community modules as building blocks** | The terraform-aws-modules are battle-tested by thousands of users. Layer opinions on top rather than maintaining infrastructure code from scratch. |
+| **S3 native locking** | Simpler than DynamoDB locking, fewer moving parts (requires Terraform 1.10+ or OpenTofu 1.8+). |
+| **Hierarchical config over copy-paste** | Define common values once, override only what differs per environment. Changes propagate automatically. |
+
+<Note>
+For orchestration across stacks (change detection, dependency ordering, CI/CD integration), see [Terramate](/features/02-terramate).
+
+For making changes to infrastructure, see [Making Terraform Changes](/usage/operations/01-updating-terraform-infrastructure).
+</Note>
