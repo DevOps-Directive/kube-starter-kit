@@ -25,7 +25,8 @@ module "iam_policy" {
               "ecr:CompleteLayerUpload",
               "ecr:PutImage",
               "ecr:BatchGetImage",    
-              "ecr:DescribeRepositories"
+              "ecr:DescribeRepositories",
+              "ecr:GetDownloadUrlForLayer" 
             ],
             "Resource": "arn:aws:ecr:us-east-2:857059614049:repository/*"
           }
