@@ -1,6 +1,10 @@
 # Local .terraform directories
 .terraform/
 
+# Terraform plugin cache (used locally and in CI via Terramate run.env)
+.tf_plugin_cache_dir/*
+!.tf_plugin_cache_dir/.gitkeep
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
@@ -15,6 +19,9 @@ crash.*.log
 # to change depending on the environment.
 *.tfvars
 *.tfvars.json
+
+# But track Terramate-generated defaults
+!_defaults.auto.tfvars
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
