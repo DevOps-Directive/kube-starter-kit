@@ -1,6 +1,9 @@
 # Local .terraform directories
 .terraform/
 
+# Terraform plugin cache (used in CI)
+.terraform-plugin-cache/
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
