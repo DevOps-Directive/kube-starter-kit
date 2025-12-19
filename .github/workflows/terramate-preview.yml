@@ -53,6 +53,7 @@ jobs:
 
       ### Configure cloud credentials
       - name: "Configure AWS Credentials"
+        if: steps.list-changed.outputs.stdout
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           aws-region: ${{ env.AWS_REGION }}
@@ -63,13 +64,13 @@ jobs:
 
       ### Run the Terraform preview via Terramate in each changed stack
 
-      # Moved init to the plan step
-      - name: Run Terraform init in all changed stacks
+      - name: Run Terraform init on changed stacks and direct dependencies
         if: steps.list-changed.outputs.stdout
         run: |
           terramate script run \
             -C terraform/live/staging \
             --changed \
+            --include-direct-dependencies \
             --parallel 1 \
             init
         env:

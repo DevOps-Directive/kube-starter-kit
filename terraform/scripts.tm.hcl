@@ -58,7 +58,6 @@ script "preview" {
         sync_preview        = true
         terraform_plan_file = "out.tfplan"
         enable_sharing      = true
-        mock_on_fail        = true
       }],
     ]
   }
@@ -72,6 +71,20 @@ script "apply" {
       ["terraform", "init", "-lock-timeout=5m"],
       ["terraform", "apply", "-auto-approve", "-lock-timeout=5m", {
         enable_sharing = true
+      }],
+    ]
+  }
+}
+
+script "drift" "detect" {
+  name        = "Terraform Drift Check"
+  description = "Detect drifts in Terraform configuration and synchronize it to Terramate Cloud"
+
+  job {
+    commands = [
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+        sync_drift_status   = true
+        terraform_plan_file = "out.tfplan"
       }],
     ]
   }
