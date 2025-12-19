@@ -7,6 +7,14 @@ script "init" {
   }
 }
 
+script "init-providers" {
+  description = "Initialize Terraform providers only (no backend)"
+  job {
+    name     = "terraform init (providers only)"
+    commands = [["terraform", "init", "-backend=false", "-lock-timeout=5m"]]
+  }
+}
+
 script "lock" {
   description = "Update provider lock file with cross-platform hashes"
   job {
