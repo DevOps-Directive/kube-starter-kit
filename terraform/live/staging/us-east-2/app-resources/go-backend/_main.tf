@@ -9,6 +9,6 @@ module "go_backend" {
   kubernetes_service_account = "go-backend"
   name                       = "go-backend"
   namespace                  = "ksk"
-  source                     = "../../../../../../terraform/modules/services//go-backend"
+  source                     = "../../../../../../terraform/modules/app-resources//go-backend"
   stage                      = "staging"
 }

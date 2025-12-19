@@ -9,5 +9,5 @@ import {
 }
 
 import {
-  source = "./imports/mixins/modules/services/*.tm.hcl"
+  source = "./imports/mixins/modules/app-resources/*.tm.hcl"
 }

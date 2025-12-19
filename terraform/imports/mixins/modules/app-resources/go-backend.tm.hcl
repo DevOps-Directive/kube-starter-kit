@@ -18,7 +18,7 @@ generate_hcl "_main.tf" {
 
   content {
     module "go_backend" {
-      source = "${terramate.stack.path.to_root}/terraform/modules/services//go-backend"
+      source = "${terramate.stack.path.to_root}/terraform/modules/app-resources//go-backend"
 
       # CloudPosse context
       name        = "go-backend"
