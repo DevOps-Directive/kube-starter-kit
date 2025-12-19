@@ -15,13 +15,7 @@
         "pages": [
           "index",
           "about-me",
-          {
-            "group": "Architecture Decisions",
-            "icon": "scale-balanced",
-            "pages": [
-              "architecture-decisions/index"
-            ]
-          },
+          "architecture-decisions/index",
           {
             "group": "Features",
             "icon": "stars",
