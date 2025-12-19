@@ -103,5 +103,4 @@ if [[ ${#images[@]} -eq 0 ]]; then
 fi
 
 # Deduplicate and output as JSON array
-# TODO: Remove head -3 after testing - this limits to 3 images for faster test runs
-printf '%s\n' "${images[@]}" | sort -u | head -3 | jq -R -s 'split("\n") | map(select(length > 0))'
+printf '%s\n' "${images[@]}" | sort -u | jq -R -s 'split("\n") | map(select(length > 0))'
