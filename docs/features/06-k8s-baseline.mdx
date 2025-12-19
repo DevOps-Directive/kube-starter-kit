@@ -50,43 +50,48 @@ I've curated a set of infrastructure components that I've used across multiple p
 
 ```
 Internet
-    │
-    ▼
-┌─────────────────────────────────────────────────────┐
-│  AWS NLB (created by ingress-nginx)                 │
-└─────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────┐
-│  ingress-nginx controller                           │
-│  • TLS termination (certs from cert-manager)        │
-│  • Route based on Ingress rules                     │
-└─────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────┐
-│  Your application pods                              │
-└─────────────────────────────────────────────────────┘
+    |
+    v
++-------------------------------+
+|  AWS NLB                      |
+|  (created by ingress-nginx)   |
++-------------------------------+
+    |
+    v
++-------------------------------+
+|  ingress-nginx controller     |
+|  - TLS termination            |
+|  - Route by Ingress rules     |
++-------------------------------+
+    |
+    v
++-------------------------------+
+|  Your application pods        |
++-------------------------------+
 ```
 
 ### Secrets Flow
 
 ```
 AWS Secrets Manager
-    │
-    │ (External Secrets Operator polls)
-    ▼
-┌─────────────────────────────────────────────────────┐
-│  ClusterSecretStore (aws-secrets-manager)           │
-│  • Authenticates via IRSA/Pod Identity              │
-└─────────────────────────────────────────────────────┘
-    │
-    │ (ExternalSecret resources reference secrets)
-    ▼
-┌─────────────────────────────────────────────────────┐
-│  Kubernetes Secrets (auto-created/updated)          │
-│  • Referenced by pods, ArgoCD, etc.                 │
-└─────────────────────────────────────────────────────┘
+    ^
+    | (polls)
+    |
++-------------------------------+
+|  ClusterSecretStore           |
++-------------------------------+
+    ^
+    | (references)
+    |
++-------------------------------+
+|  ExternalSecret               |
++-------------------------------+
+    |
+    | (creates/updates)
+    v
++-------------------------------+
+|  Kubernetes Secret            |
++-------------------------------+
 ```
 
 ### Component Details

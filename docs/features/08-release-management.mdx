@@ -65,7 +65,9 @@ The versioning is driven by commit message prefixes:
 | `fix:` | Patch (1.0.0 → 1.0.1) | `fix: resolve null pointer in auth handler` |
 | `feat:` | Minor (1.0.0 → 1.1.0) | `feat: add user profile endpoint` |
 | `feat!:` or `BREAKING CHANGE:` | Major (1.0.0 → 2.0.0) | `feat!: redesign authentication API` |
-| `chore:`, `docs:`, `ci:` | No bump | `chore: update dependencies` |
+| `chore:`, `docs:`, `ci:` | Patch (1.0.0 → 1.0.1) | `chore: update dependencies` |
+
+Note: `chore:` commits bump the patch version to ensure pre-release image tags (e.g., `1.2.4-rc0001-g4b5d2e7`) always reflect the upcoming release version.
 
 ### Release PR Example
 
@@ -115,12 +117,14 @@ ArgoCD syncs production cluster
 
 ### Multi-Application Releases
 
-In a monorepo with multiple applications, release-please can be configured to:
+In a monorepo with multiple applications, each application has its own version and receives separate Git tags (e.g., `services/go-backend@1.2.3`). However, release-please groups all pending releases into a single PR.
 
-- **Release all applications together:** Single version for the entire repository
-- **Release applications independently:** Each application has its own version and release PR
+This gives you:
+- **Independent versioning:** Each application's version reflects its own changes
+- **Coordinated releases:** One PR to review and merge for all applications ready to release
+- **Simpler workflow:** No need to manage multiple release PRs
 
-The kit defaults to releasing all applications together, as this simplifies reasoning about "what version is in production."
+The grouping behavior is configurable if you prefer separate release PRs per application.
 
 ## Key Design Decisions
 

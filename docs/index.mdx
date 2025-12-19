@@ -19,10 +19,10 @@ It's an opinionated, production-ready platform for **AWS and EKS** that gives yo
 
 <CardGroup cols={3}>
   <Card title="Terraform Infrastructure" icon="cube" href="/features/01-terraform">
-    Modular, well-structured Terraform for AWS with multi-environment support via Terragrunt
+    Modular, well-structured Terraform for AWS with multi-environment support via Terramate
   </Card>
-  <Card title="Automated Terraform CI/CD" icon="robot" href="/features/02-digger">
-    GitHub-integrated Terraform automation with Digger; plan on PR, apply via PR comment
+  <Card title="Terraform Orchestration" icon="robot" href="/features/02-terramate">
+    Stack-based Terraform orchestration with Terramate; change detection, outputs sharing, and CI/CD integration
   </Card>
   <Card title="AWS Architecture" icon="cloud" href="/features/03-aws-architecture">
     Multi-account setup with VPC, EKS, and secure account boundaries
@@ -45,6 +45,9 @@ It's an opinionated, production-ready platform for **AWS and EKS** that gives yo
   <Card title="Demo Applications" icon="flask" href="/features/09-demo-applications">
     Fully functional example applications demonstrating end-to-end patterns
   </Card>
+  <Card title="Local Development" icon="laptop-code" href="/features/10-local-development">
+    KinD, Tilt, and mirrord for fast local Kubernetes development
+  </Card>
 </CardGroup>
 
 ## Who This Is For
@@ -56,13 +59,13 @@ Kube Starter Kit is built for **engineering teams at early-stage companies** who
 - Value having an opinionated path from someone who's done this before
 - Would rather customize a working system than build one from scratch
 
-## What It's Not
+## What to Expect
 
-**Not a hosted PaaS.** There's no managed service here. You own the infrastructure, run it in your AWS account, and maintain it yourself.
+**You own the infrastructure.** This is your platform running in your AWS account. No managed service dependency, no third-party with access to your environment. Full control, full responsibility.
 
-**Not an enterprise platform product.** This isn't OpenShift, Tanzu, or Portainer. There's no abstraction layer, no proprietary UI, no vendor lock-in. It's standard Kubernetes with standard tools.
+**Standard tools, no abstraction layer.** Unlike OpenShift, Tanzu, or Portainer, there's no proprietary UI or vendor lock-in. It's standard Kubernetes with standard tools. Your team's existing knowledge transfers directly.
 
-**Not a dependency you upgrade.** You fork the repo and make it yours. Future updates to the kit are available to cherry-pick, but you're free to diverge as needed. It's a starting point, not a framework.
+**A starting point you make your own.** Fork the repo and customize it to fit your needs. Future updates to the kit are available to cherry-pick, but you're free to diverge. It's a foundation, not a constraint.
 
 ## Get Started
 

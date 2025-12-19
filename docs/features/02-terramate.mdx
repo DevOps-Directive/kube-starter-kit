@@ -1,0 +1,216 @@
+---
+title: "Terraform Orchestration with Terramate"
+description: "Stack-based Terraform orchestration with change detection, outputs sharing, and CI/CD integration"
+icon: "robot"
+---
+
+## The Problem
+
+Running Terraform locally works fine when you're a team of one, but it quickly becomes a liability as you grow:
+
+- **"Who ran that apply?":** Without centralized execution, it's hard to track who changed what and when. Your state file says it changed, but good luck figuring out the context.
+- **No visibility before merge:** You want to review infrastructure changes before they happen, but `terraform plan` output buried in a CI log isn't exactly reviewer-friendly.
+- **Credential sprawl:** Every developer with Terraform access needs AWS credentials. That's a lot of long-lived secrets floating around laptops.
+- **State lock conflicts:** Two people running `terraform apply` at the same time leads to a bad day.
+- **Cross-stack dependencies are painful:** `terraform_remote_state` data sources are clunky and require knowing state bucket details everywhere.
+- **Running all stacks is slow:** Without change detection, every PR plans every stack, even unchanged ones.
+
+## How Kube Starter Kit Addresses This
+
+I've integrated [Terramate](https://terramate.io/) into the kit to orchestrate Terraform across environments:
+
+**Change detection:** Terramate detects which stacks are affected by your changes. On a PR, only modified stacks get planned, not your entire infrastructure.
+
+**Outputs sharing:** Stacks can consume outputs from other stacks without `terraform_remote_state`. Define an output in one stack, consume it as a variable in another. Terramate handles the wiring.
+
+**Code generation:** Common patterns (backend config, provider setup, module invocations) are generated from templates. Change a mixin once, regenerate everywhere.
+
+**Dependency ordering:** Stacks declare dependencies and Terramate runs them in the correct order. Networking before EKS, EKS before app-resources.
+
+**Terramate Cloud integration:** Previews, deployments, and drift detection sync to a dashboard. See the state of your infrastructure across all stacks in one place.
+
+**Keyless authentication:** GitHub OIDC assumes an AWS role. No long-lived credentials stored in GitHub secrets.
+
+## What's Included
+
+### Terramate Configuration
+
+The `terramate.tm.hcl` at the repository root configures the project:
+
+```hcl
+terramate {
+  required_version = ">= 0.10.0"
+
+  config {
+    cloud {
+      organization = "your-org"
+      location     = "us"
+    }
+
+    experiments = [
+      "outputs-sharing",
+      "scripts",
+      "tmgen"
+    ]
+  }
+}
+```
+
+### Scripts for Orchestration
+
+The `scripts.tm.hcl` file defines reusable commands:
+
+```hcl
+script "preview" {
+  description = "Plan with outputs sharing"
+  job {
+    commands = [
+      ["terraform", "validate"],
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+        sync_preview        = true
+        terraform_plan_file = "out.tfplan"
+        enable_sharing      = true
+      }],
+    ]
+  }
+}
+
+script "apply" {
+  description = "Apply with outputs sharing"
+  job {
+    commands = [
+      ["terraform", "apply", "-auto-approve", "-lock-timeout=5m", {
+        enable_sharing = true
+      }],
+    ]
+  }
+}
+```
+
+### GitHub Actions Workflows
+
+Four workflows handle different scenarios:
+
+<AccordionGroup>
+  <Accordion title="Preview (PR)">
+    Runs on every pull request. Detects changed stacks, runs `terraform plan`, and syncs previews to Terramate Cloud.
+
+    ```yaml
+    - name: Plan changed stacks
+      run: |
+        terramate script run \
+          --changed \
+          --sync-preview \
+          --terraform-plan-file=plan.tfplan \
+          -- preview
+    ```
+  </Accordion>
+
+  <Accordion title="Deploy (merge to main)">
+    Runs when PRs merge to main. Applies changed stacks in dependency order.
+
+    ```yaml
+    - name: Apply changed stacks
+      run: |
+        terramate script run \
+          --changed \
+          --sync-deployment \
+          -- deploy
+    ```
+  </Accordion>
+
+  <Accordion title="Drift Detection">
+    Runs on schedule (or manually). Detects when infrastructure has drifted from the Terraform state.
+
+    ```yaml
+    - name: Detect drift
+      run: |
+        terramate script run \
+          --sync-drift-status \
+          -- drift detect
+    ```
+  </Accordion>
+
+  <Accordion title="Provider Cache">
+    Runs when lock files change. Pre-downloads providers to speed up other workflows.
+  </Accordion>
+</AccordionGroup>
+
+### GitHub OIDC Authentication
+
+All workflows authenticate to AWS without long-lived credentials:
+
+```yaml
+- name: Configure AWS credentials
+  uses: aws-actions/configure-aws-credentials@v4
+  with:
+    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+    aws-region: us-east-2
+```
+
+GitHub's OIDC provider exchanges a short-lived token for AWS credentials, eliminating the need for long-lived access keys.
+
+### Outputs Sharing
+
+Cross-stack dependencies without `terraform_remote_state`:
+
+```hcl
+# In networking stack: outputs.tm.hcl
+output "vpc_id" {
+  backend = "terraform"
+  value   = module.networking.vpc_id
+}
+
+# In EKS stack: inputs.tm.hcl
+input "vpc_id" {
+  backend       = "terraform"
+  from_stack_id = "staging-use2-networking"
+  value         = outputs.vpc_id.value
+  mock          = "vpc-mock12345"  # Used during initial bootstrap
+}
+```
+
+The input becomes a regular Terraform variable, usable in your module:
+
+```hcl
+module "eks" {
+  source = "../../../modules/eks"
+  vpc_id = var.vpc_id
+  # ...
+}
+```
+
+### What the Workflow Looks Like
+
+<Steps>
+  <Step title="Open a PR">
+    Make changes to Terraform code (modules, stacks, or configuration).
+  </Step>
+  <Step title="Automatic Plan">
+    Terramate detects affected stacks and runs `terraform plan` for each. Results sync to Terramate Cloud and appear in the PR.
+  </Step>
+  <Step title="Review">
+    Reviewers see exactly what infrastructure changes will happen. Check the Terramate Cloud dashboard for a unified view.
+  </Step>
+  <Step title="Merge">
+    Merge the PR to main when approved.
+  </Step>
+  <Step title="Automatic Apply">
+    The deploy workflow applies changed stacks in dependency order. Results sync to Terramate Cloud.
+  </Step>
+  <Step title="Audit Trail">
+    Every change is tied to a PR and tracked in Terramate Cloud: who requested it, who approved it, what changed.
+  </Step>
+</Steps>
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Terramate over Digger/Atlantis** | Terramate provides stack orchestration, code generation, and outputs sharing, not just CI/CD. The unified platform reduces tooling complexity. |
+| **Terramate over Terragrunt** | Native HCL syntax (no wrapper), first-class code generation, and Terramate Cloud for visibility. Easier to understand for teams new to Terraform. |
+| **Apply on merge (not before)** | Simpler workflow: merge triggers apply. Terramate Cloud provides rollback visibility if needed. |
+| **Outputs sharing over remote_state** | No need to pass bucket names everywhere. Dependencies are explicit and type-safe. Mocks enable planning before dependencies exist. |
+| **OIDC over static credentials** | No secrets to rotate. The trust is based on GitHub's identity, not a shared secret. |
+| **Change detection** | Only plan/apply what changed. Faster CI, less noise, lower costs. |
+

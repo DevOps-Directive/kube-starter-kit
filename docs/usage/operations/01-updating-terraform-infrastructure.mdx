@@ -4,3 +4,148 @@ description: 'How to make updates to infrastructure via Terraform'
 icon: "excavator"
 ---
 
+## Overview
+
+Infrastructure changes flow through Terramate and GitHub. Whether you're modifying an existing stack, adding a new resource, or creating entirely new infrastructure, the workflow is the same: make changes locally, open a PR, review the plan, and merge to apply.
+
+## Workflow
+
+<Steps>
+  <Step title="Make your changes">
+    Edit the relevant files in `terraform/`. This might be:
+    - Stack configuration (`config.tm.hcl`, `inputs.tm.hcl`)
+    - Module code in `terraform/modules/`
+    - New stack definitions (`stack.tm.hcl`)
+  </Step>
+
+  <Step title="Generate files (if needed)">
+    If you changed any Terramate configuration (`.tm.hcl` files), regenerate the Terraform files:
+    ```bash
+    cd terraform
+    terramate generate
+    ```
+    This updates generated files like `_backend.tf`, `_provider.tf`, and `_main.tf`.
+  </Step>
+
+  <Step title="Validate locally (optional)">
+    Test your changes before pushing:
+    ```bash
+    # List affected stacks
+    terramate list --changed
+
+    # Run validation
+    terramate run --changed -- terraform validate
+
+    # Preview plan (requires AWS credentials)
+    terramate script run --changed -- preview
+    ```
+  </Step>
+
+  <Step title="Open a pull request">
+    Push your branch and open a PR. The CI workflow will:
+    1. Check Terramate formatting
+    2. Detect changed stacks
+    3. Run `terraform plan` for each affected stack
+    4. Sync preview results to Terramate Cloud
+  </Step>
+
+  <Step title="Review the plan">
+    Check the plan output in:
+    - GitHub Actions logs
+    - Terramate Cloud dashboard (for a unified view across stacks)
+
+    Look for:
+    - Expected resource changes (create, update, destroy)
+    - No unintended side effects
+    - Correct dependency ordering
+  </Step>
+
+  <Step title="Merge to apply">
+    Once approved, merge the PR. The deploy workflow will:
+    1. Detect changed stacks
+    2. Apply changes in dependency order
+    3. Sync deployment results to Terramate Cloud
+  </Step>
+</Steps>
+
+## Common Tasks
+
+### Adding a New Stack
+
+1. Create directory under `terraform/live/{stage}/{region}/`:
+   ```bash
+   mkdir -p terraform/live/staging/us-east-2/my-new-stack
+   ```
+
+2. Create `stack.tm.hcl`:
+   ```hcl
+   stack {
+     id          = "staging-use2-my-new-stack"
+     name        = "my-new-stack"
+     description = "Description of what this stack does"
+     tags        = ["staging", "us-east-2", "my-new-stack"]
+
+     # Declare dependencies if needed
+     after = ["tag:staging:us-east-2:eks"]
+   }
+   ```
+
+3. Create `config.tm.hcl` with stack-specific globals
+
+4. Create `main.tf` or use module mixins
+
+5. Generate files:
+   ```bash
+   terramate generate
+   ```
+
+### Modifying a Module
+
+1. Edit the module in `terraform/modules/{module-name}/`
+2. Open a PR - Terramate will plan all stacks that use the module
+3. Review plans across all affected environments
+4. Merge to apply changes everywhere
+
+### Targeting Specific Stacks
+
+Use tags to run commands on specific stacks:
+
+```bash
+# Single stack
+terramate run --tags staging:us-east-2:eks -- terraform plan
+
+# All stacks in an environment
+terramate run --tags staging -- terraform plan
+
+# All networking stacks
+terramate run --tags networking -- terraform plan
+```
+
+## Troubleshooting
+
+### "Repository has untracked files"
+
+Terramate requires a clean git state. Either stage your changes or use:
+```bash
+terramate run --disable-safeguards=git-untracked -- terraform plan
+```
+
+### Missing dependency outputs
+
+When a dependency stack hasn't been applied yet, Terramate uses mock values. This is expected during initial bootstrap. Apply stacks in dependency order:
+```bash
+# Check the order
+terramate list --run-order
+
+# Apply in order
+terramate script run -- deploy
+```
+
+### Regenerate after config changes
+
+If you see drift between generated files and configuration:
+```bash
+terramate generate
+git diff  # Review changes
+```
+

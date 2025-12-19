@@ -4,26 +4,14 @@ description: "Automated container builds and staging deployments on every merge 
 icon: "arrows-spin"
 ---
 
-## The Problem
+## Overview
 
-Getting code from a developer's machine to a running environment shouldn't require tribal knowledge:
+The CI/CD pipeline automates container builds and deployments via GitHub Actions:
 
-- **Manual build processes:** Someone has to remember to build the container, tag it correctly, push it to the registry, and update the deployment manifests.
-- **Inconsistent builds:** "Works on my machine" extends to container images when builds happen locally with different Docker versions, cached layers, and environment variables.
-- **Deploying everything on every change:** A monorepo with multiple services shouldn't rebuild and redeploy everything when only one service changed.
-- **Environment drift:** Staging falls behind because deployments are manual and tedious.
-
-## How Kube Starter Kit Addresses This
-
-I've implemented a GitHub Actions workflow that automates the entire build-to-staging pipeline:
-
-**Automatic change detection:** The pipeline detects which applications actually changed and only builds those. Update your Go backend? Only the Go backend builds. Touch a shared library? Everything that depends on it rebuilds.
-
-**Consistent container builds:** Every build happens in the same CI environment with the same tooling. No more "it built fine on my laptop."
-
-**Rendered manifests pattern:** Rather than templating at deploy time, the pipeline renders Kubernetes manifests and commits them to Git. What's in the repository is exactly what ArgoCD deploys.
-
-**Staging on every merge:** When your PR merges to main, staging automatically gets the new version. No manual steps, no forgetting to deploy.
+- **Change detection:** Only builds applications that have changed, keeping CI fast in a monorepo
+- **Consistent builds:** All containers are built in CI with the same environment and tooling
+- **Rendered manifests:** Kubernetes manifests are rendered and committed to Git, so what's in the repository is exactly what ArgoCD deploys
+- **Automatic staging deployment:** Merges to main trigger builds and deploy to staging automatically
 
 ## What's Included
 
@@ -31,73 +19,63 @@ I've implemented a GitHub Actions workflow that automates the entire build-to-st
 
 ```
 .github/workflows/
-└── build-deploy.yaml    # Main CI/CD workflow
+├── ci-build-push-containers.yml # Build and push container images
+├── ci-test.yml                  # Run tests (placeholder)
+├── gitops-update-manifests.yml  # Render and commit K8s manifests
+└── terramate-*.yml              # Terraform orchestration
 ```
+
+Terraform CI/CD workflows (preview, deploy, drift detection) are covered in [Terraform Orchestration](/features/02-terramate#github-actions-workflows).
 
 ### Change Detection
 
-The workflow uses path filters to determine what needs building:
+The workflow uses [dorny/paths-filter](https://github.com/dorny/paths-filter) with a separate filter configuration file:
 
 ```yaml
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'applications/**'
-      - 'kubernetes/src/**'
+# .github/utils/file-filters.yaml
+services/go-backend:
+  - "services/go-backend/**"
+  - "kubernetes/src/services/go-backend/**"
 
-jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      go-backend: ${{ steps.filter.outputs.go-backend }}
-      # Add more applications here
-    steps:
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            go-backend:
-              - 'applications/go-backend/**'
+services/another-service:
+  - "services/another-service/**"
+  - "kubernetes/src/services/another-service/**"
 ```
 
-Only changed applications proceed to the build stage. This keeps CI fast and avoids unnecessary container registry bloat.
+The workflow matrix builds only the services that match changed paths. Changes to shared dependencies (like the workflow itself) trigger rebuilds of all dependent services.
 
-### Build Process
+### Build and Deploy Process
 
 <Steps>
-  <Step title="Checkout code">
-    Pull the repository at the merge commit.
+  <Step title="Detect changes [ci-build-push]">
+    Determines which services have modifications based on path filters.
   </Step>
-  <Step title="Detect changes">
-    Determine which applications have modifications.
+  <Step title="Build containers [ci-build-push]">
+    Builds and pushes a container image to ECR for each changed service.
   </Step>
-  <Step title="Build containers">
-    For each changed application, build and push a container image tagged with the commit SHA.
+  <Step title="Trigger deploy [ci-build-push]">
+    Triggers `gitops-update-manifests` for each built service.
   </Step>
-  <Step title="Render manifests">
-    Generate Kubernetes manifests for staging with the new image tags.
+  <Step title="Render manifests [gitops-update-manifests]">
+    Generates Kubernetes manifests with the new image tags.
   </Step>
-  <Step title="Commit rendered manifests">
-    Push the updated manifests to the repository.
+  <Step title="Commit manifests [gitops-update-manifests]">
+    Pushes the updated manifests to the repository.
   </Step>
   <Step title="ArgoCD syncs">
-    ArgoCD detects the manifest changes and deploys to staging automatically.
+    Detects the manifest changes via webhook or polling and deploys automatically.
   </Step>
 </Steps>
 
 ### Container Registry
 
-Images are pushed to Amazon ECR with commit-based tags:
+Images are pushed to Amazon ECR with version tags derived from `git describe`:
 
 ```
-<account>.dkr.ecr.<region>.amazonaws.com/go-backend:abc123f
+<account>.dkr.ecr.<region>.amazonaws.com/go-backend:1.2.3-rc0001-g4b5d2e7
 ```
 
-Using commit SHAs as tags provides:
-- **Traceability:** Every running container maps to an exact commit
-- **Immutability:** Tags are never overwritten
-- **Easy rollback:** Revert to a previous commit and the old image is still there
+The tag format `<version>-rc<commits>-g<hash>` shows the next patch version, how many commits since the last release, and the commit hash. The patch version is bumped immediately after each release (via `chore:` commit), so pre-release tags always indicate the upcoming version. This provides traceability, immutability (tags are never overwritten), and easy rollback.
 
 ### Manifest Rendering
 
@@ -117,31 +95,13 @@ kubernetes/
                 └── manifests.yaml  # Generated by CI
 ```
 
-This "rendered manifests" approach means:
-- **No runtime surprises:** What you see in Git is exactly what deploys
-- **Easy diffing:** PRs show the actual Kubernetes changes, not just Helm value tweaks
-- **Auditable:** Git history shows exactly what was deployed when
-
-### GitHub OIDC Authentication
-
-The workflow authenticates to AWS without long-lived credentials:
-
-```yaml
-- name: Configure AWS credentials
-  uses: aws-actions/configure-aws-credentials@v4
-  with:
-    role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-    aws-region: us-east-2
-```
-
-GitHub's OIDC provider exchanges a short-lived token for AWS credentials. No access keys to rotate or leak.
+Rendered manifests ensure what's in Git is exactly what deploys, PRs show actual Kubernetes changes (not just Helm values), and Git history provides a full audit trail.
 
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **Change detection with path filters** | Fast CI, minimal rebuilds, less registry storage. In a monorepo, you don't want every commit to rebuild every service. |
-| **Commit SHA tags** | Immutable, traceable, and rollback-friendly. Avoids the "what's actually in `latest`?" problem. |
-| **Rendered manifests in Git** | Eliminates runtime templating surprises. ArgoCD deploys exactly what's committed. |
-| **Staging auto-deploy on merge** | Reduces friction for testing. If it's merged, it's in staging. Teams can always see current main in a real environment. |
-| **GitHub OIDC over access keys** | No credentials to manage or rotate. Tokens are scoped and short-lived. |
+| **Change detection with path filters** | Fast CI, minimal rebuilds in a monorepo |
+| **Versioned image tags** | Immutable, traceable, rollback-friendly |
+| **Rendered manifests in Git** | ArgoCD deploys exactly what's committed |
+| **Staging auto-deploy on merge** | Merged code is always running in staging |

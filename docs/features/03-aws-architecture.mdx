@@ -31,17 +31,34 @@ I've designed the AWS architecture in this kit based on patterns that balance se
 
 ```
 AWS Organization
-├── Management Account (shared)
-│   ├── IAM Identity Center (SSO)
+├── Management Account
+│   ├── AWS Organizations
+│   ├── IAM Identity Center (Manages user access across all accounts)
+│   └── Consolidated Billing
+├── Infrastructure Account
 │   ├── GitHub OIDC Provider
-│   └── Terraform State Bucket
+│   ├── Terraform State Bucket
+│   └── IAM Roles for Terraform Automation (Manages all account infrastructure)
+├── ECR Account
+│   └── ECR Repositories (Consumed by staging + production)
 ├── Staging Account
-│   ├── VPC (10.0.0.0/16)
-│   └── EKS Cluster
+│   ├── VPC
+│   ├── EKS Cluster
+│   ├── Secrets Manager
+│   ├── Route 53 Hosted Zone
+│   └── Application-specific Resources (IAM roles, S3, etc.)
 └── Production Account
-    ├── VPC (10.1.0.0/16)
-    └── EKS Cluster
+    ├── VPC
+    ├── EKS Cluster
+    ├── Secrets Manager
+    ├── Route 53 Hosted Zone
+    └── Application-specific Resources (IAM roles, S3, etc.)
 ```
+
+<Frame>
+  <img src="/images/aws-architecture.png" alt="AWS Architecture Diagram" />
+</Frame>
+
 
 ### VPC Architecture
 
@@ -52,8 +69,9 @@ Each environment VPC includes:
 | **Availability Zones** | 3 AZs for high availability |
 | **Public Subnets** | For load balancers and NAT |
 | **Private Subnets** | For EKS nodes and workloads |
-| **NAT** | Configurable: AWS NAT Gateway or fck-nat |
+| **NAT** | Configurable: [AWS NAT Gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html) or [fck-nat](https://fck-nat.dev/) |
 | **Subnet Tagging** | Pre-configured for Karpenter discovery |
+| **Bastion Host** | Optional EC2 instance for private EKS API access via SSM |
 
 ### EKS Cluster Configuration
 
@@ -74,7 +92,7 @@ Each environment VPC includes:
   </Accordion>
 
   <Accordion title="Access Management">
-    - **AWS SSO integration:** Cluster admin access via your existing identity provider
+    - **AWS SSO integration:** Cluster access via IAM Identity Center
     - **IRSA enabled:** Pods can assume IAM roles without node-level credentials
     - **Pod Identity:** Newer, simpler alternative to IRSA for pod-level AWS access
   </Accordion>
