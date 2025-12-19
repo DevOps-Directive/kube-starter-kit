@@ -1,0 +1,18 @@
+# Additional images to scan that don't appear in standard `image:` fields.
+#
+# These are included when scanning an environment (production or staging),
+# but NOT when environment is set to 'none' (ad-hoc scans).
+#
+# Examples of images that might need to be added here:
+#   - CRD-specific fields (e.g., CloudNativePG's `imageName` - though we extract this automatically)
+#   - Operator-pulled images that don't appear in manifests
+#   - Karpenter-provisioned node AMI base images
+#   - Sidecar injector images (e.g., Istio proxy)
+#
+# Note: The extract-images.sh script already extracts from `imageName:` fields,
+# so CloudNativePG PostgreSQL images are captured automatically.
+
+images: []
+  # Example entries:
+  # - docker.io/library/postgres:15-alpine
+  # - gcr.io/istio-release/proxyv2:1.20.0
