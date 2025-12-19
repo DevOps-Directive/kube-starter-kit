@@ -35,6 +35,15 @@ jobs:
         with:
           terraform_version: "1.14.3"
 
+      ### Restore provider cache
+      - name: Restore Terraform provider cache
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
+          key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-providers-
+
       ### Configure cloud credentials
       - name: "Configure AWS Credentials"
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
@@ -48,7 +57,7 @@ jobs:
       - name: Run Terraform init in all stacks
         run: |
           terramate script run \
-            -C terraform/live/staging/us-east-2 \
+            -C terraform/live \
             --parallel 1 \
             init
         env:
@@ -58,7 +67,7 @@ jobs:
         id: drift-detect
         run: |
           terramate script run \
-            -C terraform/live/staging/us-east-2 \
+            -C terraform/live \
             --parallel 5 \
             --continue-on-error \
             -- \
@@ -78,7 +87,7 @@ jobs:
         if: steps.find-drifted.outputs.stdout
         run: |
           terramate script run \
-            -C terraform/live/staging/us-east-2 \
+            -C terraform/live \
             --tags reconcile \
             --status=drifted \
             --parallel 5 \

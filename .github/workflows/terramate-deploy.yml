@@ -36,7 +36,16 @@ jobs:
       ### Check for changed stacks
       - name: List changed stacks
         id: list-changed
-        run: terramate list -C terraform/live/staging/us-east-2 --changed
+        run: terramate list -C terraform/live --changed
+
+      ### Restore provider cache
+      - name: Restore Terraform provider cache
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
+          key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-providers-
 
       ### Configure cloud credentials
       - name: "Configure AWS Credentials"
@@ -53,7 +62,7 @@ jobs:
         if: steps.list-changed.outputs.stdout
         run: |
           terramate script run \
-            -C terraform/live/staging/us-east-2 \
+            -C terraform/live \
             --changed \
             --include-direct-dependencies \
             --parallel 1 \
@@ -66,10 +75,9 @@ jobs:
         if: steps.list-changed.outputs.stdout
         run: |
           terramate script run \
-            -C terraform/live/staging/us-east-2 \
+            -C terraform/live \
             --parallel 5 \
             --changed \
             deploy
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
