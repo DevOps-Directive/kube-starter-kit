@@ -148,16 +148,16 @@ jobs:
           RUN_DEPLOY_WORKFLOW="${RUN_DEPLOY_WORKFLOW:-true}"
 
           if [ "$RUN_DEPLOY_WORKFLOW" != "true" ]; then
-            echo "skipping update-gitops-manifests workflow because service has RUN_DEPLOY_WORKFLOW=$RUN_DEPLOY_WORKFLOW"
+            echo "skipping gitops-update-manifests workflow because service has RUN_DEPLOY_WORKFLOW=$RUN_DEPLOY_WORKFLOW"
             exit 0
           fi
 
           if [ "$ENVIRONMENT" = "none" ]; then
-            echo "skipping update-gitops-manifests workflow because environment=$ENVIRONMENT"
+            echo "skipping gitops-update-manifests workflow because environment=$ENVIRONMENT"
             exit 0
           fi
 
-          gh workflow run update-gitops-manifests.yml \
+          gh workflow run gitops-update-manifests.yml \
             -f service=${{ matrix.service }} \
             -f version=${{ steps.image-tag.outputs.version }} \
             -f environment="$ENVIRONMENT"
