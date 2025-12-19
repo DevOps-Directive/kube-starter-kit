@@ -50,7 +50,13 @@
             "group": "Getting Started",
             "icon": "rocket",
             "pages": [
-              "usage/getting-started/01-account-set-up"
+              "usage/getting-started/01-prerequisites",
+              "usage/getting-started/02-repository-setup",
+              "usage/getting-started/03-bootstrap-aws-accounts",
+              "usage/getting-started/04-deploy-infrastructure",
+              "usage/getting-started/05-deploy-kubernetes-baseline",
+              "usage/getting-started/06-cluster-access",
+              "usage/getting-started/07-local-development-setup"
             ]
           },
           {
@@ -59,7 +65,20 @@
             "pages": [
               "usage/operations/01-updating-terraform-infrastructure",
               "usage/operations/02-updating-1st-party-applications",
-              "usage/operations/03-updating-3rd-party-applications"
+              "usage/operations/03-updating-3rd-party-applications",
+              "usage/operations/04-bootstrapping-new-service",
+              "usage/operations/05-adding-k8s-infrastructure",
+              "usage/operations/06-managing-secrets",
+              "usage/operations/07-database-operations",
+              "usage/operations/08-observability"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "icon": "wrench",
+            "pages": [
+              "usage/troubleshooting/01-common-issues",
+              "usage/troubleshooting/02-rollback-and-recovery"
             ]
           }
         ]
