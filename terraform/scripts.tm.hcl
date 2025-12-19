@@ -15,6 +15,14 @@ script "init-providers" {
   }
 }
 
+script "upgrade" {
+  description = "Upgrade Terraform providers to latest compatible versions"
+  job {
+    name     = "terraform init -upgrade"
+    commands = [["terraform", "init", "-upgrade", "-backend=false", "-lock-timeout=5m"]]
+  }
+}
+
 script "lock" {
   description = "Update provider lock file with cross-platform hashes"
   job {

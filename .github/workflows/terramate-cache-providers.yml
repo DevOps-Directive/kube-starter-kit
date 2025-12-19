@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - "terraform/live/**/.terraform.lock.hcl"
+  pull_request:
+    paths:
+      - "terraform/live/**/.terraform.lock.hcl"
   workflow_dispatch:
 
 jobs:
@@ -23,22 +26,35 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
 
-      ### Install tooling
+      ### Check if cache already exists
+      - name: Check for existing cache
+        id: cache-check
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ github.workspace }}/.terraform-plugin-cache
+          key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
+          lookup-only: true
+
+      ### Install tooling (only if cache miss)
       - name: Install Terramate
+        if: steps.cache-check.outputs.cache-hit != 'true'
         uses: terramate-io/terramate-action@0500f8a40b57a793a41edd2aea0a49e31c7204e8 # v3.2.0
         with:
           version: "0.15.1"
       - name: HashiCorp - Setup Terraform
+        if: steps.cache-check.outputs.cache-hit != 'true'
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
           terraform_version: "1.14.3"
 
       ### Create plugin cache directory
       - name: Create Terraform plugin cache directory
+        if: steps.cache-check.outputs.cache-hit != 'true'
         run: mkdir -p ${{ github.workspace }}/.terraform-plugin-cache
 
       ### Initialize all stacks to download providers
       - name: Initialize all Terraform stacks (providers only)
+        if: steps.cache-check.outputs.cache-hit != 'true'
         run: |
           terramate script run \
             -C terraform/live \
@@ -49,6 +65,7 @@ jobs:
 
       ### Save the provider cache
       - name: Save Terraform provider cache
+        if: steps.cache-check.outputs.cache-hit != 'true'
         uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ${{ github.workspace }}/.terraform-plugin-cache

@@ -42,7 +42,7 @@ jobs:
         run: mkdir -p ${{ github.workspace }}/.terraform-plugin-cache
 
       - name: Restore Terraform provider cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ${{ github.workspace }}/.terraform-plugin-cache
           key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
@@ -101,3 +101,5 @@ jobs:
             preview
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+

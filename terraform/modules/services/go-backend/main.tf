@@ -38,7 +38,7 @@ resource "aws_iam_policy" "s3_access" {
           "s3:PutObject",
           "s3:DeleteObject"
         ]
-        Resource = "${module.s3_bucket.s3_bucket_arn}/*/*"
+        Resource = "${module.s3_bucket.s3_bucket_arn}/*"
       }
     ]
   })
