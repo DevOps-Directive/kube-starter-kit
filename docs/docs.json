@@ -33,10 +33,11 @@
               "features/05-gitops",
               "features/06-k8s-baseline",
               "features/07-ci-cd-pipeline",
-              "features/08-release-management",
-              "features/09-demo-applications",
-              "features/10-local-development",
-              "features/11-potential-extensions"
+              "features/08-image-scanning",
+              "features/09-release-management",
+              "features/10-demo-applications",
+              "features/11-local-development",
+              "features/12-potential-extensions"
             ]
           },
           "license-pricing"
