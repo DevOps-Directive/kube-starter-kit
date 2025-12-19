@@ -1,6 +1,6 @@
 ---
 title: "Terraform for Base Infrastructure"
-description: "Modular, well-structured Terraform for AWS with multi-environment support via Terragrunt"
+description: "Modular, well-structured Terraform for AWS with multi-environment support via Terramate"
 icon: "cube"
 ---
 
@@ -19,11 +19,11 @@ I've seen teams spend months just figuring out their Terraform structure, only t
 
 I've structured the Terraform in this kit around principles I've refined over years of building and maintaining production infrastructure:
 
-**Terragrunt for DRY configurations:** Rather than copying Terraform code between environments, I use Terragrunt to manage the differences. Each environment defines only what's unique (region, sizing, feature flags), while sharing the same underlying modules.
+**Terramate for DRY configurations:** Rather than copying Terraform code between environments, I use Terramate to orchestrate stacks and manage the differences. Each environment defines only what's unique (region, sizing, feature flags), while sharing the same underlying modules through code generation and hierarchical configuration.
 
 **Hierarchical configuration:** Settings cascade from root to environment to region to project. Common values like your namespace prefix or IAM roles are defined once and inherited everywhere.
 
-**Isolated state per project:** Each deployable unit (networking, EKS cluster, etc.) has its own state file. This means you can update your VPC without Terraform needing to refresh your entire EKS cluster state.
+**Isolated state per project:** Each deployable unit (networking, EKS cluster, etc.) has its own state file. This means you can update your EKS cluster without Terraform needing to refresh your entire VPC state.
 
 **Battle-tested community modules:** Rather than reinventing the wheel, I build on top of well-maintained modules from the Terraform AWS Modules project (for VPC, EKS, security groups, etc.), adding the glue and opinions that make them work together.
 
@@ -33,25 +33,31 @@ I've structured the Terraform in this kit around principles I've refined over ye
 
 ```
 terraform/
+├── config.tm.hcl       # Root globals (namespace, backend, provider versions)
+├── imports.tm.hcl      # Import mixins for all stacks
+├── scripts.tm.hcl      # Terramate scripts for orchestration
 ├── bootstrap/          # One-time account setup (state bucket, OIDC)
-├── modules/            # Reusable modules
-│   ├── account-bootstrapping/
+├── imports/
+│   └── mixins/         # Code generation templates
+│       ├── backend.tm.hcl   # Generates _backend.tf
+│       ├── provider.tm.hcl  # Generates _provider.tf
+│       └── modules/         # Module-specific mixins
+├── modules/            # Reusable Terraform modules
 │   ├── eks/
-│   └── networking/
-└── live/               # Environment configurations
-    ├── root.hcl        # Global defaults
-    ├── shared/         # Cross-environment resources
-    ├── staging/
-    │   └── us-east-2/
-    │       ├── networking/
-    │       └── eks/
-    └── production/
-        └── us-east-2/
+│   ├── networking/
+│   └── app-resources/
+└── live/               # Stack definitions by environment
+    ├── shared/         # Cross-account resources (IAM, ECR, etc.)
+    │   └── global/
+    └── {stage}/        # staging, prod, etc.
+        ├── global/     # Account-level resources (bootstrapping, DNS)
+        └── {region}/   # us-east-1, us-east-2, etc.
             ├── networking/
-            └── eks/
+            ├── eks/
+            └── app-resources/
 ```
 
-### Core Modules
+### Infrastructure Modules
 
 <AccordionGroup>
   <Accordion title="Account Bootstrapping">
@@ -61,7 +67,7 @@ terraform/
     - IAM roles for Terraform automation
   </Accordion>
 
-  <Accordion title="Networking Module">
+  <Accordion title="Networking">
     Creates a production-ready VPC with:
     - Public and private subnets across 3 availability zones
     - Configurable NAT gateway options (single, per-AZ, or fck-nat for cost savings)
@@ -69,7 +75,7 @@ terraform/
     - VPC endpoint support for private AWS service access
   </Accordion>
 
-  <Accordion title="EKS Module">
+  <Accordion title="EKS">
     Provisions a fully-configured EKS cluster with:
     - Managed node group for baseline capacity (runs Karpenter itself)
     - Essential add-ons pre-configured (CoreDNS, VPC CNI, EBS CSI driver, Pod Identity)
@@ -78,53 +84,72 @@ terraform/
     - Security group rules for proper inter-node communication
   </Accordion>
 
+  <Accordion title="User Management">
+    Manages GitHub and AWS IAM Identity Center from a single source of truth:
+    - GitHub organization membership and team assignments
+    - AWS SSO users and group memberships
+    - Permission sets mapped to AWS accounts
+
+    See [User Management](/features/04-user-management) for details.
+  </Accordion>
+
 </AccordionGroup>
 
-### Terragrunt Configuration
+### Application Resources
 
-The `root.hcl` file defines global settings inherited by all environments:
+Per-application resources are provisioned via Terraform stacks in `terraform/live/{stage}/{region}/app-resources/`. Each application has a corresponding module in `terraform/modules/app-resources/` to keep things DRY across environments. These typically include:
+
+- IAM roles for Pod Identity (AWS access from Kubernetes pods)
+- Secrets Manager entries for application secrets
+- Database credentials and connection strings
+- Any other resources specific to an application (AWS or third-party like PlanetScale)
+
+These resources are referenced by Kubernetes deployments via External Secrets.
+
+### Terramate Configuration
+
+The `config.tm.hcl` at the root defines globals inherited by all stacks:
 
 ```hcl
-remote_state {
-  backend = "s3"
-  config  = {
-    bucket       = "ksk-gbl-infra-bootstrap-state"
-    key          = "terraform/live/${path_relative_to_include()}.tfstate"
-    region       = "us-east-2"
-    use_lockfile = "true"
-  }
-}
-
-inputs = {
-  namespace = "ksk"  # Prefix for all resource names
-  github_oidc_assume_role_arn = "arn:aws:iam::..."
-  sso_admin_assume_role_arn = "arn:aws:iam::..."
+globals {
+  namespace                = "ksk"
+  github_oidc_role_arn     = "arn:aws:iam::..."
+  sso_admin_role_arn       = "arn:aws:iam::..."
+  terraform_state_bucket   = "ksk-gbl-infra-bootstrap-state"
+  terraform_state_region   = "us-east-2"
+  terraform_version        = ">= 1.10"
+  aws_provider_version     = "~> 6.27"
 }
 ```
 
-Each project then only needs to specify its unique configuration:
+Each stack defines its configuration with Terramate files:
 
 ```hcl
-# staging/us-east-2/networking/terragrunt.hcl
-include "root" {
-  path = find_in_parent_folders("root.hcl")
+# staging/us-east-2/networking/stack.tm.hcl
+stack {
+  id          = "staging-use2-networking"
+  name        = "networking"
+  description = "VPC and networking for staging us-east-2"
+  tags        = ["staging", "us-east-2", "networking", "infrastructure"]
 }
+```
 
-terraform {
-  source = "../../../modules/networking"
-}
-
-inputs = {
+```hcl
+# staging/us-east-2/networking/config.tm.hcl
+globals {
   vpc_cidr = "10.0.0.0/16"
   nat_mode = "fck_nat"  # Cost-effective NAT for non-prod
 }
 ```
 
+Terramate generates the backend, provider, and module invocation from mixins, keeping stack definitions minimal.
+
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **Terragrunt over Terraform workspaces** | Workspaces share state backends and can lead to accidental cross-environment changes. Terragrunt gives cleaner separation. |
+| **Terramate over Terraform workspaces** | Workspaces share state backends and can lead to accidental cross-environment changes. Terramate's stack model provides clean separation with explicit dependencies. |
+| **Terramate over Terragrunt** | Native HCL syntax without a wrapper, code generation via mixins, and integrated CI/CD visibility via Terramate Cloud. |
 | **Community modules as building blocks** | The terraform-aws-modules are battle-tested by thousands of users. I layer opinions on top rather than maintaining VPC/EKS code from scratch. |
-| **One state file per project** | Blast radius containment. A networking change shouldn't require EKS state refresh. |
-| **S3 native locking** | Simpler than DynamoDB locking, and sufficient for most teams. |
+| **One state file per stack** | Blast radius containment. A networking change shouldn't require EKS state refresh. |
+| **S3 native locking** | Simpler than DynamoDB locking (requires Terraform 1.10+ or OpenTofu 1.8+). |

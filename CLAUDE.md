@@ -65,4 +65,4 @@ ArgoCD uses the app-of-apps pattern: a root app in `kubernetes/src/argocd/` mana
 - OpenTelemetry is pre-configured in Go services
 - Database migrations use Atlas, run as init containers
 - Pod identity (not IRSA) is used for AWS IAM
-- Terraform CI/CD is managed by Digger (`digger.yml`)
+- Terraform orchestration is managed by Terramate (see `terraform/` and `.github/workflows/terramate-*.yml`)

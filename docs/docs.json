@@ -27,7 +27,7 @@
             "icon": "stars",
             "pages": [
               "features/01-terraform",
-              "features/02-digger",
+              "features/02-terramate",
               "features/03-aws-architecture",
               "features/04-user-management",
               "features/05-gitops",
@@ -35,7 +35,8 @@
               "features/07-ci-cd-pipeline",
               "features/08-release-management",
               "features/09-demo-applications",
-              "features/10-potential-extensions"
+              "features/10-local-development",
+              "features/11-potential-extensions"
             ]
           },
           "license-pricing"

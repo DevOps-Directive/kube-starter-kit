@@ -57,6 +57,7 @@ ArgoCD uses a three-tier Application structure:
 
 ```
 argocd-app-of-apps (root)
+├── argocd-app-of-apps (manages itself 🔄)
 ├── infrastructure-app-of-apps
 │   ├── cert-manager
 │   ├── external-dns
@@ -69,26 +70,29 @@ argocd-app-of-apps (root)
     └── ...
 ```
 
-The root Application manages the infrastructure and services Applications, which in turn manage individual components. This creates a clean separation between platform infrastructure and application workloads.
+The root Application manages itself and the infrastructure and services Applications, which in turn manage individual components. This creates a clean separation between platform infrastructure and application workloads, while ensuring the entire ArgoCD configuration is also GitOps-managed.
 
-### Project Isolation
+### Project Organization
 
-ArgoCD Projects provide security boundaries:
+ArgoCD Projects provide logical separation:
 
-| Project | Purpose | Permissions |
-|---------|---------|-------------|
-| **argocd** | ArgoCD's own configuration | Full access to argocd namespace |
-| **infrastructure** | Platform components | Access to infrastructure namespaces |
-| **services** | Application workloads | Access to application namespaces only |
+| Project | Purpose |
+|---------|---------|
+| **argocd** | ArgoCD's own configuration and app-of-apps |
+| **infrastructure** | Platform components (cert-manager, ingress, etc.) |
+| **services** | Application workloads |
 
 ### Deployment Flow
 
 <Steps>
-  <Step title="Commit changes">
+  <Step title="Make changes">
     Update Kubernetes manifests or Helm values in the `src/` directory.
   </Step>
-  <Step title="Render manifests">
-    CI renders environment-specific manifests to `rendered/staging/` or `rendered/production/`.
+  <Step title="Render manifests locally">
+    Run `mise run render` to generate environment-specific manifests to `rendered/staging/` or `rendered/production/`.
+  </Step>
+  <Step title="Commit and push">
+    CI validates that rendered manifests are up-to-date (no git diff after re-rendering).
   </Step>
   <Step title="ArgoCD detects change">
     ArgoCD notices the rendered manifests differ from cluster state.

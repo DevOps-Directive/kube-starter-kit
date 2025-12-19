@@ -12,7 +12,7 @@ This page summarizes the key architectural decisions behind Kube Starter Kit. Ea
 
 **Production-ready from day one:** This isn't a learning exercise or demo. It's infrastructure I'd run in production, with proper security, observability, and operational patterns.
 
-**AWS-native where it matters:** Rather than fighting AWS, I lean into its strengths: IAM, managed services, and native integrations. But Kubernetes workloads stay portable.
+**Balanced approach to managed services:** Kubernetes-native solutions where they add flexibility (ingress, observability, GitOps), managed services where the operational burden justifies it (object storage, databases, identity). The goal is portability without reinventing the wheel.
 
 **GitOps everything:** Infrastructure, configuration, and application deployments all flow through Git. One source of truth, full audit trail.
 
@@ -21,41 +21,46 @@ This page summarizes the key architectural decisions behind Kube Starter Kit. Ea
 | Category | Choice | Alternatives Considered |
 |----------|--------|------------------------|
 | **Cloud Provider** | AWS | GCP, Azure |
-| **Infrastructure as Code** | Terraform + Terragrunt | Pulumi, CDK, CloudFormation |
-| **Terraform CI/CD** | Digger | Atlantis, Spacelift, Terraform Cloud |
+| **Infrastructure as Code** | Terraform + Terramate | Pulumi, CDK, CloudFormation, Terragrunt |
+| **Terraform Orchestration** | Terramate | Digger, Atlantis, Spacelift, Terraform Cloud |
 | **Kubernetes** | EKS | Self-managed, GKE, AKS |
 | **Node Provisioning** | Karpenter | Cluster Autoscaler |
-| **GitOps** | ArgoCD | Flux |
-| **Ingress** | ingress-nginx | AWS ALB Ingress, Traefik |
+| **GitOps** | ArgoCD | Flux, Kluctl |
+| **Ingress** | ingress-nginx | AWS ALB Ingress, Traefik, Envoy Gateway |
 | **Secrets** | External Secrets + AWS Secrets Manager | Sealed Secrets, Vault |
 | **Observability** | SigNoz | Datadog, Grafana Stack |
-| **Database** | CloudNativePG | RDS, PlanetScale |
+| **Database** | PlanetScale | RDS, CloudNativePG |
+| **Local Development** | KinD + Tilt + mirrord | Docker Compose, Skaffold, Telepresence |
 
 ## Why These Choices?
 
-### AWS over other clouds
+### Cloud: AWS
 
 AWS has the largest market share and the best ecosystem of supporting services (S3, RDS, SQS, etc.). Most third-party infrastructure tooling runs on AWS, so co-locating your workloads enables reduced latency and the potential for private networking (more secure and more affordable). Most engineers have AWS experience. For early-stage companies, AWS is the safe choice.
 
-### Terraform over alternatives
+### Infrastructure as Code: Terraform
 
-Terraform has the largest community, most modules, and best tooling ecosystem. Terragrunt solves the DRY problem without abandoning Terraform's strengths. Pulumi and CDK are interesting but add complexity and have smaller ecosystems.
+Terraform has the largest community, most modules, and best tooling ecosystem. Pulumi and CDK are interesting but add complexity and have smaller ecosystems.
 
-### Digger over other Terraform CI/CD
+### Orchestration: Terramate
 
-Digger runs in your own GitHub Actions, so there's no external service with access to your AWS credentials. It's simpler than Atlantis (no separate server), cheaper than Spacelift/Terraform Cloud, and handles Terragrunt natively.
+Terramate provides a unified solution for Terraform orchestration: stack management, code generation, outputs sharing, and CI/CD integration with Terramate Cloud. Unlike Terragrunt, it uses native HCL syntax without a wrapper. Unlike Digger or Atlantis, it includes change detection and cross-stack dependency management. Terramate Cloud provides visibility into previews, deployments, and drift, without requiring external services to access your AWS credentials.
 
-### ArgoCD over Flux
+### GitOps: ArgoCD
 
-Both are solid. ArgoCD has a better UI for understanding deployment state, which helps teams new to GitOps. The app-of-apps pattern provides clear hierarchical organization.
+ArgoCD, Flux, and Kluctl are all solid choices. ArgoCD has the best UI for understanding deployment state, which helps teams new to GitOps. The app-of-apps pattern provides clear hierarchical organization. Flux is lighter-weight but less visual. Kluctl offers a more imperative approach with better diffing and templating flexibility, worth considering if you prefer CLI-driven workflows.
 
-### External Secrets over Sealed Secrets
+### Secrets: External Secrets
 
-Secrets belong in a secrets manager, not encrypted in Git. External Secrets keeps secrets in AWS Secrets Manager where they can be rotated, audited, and access-controlled properly.
+Secrets belong in a secrets manager, not encrypted in Git. External Secrets keeps secrets in AWS Secrets Manager where they can be rotated, audited, and access-controlled properly. Vault is powerful but adds significant operational complexity (self-hosted) or cost (HCP Vault). For most teams, AWS Secrets Manager with External Secrets hits the sweet spot.
 
-### SigNoz over commercial observability
+### Observability: SigNoz
 
 For early-stage companies, Datadog's per-host pricing gets expensive fast. SigNoz gives you metrics, logs, and traces in one open-source platform. You can always migrate to a commercial solution later.
+
+### Local Development: KinD + Tilt + mirrord
+
+KinD provides a real multi-node Kubernetes cluster locally. Tilt handles continuous rebuilds and deploys with smart dependency ordering. mirrord enables debugging local code against remote cluster traffic without deploying. Together they cover the full development lifecycle: local iteration, integration testing, and production debugging.
 
 ## What's Not Included (Yet)
 
@@ -63,7 +68,6 @@ Some things are intentionally omitted from the initial kit:
 
 - **Service mesh:** Most teams don't need Istio/Linkerd on day one. Add it when you have specific requirements.
 - **Multi-region:** Single region is simpler to operate. The patterns here extend to multi-region when you need it.
-- **Spot-only clusters:** The base node group uses on-demand for reliability. Karpenter can provision spot for workloads.
 - **Advanced networking:** No VPC peering, Transit Gateway, or PrivateLink beyond basics. Add as needed.
 
 These are candidates for the [Extensions](/usage/extensions/placeholder) section as the kit evolves.
