@@ -31,7 +31,8 @@
               "features/09-release-management",
               "features/10-demo-applications",
               "features/11-local-development",
-              "features/12-potential-extensions"
+              "features/12-compliance-frameworks",
+              "features/13-potential-extensions"
             ]
           },
           "license-pricing"
