@@ -149,3 +149,138 @@ terramate generate
 git diff  # Review changes
 ```
 
+## Configuration Reference
+
+### Root Configuration
+
+The `terraform/config.tm.hcl` defines globals inherited by all stacks:
+
+```hcl
+globals {
+  namespace                = "ksk"
+  github_oidc_role_arn     = "arn:aws:iam::..."
+  sso_admin_role_arn       = "arn:aws:iam::..."
+  terraform_state_bucket   = "ksk-gbl-infra-bootstrap-state"
+  terraform_state_region   = "us-east-2"
+  terraform_version        = ">= 1.10"
+  aws_provider_version     = "~> 6.27"
+}
+```
+
+### Terramate Project Configuration
+
+The `terramate.tm.hcl` at the repository root configures Terramate features:
+
+```hcl
+terramate {
+  required_version = ">= 0.10.0"
+
+  config {
+    cloud {
+      organization = "your-org"
+      location     = "us"
+    }
+
+    experiments = [
+      "outputs-sharing",
+      "scripts",
+      "tmgen"
+    ]
+  }
+}
+```
+
+### Stack Definition
+
+Each stack requires a `stack.tm.hcl`:
+
+```hcl
+# terraform/live/staging/us-east-2/networking/stack.tm.hcl
+stack {
+  id          = "staging-use2-networking"
+  name        = "networking"
+  description = "VPC and networking for staging us-east-2"
+  tags        = ["staging", "us-east-2", "networking", "infrastructure"]
+
+  # Declare dependencies if needed
+  after = ["tag:staging:us-east-2:eks"]
+}
+```
+
+### Stack-Specific Configuration
+
+Override globals in `config.tm.hcl` within each stack:
+
+```hcl
+# terraform/live/staging/us-east-2/networking/config.tm.hcl
+globals {
+  vpc_cidr = "10.0.0.0/16"
+  nat_mode = "fck_nat"  # Cost-effective NAT for non-prod
+}
+```
+
+### Outputs Sharing
+
+Cross-stack dependencies without `terraform_remote_state`:
+
+```hcl
+# In networking stack: outputs.tm.hcl
+output "vpc_id" {
+  backend = "terraform"
+  value   = module.networking.vpc_id
+}
+
+# In EKS stack: inputs.tm.hcl
+input "vpc_id" {
+  backend       = "terraform"
+  from_stack_id = "staging-use2-networking"
+  value         = outputs.vpc_id.value
+  mock          = "vpc-mock12345"  # Used during initial bootstrap
+}
+```
+
+The input becomes a regular Terraform variable, usable in your module:
+
+```hcl
+module "eks" {
+  source = "../../../modules/eks"
+  vpc_id = var.vpc_id
+  # ...
+}
+```
+
+### Terramate Scripts
+
+The `terraform/scripts.tm.hcl` file defines reusable commands used by CI:
+
+```hcl
+script "preview" {
+  description = "Plan with outputs sharing"
+  job {
+    commands = [
+      ["terraform", "validate"],
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+        sync_preview        = true
+        terraform_plan_file = "out.tfplan"
+        enable_sharing      = true
+      }],
+    ]
+  }
+}
+
+script "deploy" {
+  description = "Apply with outputs sharing"
+  job {
+    commands = [
+      ["terraform", "apply", "-auto-approve", "-lock-timeout=5m", {
+        enable_sharing = true
+      }],
+    ]
+  }
+}
+```
+
+### Mixins
+
+Code generation templates live in `terraform/imports/mixins/`. These generate common files (`_backend.tf`, `_provider.tf`, `_main.tf`) from templates, eliminating copy-paste between stacks.
+
