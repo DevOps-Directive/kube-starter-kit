@@ -94,8 +94,6 @@ jobs:
             --include-direct-dependencies \
             --parallel 1 \
             init
-        env:
-          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Plan Terraform changes in changed stacks
         if: steps.list-changed.outputs.stdout

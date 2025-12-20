@@ -79,8 +79,6 @@ jobs:
             --include-direct-dependencies \
             --parallel 1 \
             init
-        env:
-          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Run Terraform apply in all changed stacks
         id: deploy

@@ -71,8 +71,6 @@ jobs:
             -C terraform/live \
             --parallel 1 \
             init
-        env:
-          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Run drift detection
         id: drift-detect
