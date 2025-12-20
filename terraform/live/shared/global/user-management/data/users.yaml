@@ -25,7 +25,7 @@ users:
       given_name: Sid
       family_name: Test
   - github:
-      username: sidpalas
+      username: jhoch-nmnl
       role: member
       teams:
         ReadOnly: {}
