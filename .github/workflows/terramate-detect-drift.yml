@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       AWS_REGION: us-east-2
+      # GITHUB_TOKEN is used by Terramate Cloud for status reporting.
+      # Terraform's GitHub provider uses TF_VAR_github_token (from octo-sts) instead,
+      # because it requires admin:org scope which the default GHA token doesn't have.
+      GITHUB_TOKEN: ${{ github.token }}
     permissions:
       id-token: write
       contents: read
