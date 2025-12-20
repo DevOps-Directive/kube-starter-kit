@@ -1,0 +1,14 @@
+issuer: https://token.actions.githubusercontent.com
+subject_pattern: ^repo:DevOps-Directive/kube-starter-kit:.*
+claim_pattern:
+  workflow_ref: '^DevOps-Directive/kube-starter-kit/\.github/workflows/terramate.*@refs/.*$'
+
+permissions:
+  # For Terraform
+  administration: write # repo permission
+  metadata: read # repo permission
+  members: write # org permission
+  # For Terramate workflows
+  contents: read # required to checkout code
+  pull_requests: write # required to post PR comments
+  checks: read # required to read check status
