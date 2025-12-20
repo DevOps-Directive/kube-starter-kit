@@ -4,4 +4,4 @@ variable "aws_region" {
   default     = "us-east-2"
 }
 
-# Note: terraform_iam_role_arn is generated in _sharing.tf via Terramate inputs
+# Note: terraform_iam_role_arn is generated in _variables.tf via Terramate globals

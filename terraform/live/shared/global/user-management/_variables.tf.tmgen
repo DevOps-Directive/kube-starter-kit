@@ -1,0 +1,8 @@
+# Generated variables for inline stack (non-CloudPosse)
+# CloudPosse context variables are in context.tf
+
+variable "terraform_iam_role_arn" {
+  description = "IAM role ARN for Terraform to assume"
+  type        = string
+  default     = global.terraform_iam_role_arn
+}
