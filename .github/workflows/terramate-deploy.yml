@@ -3,7 +3,7 @@ name: Terraform Deployment
 on:
   push:
     branches:
-      - main_TEMP_DISABLE
+      - main
 
 jobs:
   deploy:
@@ -89,5 +89,16 @@ jobs:
             --parallel 5 \
             --changed \
             deploy
+        env:
+          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
+
+      - name: Run drift detection in all deployed stacks
+        if: steps.list-changed.outputs.stdout && ! cancelled() && steps.deploy.outcome != 'skipped'
+        run: |
+          terramate script run \
+            -C terraform/live \
+            --parallel 5 \
+            --changed \
+            drift detect
         env:
           TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
