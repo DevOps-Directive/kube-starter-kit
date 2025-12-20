@@ -87,8 +87,9 @@ terraform/
 │   ├── networking/
 │   └── app-resources/
 └── live/               # Stack definitions by environment
-    ├── shared/         # Cross-account resources (IAM, ECR)
-    │   └── global/
+    ├── shared/         # Cross-account resources
+    │   ├── global/     # IAM, GitHub org management
+    │   └── {region}/   # ECR repositories
     └── {stage}/        # staging, prod, etc.
         ├── global/     # Account-level resources (bootstrapping, DNS)
         └── {region}/   # us-east-1, us-east-2, etc.
