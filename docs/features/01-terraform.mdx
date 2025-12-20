@@ -34,14 +34,14 @@ Per-application AWS resources (IAM roles for Pod Identity, Secrets Manager entri
 ## What's Provisioned
 
 <AccordionGroup>
-  <Accordion title="Account Bootstrapping">
+  <Accordion title="Account Bootstrapping" icon="rocket">
     One-time setup for new AWS accounts:
     - S3 bucket for Terraform state with native locking (no DynamoDB needed)
     - GitHub OIDC provider for keyless CI/CD authentication
     - IAM roles for Terraform automation
   </Accordion>
 
-  <Accordion title="Networking">
+  <Accordion title="Networking" icon="network-wired">
     Production-ready VPC with:
     - Public and private subnets across 3 availability zones
     - Configurable NAT gateway options (single, per-AZ, or fck-nat for cost savings)
@@ -49,7 +49,7 @@ Per-application AWS resources (IAM roles for Pod Identity, Secrets Manager entri
     - VPC endpoint support for private AWS service access
   </Accordion>
 
-  <Accordion title="EKS Cluster">
+  <Accordion title="EKS Cluster" icon="dharmachakra">
     Fully-configured EKS cluster with:
     - Managed node group for baseline capacity (runs Karpenter itself)
     - Essential add-ons pre-configured (CoreDNS, VPC CNI, EBS CSI driver, Pod Identity)
@@ -57,7 +57,7 @@ Per-application AWS resources (IAM roles for Pod Identity, Secrets Manager entri
     - Security group rules for proper inter-node communication
   </Accordion>
 
-  <Accordion title="Application Resources">
+  <Accordion title="Application Resources" icon="box">
     Per-application resources provisioned via dedicated stacks:
     - IAM roles for Pod Identity (AWS access from Kubernetes pods)
     - Secrets Manager entries for application secrets
@@ -67,7 +67,7 @@ Per-application AWS resources (IAM roles for Pod Identity, Secrets Manager entri
     These resources are referenced by Kubernetes deployments via External Secrets.
   </Accordion>
 
-  <Accordion title="User Management">
+  <Accordion title="User Management" icon="users">
     GitHub and AWS IAM Identity Center from a single source of truth:
     - GitHub organization membership and team assignments
     - AWS SSO users and group memberships
