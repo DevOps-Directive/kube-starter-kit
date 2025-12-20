@@ -53,6 +53,12 @@ jobs:
           role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
+      - name: Get GitHub token via octo-sts
+        uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
+        id: octo-sts
+        with:
+          scope: DevOps-Directive/kube-starter-kit
+          identity: terramate # see .github/chainguard/terramate.sts.yaml for trust policy
 
       ### Run Dift Check
       - name: Run Terraform init in all stacks
@@ -62,7 +68,7 @@ jobs:
             --parallel 1 \
             init
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
 
       - name: Run drift detection
         id: drift-detect
@@ -74,7 +80,7 @@ jobs:
             -- \
             drift detect
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
 
       - name: Check for auto reconcile
         id: find-drifted
@@ -96,4 +102,4 @@ jobs:
             -- \
             drift reconcile
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}

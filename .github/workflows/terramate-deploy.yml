@@ -57,6 +57,13 @@ jobs:
       - name: Verify AWS credentials
         if: steps.list-changed.outputs.stdout
         run: aws sts get-caller-identity
+      - name: Get GitHub token via octo-sts
+        if: steps.list-changed.outputs.stdout
+        uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
+        id: octo-sts
+        with:
+          scope: DevOps-Directive/kube-starter-kit
+          identity: terramate # see .github/chainguard/terramate.sts.yaml for trust policy
 
       ### Run the Terraform deployment via Terramate in each changed stack
       - name: Run Terraform init on changed stacks and direct dependencies
@@ -69,7 +76,7 @@ jobs:
             --parallel 1 \
             init
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
 
       - name: Run Terraform apply in all changed stacks
         id: deploy
@@ -81,4 +88,4 @@ jobs:
             --changed \
             deploy
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
