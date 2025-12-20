@@ -24,3 +24,8 @@ users:
       group_membership: [ReadOnly]
       given_name: Sid
       family_name: Test
+  - github:
+      username: sidpalas
+      role: member
+      teams:
+        ReadOnly: {}
