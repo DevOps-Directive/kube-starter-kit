@@ -91,7 +91,7 @@ jobs:
             --parallel 1 \
             init
         env:
-          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Plan Terraform changes in changed stacks
         if: steps.list-changed.outputs.stdout
@@ -104,4 +104,4 @@ jobs:
             -- \
             preview
         env:
-          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}

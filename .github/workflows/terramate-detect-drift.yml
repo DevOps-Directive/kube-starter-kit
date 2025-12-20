@@ -68,7 +68,7 @@ jobs:
             --parallel 1 \
             init
         env:
-          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Run drift detection
         id: drift-detect
@@ -80,7 +80,7 @@ jobs:
             -- \
             drift detect
         env:
-          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Check for auto reconcile
         id: find-drifted
@@ -102,4 +102,4 @@ jobs:
             -- \
             drift reconcile
         env:
-          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          TF_VAR_github_token: ${{ steps.octo-sts.outputs.token }}
