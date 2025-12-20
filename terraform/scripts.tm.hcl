@@ -124,3 +124,19 @@ script "fmt" {
     commands = [["terraform", "fmt", "-recursive"]]
   }
 }
+
+script "deploy" {
+  name        = "Terraform Deployment"
+  description = "Run a full Terraform deployment cycle and synchronize the result to Terramate Cloud"
+
+  job {
+    commands = [
+      ["terraform", "validate"],
+      ["terraform", "plan", "-out", "out.tfplan", "-lock=false"],
+      ["terraform", "apply", "-input=false", "-auto-approve", "-lock-timeout=5m", "out.tfplan", {
+        sync_deployment     = true
+        terraform_plan_file = "out.tfplan"
+      }],
+    ]
+  }
+}
