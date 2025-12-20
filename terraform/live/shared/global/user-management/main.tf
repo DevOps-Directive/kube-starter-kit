@@ -22,9 +22,17 @@ provider "aws" {
 
 # Auth:
 #  - local: `gh auth login` (had to change scopes with `gh auth refresh -h github.com --scopes read:user,user:email,admin:org`)
-#  - digger/gha: use octo-sts
+#  - digger/gha: use octo-sts via TF_VAR_github_token (GITHUB_TOKEN is reserved for Terramate Cloud)
+variable "github_token" {
+  type        = string
+  sensitive   = true
+  default     = null # Falls back to GITHUB_TOKEN env var or gh CLI when null
+  description = "GitHub token for provider authentication. Set via TF_VAR_github_token in CI."
+}
+
 provider "github" {
   owner = "DevOps-Directive"
+  token = var.github_token
 }
 
 module "label" {
