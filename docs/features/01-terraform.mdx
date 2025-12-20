@@ -103,6 +103,7 @@ terraform/
 | Decision | Rationale |
 |----------|-----------|
 | **Terraform over Pulumi/CDK** | Declarative HCL is easier to review and reason about than imperative code. Larger ecosystem of modules and community support. |
+| **Terraform over Crossplane** | Simpler operational model—no controller running in-cluster to manage. Better tooling for plan/preview workflows. Crossplane shines for self-service platforms, but adds complexity for smaller teams. |
 | **One state file per stack** | Blast radius containment. A networking change shouldn't require EKS state refresh. Failures are isolated. |
 | **Community modules as building blocks** | The terraform-aws-modules are battle-tested by thousands of users. Layer opinions on top rather than maintaining infrastructure code from scratch. |
 | **S3 native locking** | Simpler than DynamoDB locking, fewer moving parts (requires Terraform 1.10+ or OpenTofu 1.8+). |
