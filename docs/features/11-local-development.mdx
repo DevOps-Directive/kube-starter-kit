@@ -10,7 +10,7 @@ The kit includes a complete local development environment using three complement
 
 - **[KinD](https://kind.sigs.k8s.io/) (Kubernetes in Docker):** A real multi-node Kubernetes cluster running locally
 - **[Tilt](https://tilt.dev/):** Continuous development that rebuilds and redeploys on file changes
-- **[mirrord](https://mirrord.dev/):** Debug local code against traffic from a remote cluster
+- **[mirrord](https://mirrord.dev/):** Run services directly on your host machine while connected to the KinD cluster
 
 ## How It Works
 
@@ -40,11 +40,15 @@ Tilt watches your source code and Kubernetes manifests, automatically rebuilding
 
 ### mirrord
 
-mirrord connects your local development environment to a remote Kubernetes cluster, letting you:
+While Tilt runs your services inside containers in the KinD cluster, mirrord lets you run a service directly on your host machine while staying connected to the cluster. This provides several advantages for debugging and profiling:
 
-**Steal traffic:** Redirect all traffic from a pod to your local process. Your local code handles real requests while you debug with your IDE.
+**Native debugging:** Attach your IDE's debugger directly to the process without container layers. Set breakpoints, step through code, and inspect variables with full IDE integration.
 
-**Mirror traffic:** Copy traffic without interrupting the running pod. Useful for observing production behavior without risk.
+**Profiling tools:** Use host-native profilers (pprof, perf, Instruments) without containerization overhead or special configuration.
+
+**Faster iteration:** Skip container builds entirely—just recompile and restart. Your local binary intercepts traffic that would go to the in-cluster pod.
+
+**Steal traffic:** Redirect all traffic from a pod to your local process. Your local code handles real requests while you debug.
 
 **Access cluster resources:** Your local process can reach cluster-internal services (databases, APIs) as if it were running in the cluster.
 
