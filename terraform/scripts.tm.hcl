@@ -132,10 +132,13 @@ script "deploy" {
   job {
     commands = [
       ["terraform", "validate"],
-      ["terraform", "plan", "-out", "out.tfplan", "-lock=false"],
+      ["terraform", "plan", "-out", "out.tfplan", "-lock=false", {
+        enable_sharing = true
+      }],
       ["terraform", "apply", "-input=false", "-auto-approve", "-lock-timeout=5m", "out.tfplan", {
         sync_deployment     = true
         terraform_plan_file = "out.tfplan"
+        enable_sharing      = true
       }],
     ]
   }
