@@ -8,10 +8,47 @@ icon: 'aws'
 
 Before deploying infrastructure via CI/CD, you need to bootstrap each AWS account with the IAM roles and resources that enable Terraform automation. This is a one-time setup per account.
 
-The bootstrapping process creates:
-- **S3 bucket** for Terraform state (in the Infrastructure account)
-- **GitHub OIDC provider** for keyless CI/CD authentication
-- **IAM roles** in each account that can be assumed by the Infrastructure account
+### How Cross-Account Access Works
+
+The **Infrastructure account** is the central hub for all Terraform operations:
+
+```
+GitHub Actions
+    │
+    │ OIDC authentication
+    ▼
+┌─────────────────────────────────────────┐
+│         Infrastructure Account          │
+│  ┌───────────────┐  ┌────────────────┐  │
+│  │ GitHub OIDC   │  │ Terraform      │  │
+│  │ Role          │  │ State Bucket   │  │
+│  └───────────────┘  └────────────────┘  │
+└─────────────────────────────────────────┘
+    │
+    │ sts:AssumeRole (cross-account)
+    ▼
+┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+│Management│  │   ECR    │  │ Staging  │  │Production│
+│ Account  │  │ Account  │  │ Account  │  │ Account  │
+│          │  │          │  │          │  │          │
+│ IAM Role │  │ IAM Role │  │ IAM Role │  │ IAM Role │
+│ (trusts  │  │ (trusts  │  │ (trusts  │  │ (trusts  │
+│  infra)  │  │  infra)  │  │  infra)  │  │  infra)  │
+└──────────┘  └──────────┘  └──────────┘  └──────────┘
+```
+
+1. GitHub Actions authenticates via OIDC to a role in the Infrastructure account
+2. That role assumes target account roles via cross-account IAM trust policies
+3. Terraform runs with credentials for the target account, but state is stored centrally in the Infrastructure account
+
+This pattern keeps credentials management simple (one OIDC integration) while maintaining proper account isolation.
+
+### What Gets Bootstrapped
+
+| Account | Resources Created |
+|---------|-------------------|
+| **Infrastructure** | S3 state bucket, GitHub OIDC provider, GitHub OIDC role |
+| **All other accounts** | IAM role with trust policy allowing the Infrastructure account to assume it |
 
 <Note>
 For an overview of the multi-account structure and why it's designed this way, see [AWS Architecture](/features/03-aws-architecture).
@@ -73,14 +110,16 @@ Based on the [account structure](/features/03-aws-architecture#account-structure
   </Step>
 
   <Step title="Create IAM roles in target accounts">
-    Each target account needs an IAM role that the Infrastructure account can assume. Repeat these steps for each account (Management, ECR, Staging, Production).
+    Each target account needs an IAM role that can be assumed from the Infrastructure account. This role has a trust policy that allows the Infrastructure account's SSO admin role (and later, the GitHub OIDC role) to assume it.
+
+    Repeat these steps for each account (Management, ECR, Staging, Production):
 
     1. Log into the target account:
        ```bash
        aws sso login --profile staging  # or management, ecr, production
        ```
 
-    2. Create the IAM role:
+    2. Create the IAM role with cross-account trust:
        ```bash
        cd terraform/bootstrap
 
@@ -88,6 +127,10 @@ Based on the [account structure](/features/03-aws-architecture#account-structure
          --role-name ksk-gbl-staging-bootstrap-admin \
          --infra-sso-role-arn "arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
        ```
+
+       This creates an IAM role with:
+       - `AdministratorAccess` policy attached
+       - Trust policy allowing the specified Infrastructure account role to assume it
 
     Use consistent naming for each account:
     | Account | Role Name |
@@ -100,36 +143,41 @@ Based on the [account structure](/features/03-aws-architecture#account-structure
 
   <Step title="Apply Terraform bootstrapping stacks">
     With IAM roles in place, apply the Terraform bootstrapping stacks to complete the setup. These stacks:
-    - Configure the GitHub OIDC provider
-    - Set up the state bucket with proper configuration
+    - Create the GitHub OIDC provider and role in the Infrastructure account
+    - Configure the S3 state bucket with versioning
+    - Update target account IAM roles to also trust the GitHub OIDC role
     - Create Route53 hosted zones for each environment
 
-    1. Update the role ARNs in your configuration:
+    1. Update the root configuration with your account-specific values:
 
-       Edit `terraform/config.tm.hcl` with your account-specific values:
+       Edit `terraform/config.tm.hcl`:
        ```hcl
        globals {
          namespace = "ksk"  # Your organization namespace
 
-         # Infrastructure account GitHub OIDC role (created by terraform-bootstrapping stack)
+         # GitHub OIDC role in Infrastructure account (this role assumes roles in other accounts)
          github_oidc_assume_role_arn = "arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc"
 
-         # Your SSO admin role ARN
+         # Your SSO admin role in Infrastructure account (for local Terraform runs)
          sso_admin_assume_role_arn = "arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
 
-         # S3 backend configuration
+         # S3 backend in Infrastructure account (stores state for ALL accounts)
          backend_bucket = "ksk-gbl-infra-bootstrap-state"
          backend_region = "us-east-2"
        }
        ```
 
-    2. Update stack-specific role ARNs in each bootstrapping stack's configuration.
+       These values define who can assume roles in target accounts:
+       - `github_oidc_assume_role_arn`: Used by CI/CD pipelines
+       - `sso_admin_assume_role_arn`: Used when running Terraform locally
+
+    2. Update each target account's bootstrapping stack with its IAM role ARN in `config.tm.hcl` files.
 
     3. Initialize and apply the bootstrapping stacks in order:
        ```bash
        cd terraform
 
-       # Infrastructure account bootstrapping
+       # Infrastructure account bootstrapping (creates OIDC provider and state bucket)
        terramate run --tags infra:bootstrapping -- terraform init
        terramate run --tags infra:bootstrapping -- terraform apply
 
@@ -149,21 +197,30 @@ Based on the [account structure](/features/03-aws-architecture#account-structure
        terramate run --tags prod:bootstrapping -- terraform init
        terramate run --tags prod:bootstrapping -- terraform apply
        ```
+
+       <Tip>
+       After the Infrastructure account stack runs, the GitHub OIDC role exists. The target account stacks then update their IAM roles' trust policies to allow both the SSO admin role AND the GitHub OIDC role to assume them.
+       </Tip>
   </Step>
 
   <Step title="Configure GitHub repository secrets">
-    The CI/CD workflows need to know which role to assume for deployments.
+    GitHub Actions needs to know which role to authenticate to. This is always the GitHub OIDC role in the Infrastructure account, which then assumes roles in other accounts as needed.
 
     Add these secrets to your GitHub repository:
 
     | Secret | Value |
     |--------|-------|
-    | `AWS_ROLE_ARN` | The GitHub OIDC role ARN from the Infrastructure account |
+    | `AWS_ROLE_ARN` | The GitHub OIDC role ARN in the Infrastructure account |
     | `AWS_REGION` | Your primary AWS region (e.g., `us-east-2`) |
 
-    <Tip>
-    The GitHub OIDC role is created by the `terraform-bootstrapping` stack and has the format: `arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc`
-    </Tip>
+    The GitHub OIDC role ARN has the format:
+    ```
+    arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc
+    ```
+
+    <Note>
+    The Terraform provider configuration in each stack specifies which target account role to assume. GitHub Actions only needs the Infrastructure account role; cross-account access is handled by the provider's `assume_role` block.
+    </Note>
   </Step>
 
   <Step title="Verify the setup">
@@ -190,31 +247,42 @@ Based on the [account structure](/features/03-aws-architecture#account-structure
 
 ## What Gets Created
 
-### Infrastructure Account
+### Infrastructure Account (Central Hub)
 
 | Resource | Purpose |
 |----------|---------|
-| S3 bucket | Terraform state storage with versioning |
-| GitHub OIDC provider | Keyless authentication for GitHub Actions |
-| IAM role | GitHub Actions assumes this role for deployments |
+| S3 bucket | Stores Terraform state for **all accounts** with versioning enabled |
+| GitHub OIDC provider | Enables keyless authentication from GitHub Actions |
+| GitHub OIDC IAM role | Role that GitHub Actions assumes; can then assume roles in other accounts |
 
-### Each Target Account
+### Each Target Account (Management, ECR, Staging, Production)
 
 | Resource | Purpose |
 |----------|---------|
-| IAM role | Admin role that Infrastructure account can assume |
-| Route53 hosted zone | DNS zone for the environment (e.g., `staging.example.com`) |
+| IAM role | Admin role with trust policy allowing the Infrastructure account's GitHub OIDC role and SSO admin role to assume it |
+| Route53 hosted zone | DNS zone for the environment (e.g., `staging.example.com`); not created in Management or ECR accounts |
 
 ## Troubleshooting
 
-### "Access Denied" when assuming role
+### "Access Denied" when assuming cross-account role
 
-Verify the trust policy on the target account role includes the correct principal:
-```bash
-aws iam get-role --role-name ksk-gbl-staging-bootstrap-admin --query 'Role.AssumeRolePolicyDocument'
-```
+The two-step authentication means there are two places trust can fail:
 
-The principal should match your Infrastructure account SSO role or GitHub OIDC role ARN.
+1. **GitHub → Infrastructure account**: Check the OIDC role trust policy
+   ```bash
+   # Run from Infrastructure account
+   aws iam get-role --role-name ksk-gbl-infra-bootstrap-github-oidc \
+     --query 'Role.AssumeRolePolicyDocument'
+   ```
+
+2. **Infrastructure account → Target account**: Check the target role trust policy
+   ```bash
+   # Run from target account (e.g., staging)
+   aws iam get-role --role-name ksk-gbl-staging-bootstrap-admin \
+     --query 'Role.AssumeRolePolicyDocument'
+   ```
+
+The target account's trust policy should include the Infrastructure account's GitHub OIDC role ARN as a trusted principal.
 
 ### "Bucket already exists" error
 
@@ -230,12 +298,20 @@ S3 bucket names are globally unique. If the bucket name is taken:
    aws iam list-open-id-connect-providers
    ```
 
-2. Check the role trust policy allows your repository:
+2. Check the GitHub OIDC role trust policy allows your repository:
    ```bash
-   aws iam get-role --role-name ksk-gbl-infra-bootstrap-github-oidc --query 'Role.AssumeRolePolicyDocument'
+   aws iam get-role --role-name ksk-gbl-infra-bootstrap-github-oidc \
+     --query 'Role.AssumeRolePolicyDocument'
    ```
 
-3. Ensure the repository name in the trust policy matches exactly (including organization name).
+3. Ensure the repository name in the trust policy matches exactly (case-sensitive, including organization name).
+
+### State file in wrong location
+
+All Terraform state is stored in the Infrastructure account's S3 bucket, regardless of which account the resources are in. If you see state errors:
+1. Verify `backend_bucket` and `backend_region` in `terraform/config.tm.hcl`
+2. Ensure the GitHub OIDC role has S3 permissions in the Infrastructure account
+3. Check that the bucket exists and has the expected state files
 
 ## Next Steps
 
