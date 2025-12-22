@@ -30,8 +30,24 @@ Before proceeding, ensure you have completed the [Prerequisites](/usage/getting-
     ```
   </Step>
 
+  <Step title="Install mise">
+    The repository uses [mise](https://mise.jdx.dev/) to manage tool versions. Install it first:
+
+    ```bash
+    curl https://mise.run | sh
+    ```
+
+    Then activate mise in your shell (add to your `.bashrc` or `.zshrc` for persistence):
+
+    ```bash
+    eval "$(~/.local/bin/mise activate bash)"  # or zsh/fish
+    ```
+
+    See the [mise installation docs](https://mise.jdx.dev/getting-started.html) for alternative installation methods.
+  </Step>
+
   <Step title="Install development tools">
-    The repository uses [mise](https://mise.jdx.dev/) to manage tool versions:
+    With mise installed, install the project's tool dependencies:
 
     ```bash
     mise install
