@@ -16,7 +16,7 @@ If your AWS account is brand new, you may need to request a quota increase for A
 
 #### Setting Up Multiple Accounts with Control Tower
 
-You can set up your AWS accounts however you prefer. The kit just needs an infrastructure account, staging account, and production account to exist. If you already have a multi-account structure, you can skip this section.
+You can set up your AWS accounts however you prefer. The kit just needs an management account, infrastructure account, ECR account, staging account, and production account to exist. If you already have a multi-account structure, you can skip this section.
 
 If you're starting fresh, [AWS Control Tower](https://aws.amazon.com/controltower/) is a good option. It provides:
 
@@ -27,10 +27,11 @@ If you're starting fresh, [AWS Control Tower](https://aws.amazon.com/controltowe
 
 To set up Control Tower:
 
-1. Enable Control Tower in your management account
-2. Create an **Infrastructure** account (for shared resources like ECR, Route53)
-3. Create a **Staging** account (for the staging EKS cluster)
-4. Create a **Production** account (for the production EKS cluster)
+1. Enable Control Tower in your **management** account
+2. Create an **Infrastructure** account (the entrypoint and hub for IaC automations)
+3. Create an **ECR** account (for the Elastic Container Registry used by all environments)
+4. Create a **Staging** account (for the staging EKS cluster and application resources)
+5. Create a **Production** account (for the production EKS cluster and application resources)
 
 Control Tower automatically sets up AWS IAM Identity Center, which the kit uses for authenticating to each account via SSO.
 
@@ -40,7 +41,7 @@ A GitHub organization where the repository will live. The CI/CD pipelines use Gi
 
 ### Domain Name
 
-A domain name is required for ingress routing to your services (e.g., `api.staging.example.com`). The kit creates Route53 hosted zones and uses external-dns to automatically manage DNS records.
+A domain name is required for ingress routing to your services (e.g., `api.example.com`). The kit creates Route53 hosted zones and uses external-dns to automatically manage DNS records.
 
 You can either:
 - **Register a new domain** through AWS Route53 or any registrar
@@ -53,6 +54,8 @@ You can either:
 [SigNoz](https://signoz.io/) provides observability (traces, metrics, logs). The kit includes pre-configured OpenTelemetry collectors that ship data to SigNoz Cloud.
 
 If you don't set up SigNoz, the observability components simply won't send data anywhere. The rest of the platform works fine without it.
+
+**NOTE:** other observability providers can also be swapped in instead of Signoz.
 
 ### Terramate Cloud Account
 
