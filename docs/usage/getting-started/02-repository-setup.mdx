@@ -151,6 +151,68 @@ If you want to use [Terramate Cloud](https://cloud.terramate.io/) for plan visua
 Terramate Cloud is optional but recommended. It provides a unified view of Terraform plans across all stacks and makes PR reviews much easier.
 </Tip>
 
+### Configure octo-sts for GitHub Tokens
+
+The kit uses [octo-sts](https://github.com/octo-sts/app) to obtain GitHub tokens with elevated permissions for workflows that manage GitHub organization resources (team membership, repository settings, etc.). This is more secure than storing long-lived GitHub tokens as secrets.
+
+<Steps>
+  <Step title="Install the octo-sts GitHub App">
+    1. Navigate to the [octo-sts GitHub App](https://github.com/apps/octo-sts)
+    2. Click **Install** and select your organization
+    3. Grant access to your forked repository (or all repositories)
+    4. The app will read policy files from `.github/chainguard/` to determine what permissions to grant
+  </Step>
+
+  <Step title="Update the trust policy files">
+    Update each policy file in `.github/chainguard/` to reference your organization and repository.
+
+    **`.github/chainguard/terramate.sts.yaml`** (used by Terraform workflows):
+
+    ```yaml
+    issuer: https://token.actions.githubusercontent.com
+    subject_pattern: ^repo:YOUR-ORG/kube-starter-kit:.*
+    claim_pattern:
+      workflow_ref: '^YOUR-ORG/kube-starter-kit/\.github/workflows/terramate.*@refs/.*$'
+
+    permissions:
+      administration: write
+      metadata: read
+      members: write
+      contents: read
+    ```
+
+    **`.github/chainguard/release-please.sts.yaml`** (used by release automation):
+
+    ```yaml
+    issuer: https://token.actions.githubusercontent.com
+    subject: repo:YOUR-ORG/kube-starter-kit:ref:refs/heads/main
+
+    permissions:
+      contents: write
+      pull_requests: write
+    ```
+
+    Replace `YOUR-ORG` with your GitHub organization name in all files.
+  </Step>
+
+  <Step title="Understand the policy structure">
+    Each policy file controls:
+
+    | Field | Purpose |
+    |-------|---------|
+    | `issuer` | Always `https://token.actions.githubusercontent.com` for GitHub Actions |
+    | `subject` or `subject_pattern` | Which repository and refs can request this token |
+    | `claim_pattern` | Which specific workflows can use this identity |
+    | `permissions` | GitHub API permissions granted to the token |
+
+    The `workflow_ref` claim pattern ensures only your designated workflows can obtain tokens, preventing other workflows or forks from requesting elevated permissions.
+  </Step>
+</Steps>
+
+<Warning>
+If you do not plan to use Terraform to manage GitHub organization resources (teams, members, repository settings), you can skip octo-sts setup and remove the octo-sts step from the Terramate workflows. The `TF_VAR_github_token` variable will need to be removed or provided through another mechanism.
+</Warning>
+
 ## Update Additional References
 
 Search for and replace organization-specific values throughout the codebase:
