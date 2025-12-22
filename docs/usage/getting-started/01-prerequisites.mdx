@@ -47,8 +47,17 @@ If you skip this, services are still accessible via the AWS load balancer URLsâ€
 
 ## For Local Development
 
-### Docker
+### Container Runtime
 
-[Docker](https://www.docker.com/) is required for the local Kubernetes development environment. The kit uses [KinD](https://kind.sigs.k8s.io/) (Kubernetes in Docker) to run a multi-node cluster locally.
+A container runtime is required for the local Kubernetes development environment. The kit uses [KinD](https://kind.sigs.k8s.io/) (Kubernetes in Docker) to run a multi-node cluster locally.
 
-All other CLI tools (kubectl, helm, terraform, etc.) are managed by [mise](https://mise.jdx.dev/) and installed automatically when you run `mise install` in the repository.
+Options include:
+- [Docker](https://www.docker.com/)
+- [Podman](https://podman.io/)
+- [OrbStack](https://orbstack.dev/) (macOS)
+
+### mise
+
+[mise](https://mise.jdx.dev/) manages all CLI tools (kubectl, helm, terraform, etc.) and installs them automatically when you run `mise install` in the repository.
+
+See [Local Development Setup](/usage/getting-started/local-development-setup) for detailed instructions.
