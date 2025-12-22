@@ -38,6 +38,14 @@ Control Tower automatically sets up AWS IAM Identity Center, which the kit uses 
 
 A GitHub organization where the repository will live. The CI/CD pipelines use GitHub Actions with OIDC authentication to AWS, and the Terraform GitHub provider manages org-level resources like team memberships.
 
+### Domain Name
+
+A domain name is required for ingress routing to your services (e.g., `api.staging.example.com`). The kit creates Route53 hosted zones and uses external-dns to automatically manage DNS records.
+
+You can either:
+- **Register a new domain** through AWS Route53 or any registrar
+- **Use a subdomain** of an existing domain by pointing nameservers to the Route53 hosted zone
+
 ## Optional
 
 ### SigNoz Cloud Account
@@ -54,14 +62,6 @@ If you don't set up SigNoz, the observability components simply won't send data 
 - Stack health monitoring
 
 The kit works without Terramate Cloud; you just won't get the cloud features. The CLI orchestration still functions locally and in CI.
-
-### Domain Name
-
-A domain name is needed if you want friendly URLs for your services (e.g., `api.staging.example.com`). The kit creates Route53 hosted zones and uses external-dns to automatically manage DNS records.
-
-You can either:
-- **Register a new domain** through AWS Route53 or any registrar
-- **Use a subdomain** of an existing domain by pointing nameservers to the Route53 hosted zone
 
 ## For Local Development
 
