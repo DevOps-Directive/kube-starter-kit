@@ -60,7 +60,7 @@ Before starting, you need:
 
 - **AWS Organization** with member accounts created for each environment
 - **[mise](https://mise.jdx.dev/)** installed (handles installing AWS CLI, jq, and other tools)
-- **AWS credentials** configured for each account (via SSO or access keys)
+- **[Leapp](https://www.leapp.cloud/)** installed for AWS SSO authentication
 
 ### Required Accounts
 
@@ -90,11 +90,7 @@ The manual commands in Steps 1-2 use scripts in `terraform/bootstrap/`. These mu
   <Step title="Create S3 state bucket and get SSO role ARN (manual)">
     The Infrastructure account is bootstrapped first because it hosts the Terraform state bucket that all accounts depend on.
 
-    1. Log into the Infrastructure account:
-       ```bash
-       aws sso login --profile infrastructure
-       # Or export credentials for the Infrastructure account
-       ```
+    1. Log into the Infrastructure account using Leapp. Start the session for the Infrastructure account, which will set the `AWS_PROFILE` environment variable.
 
     2. Navigate to the bootstrap directory:
        ```bash
@@ -123,10 +119,7 @@ The manual commands in Steps 1-2 use scripts in `terraform/bootstrap/`. These mu
 
     Repeat these steps for each account (Management, ECR, Staging, Production):
 
-    1. Log into the target account:
-       ```bash
-       aws sso login --profile staging  # or management, ecr, production
-       ```
+    1. Log into the target account using Leapp. Start the session for the target account (e.g., Staging), which will set the `AWS_PROFILE` environment variable.
 
     2. Create the IAM role with cross-account trust:
        ```bash
