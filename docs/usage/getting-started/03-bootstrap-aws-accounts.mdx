@@ -3,3 +3,240 @@ title: 'Bootstrap AWS Accounts'
 description: 'Set up IAM roles and initial infrastructure in each AWS account'
 icon: 'aws'
 ---
+
+## Overview
+
+Before deploying infrastructure via CI/CD, you need to bootstrap each AWS account with the IAM roles and resources that enable Terraform automation. This is a one-time setup per account.
+
+The bootstrapping process creates:
+- **S3 bucket** for Terraform state (in the Infrastructure account)
+- **GitHub OIDC provider** for keyless CI/CD authentication
+- **IAM roles** in each account that can be assumed by the Infrastructure account
+
+<Note>
+For an overview of the multi-account structure and why it's designed this way, see [AWS Architecture](/features/03-aws-architecture).
+</Note>
+
+## Prerequisites
+
+Before starting, you need:
+
+- **AWS Organization** with member accounts created for each environment
+- **AWS CLI** configured with credentials for each account (via SSO or access keys)
+- **mise** installed for running bootstrap tasks
+- **jq** for JSON processing
+
+### Required Accounts
+
+Based on the [account structure](/features/03-aws-architecture#account-structure), you need these AWS accounts:
+
+| Account | Purpose |
+|---------|---------|
+| **Management** | AWS Organizations, IAM Identity Center |
+| **Infrastructure** | Terraform state, GitHub OIDC, CI/CD automation |
+| **ECR** | Container registry (shared across environments) |
+| **Staging** | Staging environment resources |
+| **Production** | Production environment resources |
+
+## Bootstrapping Steps
+
+<Steps>
+  <Step title="Bootstrap the Infrastructure account">
+    The Infrastructure account is bootstrapped first because it hosts the Terraform state bucket and GitHub OIDC provider that all other accounts depend on.
+
+    1. Log into the Infrastructure account:
+       ```bash
+       aws sso login --profile infrastructure
+       # Or export credentials for the Infrastructure account
+       ```
+
+    2. Navigate to the bootstrap directory:
+       ```bash
+       cd terraform/bootstrap
+       ```
+
+    3. Create the S3 bucket for Terraform state:
+       ```bash
+       mise run create-state-bucket \
+         --bucket-name ksk-gbl-infra-bootstrap-state \
+         --aws-region us-east-2
+       ```
+       <Warning>
+       Bucket names must be globally unique. Replace `ksk` with your organization's namespace.
+       </Warning>
+
+    4. Get your SSO role ARN (you'll need this for cross-account trust):
+       ```bash
+       mise run get-sso-role-arn
+       ```
+       Save this ARN, it looks like: `arn:aws:iam::ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX`
+  </Step>
+
+  <Step title="Create IAM roles in target accounts">
+    Each target account needs an IAM role that the Infrastructure account can assume. Repeat these steps for each account (Management, ECR, Staging, Production).
+
+    1. Log into the target account:
+       ```bash
+       aws sso login --profile staging  # or management, ecr, production
+       ```
+
+    2. Create the IAM role:
+       ```bash
+       cd terraform/bootstrap
+
+       mise run create-terraform-iam-role-in-target-account \
+         --role-name ksk-gbl-staging-bootstrap-admin \
+         --infra-sso-role-arn "arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
+       ```
+
+    Use consistent naming for each account:
+    | Account | Role Name |
+    |---------|-----------|
+    | Management | `ksk-gbl-mgmt-bootstrap-admin` |
+    | ECR | `ksk-gbl-ecr-bootstrap-admin` |
+    | Staging | `ksk-gbl-staging-bootstrap-admin` |
+    | Production | `ksk-gbl-prod-bootstrap-admin` |
+  </Step>
+
+  <Step title="Apply Terraform bootstrapping stacks">
+    With IAM roles in place, apply the Terraform bootstrapping stacks to complete the setup. These stacks:
+    - Configure the GitHub OIDC provider
+    - Set up the state bucket with proper configuration
+    - Create Route53 hosted zones for each environment
+
+    1. Update the role ARNs in your configuration:
+
+       Edit `terraform/config.tm.hcl` with your account-specific values:
+       ```hcl
+       globals {
+         namespace = "ksk"  # Your organization namespace
+
+         # Infrastructure account GitHub OIDC role (created by terraform-bootstrapping stack)
+         github_oidc_assume_role_arn = "arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc"
+
+         # Your SSO admin role ARN
+         sso_admin_assume_role_arn = "arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
+
+         # S3 backend configuration
+         backend_bucket = "ksk-gbl-infra-bootstrap-state"
+         backend_region = "us-east-2"
+       }
+       ```
+
+    2. Update stack-specific role ARNs in each bootstrapping stack's configuration.
+
+    3. Initialize and apply the bootstrapping stacks in order:
+       ```bash
+       cd terraform
+
+       # Infrastructure account bootstrapping
+       terramate run --tags infra:bootstrapping -- terraform init
+       terramate run --tags infra:bootstrapping -- terraform apply
+
+       # Management account bootstrapping
+       terramate run --tags management:bootstrapping -- terraform init
+       terramate run --tags management:bootstrapping -- terraform apply
+
+       # ECR account bootstrapping
+       terramate run --tags ecr:bootstrapping -- terraform init
+       terramate run --tags ecr:bootstrapping -- terraform apply
+
+       # Staging account bootstrapping
+       terramate run --tags staging:bootstrapping -- terraform init
+       terramate run --tags staging:bootstrapping -- terraform apply
+
+       # Production account bootstrapping
+       terramate run --tags prod:bootstrapping -- terraform init
+       terramate run --tags prod:bootstrapping -- terraform apply
+       ```
+  </Step>
+
+  <Step title="Configure GitHub repository secrets">
+    The CI/CD workflows need to know which role to assume for deployments.
+
+    Add these secrets to your GitHub repository:
+
+    | Secret | Value |
+    |--------|-------|
+    | `AWS_ROLE_ARN` | The GitHub OIDC role ARN from the Infrastructure account |
+    | `AWS_REGION` | Your primary AWS region (e.g., `us-east-2`) |
+
+    <Tip>
+    The GitHub OIDC role is created by the `terraform-bootstrapping` stack and has the format: `arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc`
+    </Tip>
+  </Step>
+
+  <Step title="Verify the setup">
+    Confirm everything is working:
+
+    1. Check that you can assume roles from the Infrastructure account:
+       ```bash
+       # From Infrastructure account credentials
+       aws sts assume-role \
+         --role-arn arn:aws:iam::STAGING_ACCOUNT_ID:role/ksk-gbl-staging-bootstrap-admin \
+         --role-session-name test
+       ```
+
+    2. Verify Terraform state is accessible:
+       ```bash
+       cd terraform
+       terramate run --tags staging:bootstrapping -- terraform init
+       terramate run --tags staging:bootstrapping -- terraform plan
+       ```
+
+    3. Push a commit to trigger a CI workflow and verify GitHub Actions can authenticate.
+  </Step>
+</Steps>
+
+## What Gets Created
+
+### Infrastructure Account
+
+| Resource | Purpose |
+|----------|---------|
+| S3 bucket | Terraform state storage with versioning |
+| GitHub OIDC provider | Keyless authentication for GitHub Actions |
+| IAM role | GitHub Actions assumes this role for deployments |
+
+### Each Target Account
+
+| Resource | Purpose |
+|----------|---------|
+| IAM role | Admin role that Infrastructure account can assume |
+| Route53 hosted zone | DNS zone for the environment (e.g., `staging.example.com`) |
+
+## Troubleshooting
+
+### "Access Denied" when assuming role
+
+Verify the trust policy on the target account role includes the correct principal:
+```bash
+aws iam get-role --role-name ksk-gbl-staging-bootstrap-admin --query 'Role.AssumeRolePolicyDocument'
+```
+
+The principal should match your Infrastructure account SSO role or GitHub OIDC role ARN.
+
+### "Bucket already exists" error
+
+S3 bucket names are globally unique. If the bucket name is taken:
+1. Choose a different name with your organization prefix
+2. Update `backend_bucket` in `terraform/config.tm.hcl`
+3. Update any hardcoded references in bootstrapping stacks
+
+### GitHub Actions can't authenticate
+
+1. Verify the OIDC provider exists in the Infrastructure account:
+   ```bash
+   aws iam list-open-id-connect-providers
+   ```
+
+2. Check the role trust policy allows your repository:
+   ```bash
+   aws iam get-role --role-name ksk-gbl-infra-bootstrap-github-oidc --query 'Role.AssumeRolePolicyDocument'
+   ```
+
+3. Ensure the repository name in the trust policy matches exactly (including organization name).
+
+## Next Steps
+
+With accounts bootstrapped, you're ready to [deploy infrastructure](/usage/getting-started/04-deploy-infrastructure) using the Terraform stacks.
