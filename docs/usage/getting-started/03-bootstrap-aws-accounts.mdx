@@ -14,27 +14,27 @@ The **Infrastructure account** is the central hub for all Terraform operations:
 
 ```
 GitHub Actions
-    │
-    │ OIDC authentication
-    ▼
-┌─────────────────────────────────────────┐
-│         Infrastructure Account          │
-│  ┌───────────────┐  ┌────────────────┐  │
-│  │ GitHub OIDC   │  │ Terraform      │  │
-│  │ Role          │  │ State Bucket   │  │
-│  └───────────────┘  └────────────────┘  │
-└─────────────────────────────────────────┘
-    │
-    │ sts:AssumeRole (cross-account)
-    ▼
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-│Management│  │   ECR    │  │ Staging  │  │Production│
-│ Account  │  │ Account  │  │ Account  │  │ Account  │
-│          │  │          │  │          │  │          │
-│ IAM Role │  │ IAM Role │  │ IAM Role │  │ IAM Role │
-│ (trusts  │  │ (trusts  │  │ (trusts  │  │ (trusts  │
-│  infra)  │  │  infra)  │  │  infra)  │  │  infra)  │
-└──────────┘  └──────────┘  └──────────┘  └──────────┘
+       |
+       | OIDC authentication
+       v
++-------------------------------------------+
+|          Infrastructure Account           |
+|  +---------------+  +------------------+  |
+|  | GitHub OIDC   |  | Terraform        |  |
+|  | Role          |  | State Bucket     |  |
+|  +---------------+  +------------------+  |
++-------------------------------------------+
+       |
+       | sts:AssumeRole (cross-account)
+       v
++----------+  +----------+  +----------+  +----------+
+|Management|  |   ECR    |  | Staging  |  |Production|
+| Account  |  | Account  |  | Account  |  | Account  |
+|          |  |          |  |          |  |          |
+| IAM Role |  | IAM Role |  | IAM Role |  | IAM Role |
+| (trusts  |  | (trusts  |  | (trusts  |  | (trusts  |
+|  infra)  |  |  infra)  |  |  infra)  |  |  infra)  |
++----------+  +----------+  +----------+  +----------+
 ```
 
 1. GitHub Actions authenticates via OIDC to a role in the Infrastructure account
