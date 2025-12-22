@@ -154,8 +154,8 @@ If you want to use [Terramate Cloud](https://cloud.terramate.io/) for plan visua
 
 1. Create an account at [cloud.terramate.io](https://cloud.terramate.io/)
 2. Choose your data residency region:
-   - **US**: `cloud.terramate.io` (default)
-   - **Europe**: `cloud.terramate.io/eu`
+   - **Europe**: `cloud.terramate.io` (default)
+   - **US**: `cloud.terramate.io/us`
 3. Update the organization and location in `.github/workflows/terramate-preview.yml`:
 
 ```yaml
@@ -164,11 +164,11 @@ If you want to use [Terramate Cloud](https://cloud.terramate.io/) for plan visua
   with:
     version: "0.15.1"
     cloud_organization: your-terramate-org
-    cloud_location: us  # or "eu" for Europe
+    cloud_location: eu  # or "us" for United States
 ```
 
 <Note>
-The `cloud_location` parameter determines which Terramate Cloud region your data is stored in. Choose `eu` if you have data residency requirements for Europe.
+The `cloud_location` parameter determines which Terramate Cloud region your data is stored in. Choose `us` if you prefer US data residency.
 </Note>
 
 <Tip>
