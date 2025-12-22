@@ -16,7 +16,7 @@ If your AWS account is brand new, you may need to request a quota increase for A
 
 #### Setting Up Multiple Accounts with Control Tower
 
-You can set up your AWS accounts however you prefer—the kit just needs an infrastructure account, staging account, and production account to exist. If you already have a multi-account structure, you can skip this section.
+You can set up your AWS accounts however you prefer. The kit just needs an infrastructure account, staging account, and production account to exist. If you already have a multi-account structure, you can skip this section.
 
 If you're starting fresh, [AWS Control Tower](https://aws.amazon.com/controltower/) is a good option. It provides:
 
@@ -44,7 +44,7 @@ A GitHub organization where the repository will live. The CI/CD pipelines use Gi
 
 [SigNoz](https://signoz.io/) provides observability (traces, metrics, logs). The kit includes pre-configured OpenTelemetry collectors that ship data to SigNoz Cloud.
 
-If you don't set up SigNoz, the observability components simply won't send data anywhere—the rest of the platform works fine without it.
+If you don't set up SigNoz, the observability components simply won't send data anywhere. The rest of the platform works fine without it.
 
 ### Terramate Cloud Account
 
@@ -53,7 +53,7 @@ If you don't set up SigNoz, the observability components simply won't send data 
 - PR preview comments showing planned changes
 - Stack health monitoring
 
-The kit works without Terramate Cloud—you just won't get the cloud features. The CLI orchestration still functions locally and in CI.
+The kit works without Terramate Cloud; you just won't get the cloud features. The CLI orchestration still functions locally and in CI.
 
 ### Domain Name
 
@@ -63,7 +63,7 @@ You can either:
 - **Register a new domain** through AWS Route53 or any registrar
 - **Use a subdomain** of an existing domain by pointing nameservers to the Route53 hosted zone
 
-If you skip this, services are still accessible via the AWS load balancer URLs—just less readable.
+If you skip this, services are still accessible via the AWS load balancer URLs, just less readable.
 
 ## For Local Development
 
