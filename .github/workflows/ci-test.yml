@@ -13,4 +13,5 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run tests
-        run: echo "TODO: Add tests"
+        run: |
+          echo "TODO: Add tests"
