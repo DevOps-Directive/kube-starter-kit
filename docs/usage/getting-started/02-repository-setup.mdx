@@ -6,13 +6,13 @@ icon: 'code-fork'
 
 ## Overview
 
-Kube Starter Kit is designed to be forked and customized for your organization. This page walks you through the initial repository setup: forking, customizing core configuration values, and preparing your local environment.
+Kube Starter Kit is designed to be forked and customized for your organization. This page walks you through the initial repository setup: forking, installing tools, and setting your namespace prefix.
 
 <Note>
 Before proceeding, ensure you have completed the [Prerequisites](/usage/getting-started/01-prerequisites) setup.
 </Note>
 
-## Fork the Repository
+## Fork and Clone
 
 <Steps>
   <Step title="Create your fork">
@@ -57,249 +57,43 @@ Before proceeding, ensure you have completed the [Prerequisites](/usage/getting-
   </Step>
 </Steps>
 
-## Customize Core Configuration
+## Set Your Namespace
 
-The kit uses a namespace prefix throughout the codebase to avoid resource naming conflicts. You need to update this and other organization-specific values.
+<Warning>
+This "namespace" refers to the naming convention from [Cloud Posse's terraform-null-label](https://github.com/cloudposse/terraform-null-label), **not** a Kubernetes namespace. It's a prefix used to generate consistent, unique names for AWS resources (S3 buckets, IAM roles, etc.) across your infrastructure.
+</Warning>
 
-### Update the Namespace
+The default namespace is `ksk` ("Kube Starter Kit"). Replace it with your own short identifier (3-5 characters recommended).
 
-The default namespace is `ksk` (Kube Starter Kit). Replace it with your own short identifier (3-5 characters recommended):
-
-```bash
-# Example: replace "ksk" with "acme"
-```
-
-Files to update:
-
-| File | What to Change |
-|------|----------------|
-| `terraform/config.tm.hcl` | `namespace` global |
-| Terraform stack files | Any hardcoded references in `stack.tm.hcl` files |
-
-<Tip>
-After changing `terraform/config.tm.hcl`, run `terramate generate` from the `terraform/` directory to propagate changes to generated files.
-</Tip>
-
-### Update Terraform Configuration
-
-Edit `terraform/config.tm.hcl` with your AWS account details:
+Edit `terraform/config.tm.hcl` and change the namespace:
 
 ```hcl
 globals {
-  # Your namespace prefix
-  namespace = "acme"
-
-  # GitHub OIDC role ARN (created during bootstrap)
-  github_oidc_assume_role_arn = "arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_NAMESPACE-gbl-infra-bootstrap-github-oidc"
-
-  # SSO admin role ARN (from AWS IAM Identity Center)
-  sso_admin_assume_role_arn = "arn:aws:iam::YOUR_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/YOUR_REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
-
-  # S3 backend configuration (created during bootstrap)
-  backend_bucket = "YOUR_NAMESPACE-gbl-infra-bootstrap-state"
-  backend_region = "us-east-2"  # or your preferred region
-
-  # Provider versions (update as needed)
-  terraform = {
-    version = "~> 1.6"
-    providers = {
-      aws = {
-        source  = "hashicorp/aws"
-        version = "6.27.0"
-        enabled = true
-      }
-      random = {
-        source  = "hashicorp/random"
-        version = "~> 3.0"
-        enabled = false
-      }
-    }
-  }
+  namespace = "acme"  # Replace with your identifier
+  # ... other settings (leave as-is for now)
 }
 ```
 
-<Warning>
-You will fill in the actual AWS account IDs and role ARNs after completing the [Bootstrap AWS Accounts](/usage/getting-started/03-bootstrap-aws-accounts) step. For now, just update the namespace.
-</Warning>
-
-## Update GitHub Workflows
-
-The CI/CD workflows reference specific AWS account IDs and GitHub organization names. Update these files:
-
-### Terraform Workflows
-
-Update the role ARN in `.github/workflows/terramate-preview.yml` and `.github/workflows/terramate-deploy.yml`:
-
-```yaml
-- name: "Configure AWS Credentials"
-  uses: aws-actions/configure-aws-credentials@v4
-  with:
-    aws-region: us-east-2
-    role-to-assume: arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_NAMESPACE-gbl-infra-bootstrap-github-oidc
-```
-
-Also update the octo-sts scope (if using GitHub organization management):
-
-```yaml
-- name: Get GitHub token via octo-sts
-  uses: octo-sts/action@v1
-  with:
-    scope: YOUR-ORG/kube-starter-kit
-    identity: terramate
-```
-
-### Terramate Cloud Integration (Optional)
-
-If you want to use [Terramate Cloud](https://cloud.terramate.io/) for plan visualization and drift detection:
-
-1. Create an account at [cloud.terramate.io](https://cloud.terramate.io/)
-2. Choose your data residency region:
-   - **Europe**: `cloud.terramate.io` (default)
-   - **US**: `us.cloud.terramate.io`
-3. Install the GitHub App from your Terramate Cloud dashboard under **Integrations** to enable PR comments and status checks
-4. Update the organization and location in `.github/workflows/terramate-preview.yml`:
-
-```yaml
-- name: Install Terramate
-  uses: terramate-io/terramate-action@v3
-  with:
-    version: "0.15.1"
-    cloud_organization: your-terramate-org
-    cloud_location: eu  # or "us" for United States
-```
-
-<Note>
-The `cloud_location` parameter determines which Terramate Cloud region your data is stored in. Choose `us` if you prefer US data residency.
-</Note>
-
 <Tip>
-Terramate Cloud is optional but recommended. It provides a unified view of Terraform plans across all stacks and makes PR reviews much easier.
+After changing the namespace, run `terramate generate` from the `terraform/` directory to propagate changes to generated files.
 </Tip>
-
-### Configure octo-sts for GitHub Tokens
-
-The kit uses [octo-sts](https://github.com/octo-sts/app) to obtain GitHub tokens with elevated permissions for workflows that manage GitHub organization resources (team membership, repository settings, etc.). This is more secure than storing long-lived GitHub tokens as secrets.
-
-<Steps>
-  <Step title="Install the octo-sts GitHub App">
-    1. Navigate to the [octo-sts GitHub App](https://github.com/apps/octo-sts)
-    2. Click **Install** and select your organization
-    3. Grant access to your forked repository (or all repositories)
-    4. The app will read policy files from `.github/chainguard/` to determine what permissions to grant
-  </Step>
-
-  <Step title="Update the trust policy files">
-    Update each policy file in `.github/chainguard/` to reference your organization and repository.
-
-    **`.github/chainguard/terramate.sts.yaml`** (used by Terraform workflows):
-
-    ```yaml
-    issuer: https://token.actions.githubusercontent.com
-    subject_pattern: ^repo:YOUR-ORG/kube-starter-kit:.*
-    claim_pattern:
-      workflow_ref: '^YOUR-ORG/kube-starter-kit/\.github/workflows/terramate.*@refs/.*$'
-
-    permissions:
-      administration: write
-      metadata: read
-      members: write
-      contents: read
-    ```
-
-    **`.github/chainguard/release-please.sts.yaml`** (used by release automation):
-
-    ```yaml
-    issuer: https://token.actions.githubusercontent.com
-    subject: repo:YOUR-ORG/kube-starter-kit:ref:refs/heads/main
-
-    permissions:
-      contents: write
-      pull_requests: write
-    ```
-
-    Replace `YOUR-ORG` with your GitHub organization name in all files.
-  </Step>
-
-  <Step title="Understand the policy structure">
-    Each policy file controls:
-
-    | Field | Purpose |
-    |-------|---------|
-    | `issuer` | Always `https://token.actions.githubusercontent.com` for GitHub Actions |
-    | `subject` or `subject_pattern` | Which repository and refs can request this token |
-    | `claim_pattern` | Which specific workflows can use this identity |
-    | `permissions` | GitHub API permissions granted to the token |
-
-    The `workflow_ref` claim pattern ensures only your designated workflows can obtain tokens, preventing other workflows or forks from requesting elevated permissions.
-  </Step>
-</Steps>
-
-<Warning>
-If you do not plan to use Terraform to manage GitHub organization resources (teams, members, repository settings), you can skip octo-sts setup and remove the octo-sts step from the Terramate workflows. The `TF_VAR_github_token` variable will need to be removed or provided through another mechanism.
-</Warning>
-
-## Update Additional References
-
-Search for and replace organization-specific values throughout the codebase:
-
-```bash
-# Find references to the original organization
-grep -r "DevOps-Directive" .github/
-grep -r "094905625236" .  # Original AWS account ID
-```
-
-Key files to check:
-
-| File | What to Update |
-|------|----------------|
-| `.github/chainguard/*.sts.yaml` | octo-sts trust policies (if using) |
-| `docs/docs.json` | GitHub links and navigation |
-| `kubernetes/src/argocd/` | Repository URLs in ArgoCD app definitions |
 
 ## Verify Your Setup
 
-After making changes, verify everything is configured correctly:
+```bash
+cd terraform
+terramate fmt --check
+terramate generate
+terramate list
+```
 
-<Steps>
-  <Step title="Check Terramate formatting">
-    ```bash
-    cd terraform
-    terramate fmt --check
-    ```
-  </Step>
+## Commit Your Changes
 
-  <Step title="Generate Terraform files">
-    ```bash
-    terramate generate
-    ```
-
-    Review the generated files to ensure your configuration changes propagated correctly.
-  </Step>
-
-  <Step title="List available stacks">
-    ```bash
-    terramate list
-    ```
-
-    This shows all Terraform stacks in the repository.
-  </Step>
-
-  <Step title="Commit your changes">
-    ```bash
-    git add .
-    git commit -m "chore: customize repository for our organization"
-    ```
-  </Step>
-</Steps>
+```bash
+git add .
+git commit -m "chore: configure namespace for organization"
+```
 
 ## Next Steps
 
-With the repository configured, you are ready to:
-
-1. [Bootstrap AWS Accounts](/usage/getting-started/03-bootstrap-aws-accounts): Set up the S3 state bucket and GitHub OIDC provider
-2. [Deploy Infrastructure](/usage/getting-started/04-deploy-infrastructure): Provision networking and EKS clusters
-3. [Deploy Kubernetes Baseline](/usage/getting-started/05-deploy-kubernetes-baseline): Install core cluster components
-
-<Note>
-The bootstrap step creates the AWS resources (state bucket, OIDC provider, IAM roles) that you referenced in the configuration above. After bootstrapping, return here to update the role ARNs with actual values.
-</Note>
+You're now ready to proceed to [Bootstrap Accounts](/usage/getting-started/03-bootstrap-accounts) to set up AWS IAM roles and import GitHub organization members.

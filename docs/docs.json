@@ -47,11 +47,12 @@
             "pages": [
               "usage/getting-started/01-prerequisites",
               "usage/getting-started/02-repository-setup",
-              "usage/getting-started/03-bootstrap-aws-accounts",
-              "usage/getting-started/04-deploy-infrastructure",
-              "usage/getting-started/05-deploy-kubernetes-baseline",
-              "usage/getting-started/06-cluster-access",
-              "usage/getting-started/07-local-development-setup"
+              "usage/getting-started/03-bootstrap-accounts",
+              "usage/getting-started/04-configure-integrations",
+              "usage/getting-started/05-deploy-infrastructure",
+              "usage/getting-started/06-deploy-kubernetes-baseline",
+              "usage/getting-started/07-cluster-access",
+              "usage/getting-started/08-local-development-setup"
             ]
           },
           {

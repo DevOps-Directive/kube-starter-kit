@@ -1,0 +1,70 @@
+---
+title: 'Deploy Kubernetes Baseline'
+description: 'Bootstrap ArgoCD and deploy infrastructure components'
+icon: 'dharmachakra'
+---
+
+## Overview
+
+With EKS clusters deployed, the next step is to bootstrap ArgoCD and deploy the Kubernetes baseline components. This includes ingress controllers, cert-manager, external-secrets, and other infrastructure services.
+
+<Note>
+Before proceeding, ensure you have completed [Deploy Infrastructure](/usage/getting-started/05-deploy-infrastructure).
+</Note>
+
+## Update ArgoCD Repository URLs
+
+Before deploying ArgoCD, update the repository URLs to point to your fork:
+
+<Steps>
+  <Step title="Update ArgoCD application definitions">
+    The ArgoCD app-of-apps pattern references your Git repository. Update the `repoURL` in:
+
+    - `kubernetes/src/argocd/argocd/` - ArgoCD self-management
+    - `kubernetes/src/argocd/infrastructure/` - Infrastructure components
+    - `kubernetes/src/argocd/services/` - Application services
+
+    Example change in an Application manifest:
+
+    ```yaml
+    spec:
+      source:
+        repoURL: https://github.com/YOUR-ORG/kube-starter-kit.git  # Update this
+        targetRevision: main
+        path: kubernetes/rendered/staging/infrastructure
+    ```
+  </Step>
+
+  <Step title="Render updated manifests">
+    After updating the source files, render the manifests:
+
+    ```bash
+    cd kubernetes
+    mise run render
+    ```
+  </Step>
+
+  <Step title="Commit the changes">
+    ```bash
+    git add .
+    git commit -m "chore: update ArgoCD repository URLs"
+    git push
+    ```
+  </Step>
+</Steps>
+
+## Bootstrap ArgoCD
+
+TODO: Add ArgoCD bootstrap instructions
+
+## Deploy Infrastructure Components
+
+TODO: Add infrastructure component deployment instructions
+
+## Verify Deployment
+
+TODO: Add verification steps
+
+## Next Steps
+
+With the Kubernetes baseline deployed, proceed to [Cluster Access](/usage/getting-started/07-cluster-access) to connect to your clusters.

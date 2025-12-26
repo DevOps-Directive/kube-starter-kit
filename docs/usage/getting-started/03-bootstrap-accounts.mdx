@@ -1,12 +1,12 @@
 ---
-title: 'Bootstrap AWS Accounts'
-description: 'Set up IAM roles and initial infrastructure in each AWS account'
-icon: 'aws'
+title: 'Bootstrap Accounts'
+description: 'Set up AWS IAM roles and import GitHub organization members'
+icon: 'rocket'
 ---
 
 ## Overview
 
-Before deploying infrastructure via CI/CD, you need to bootstrap each AWS account with the IAM roles and resources that enable Terraform automation. This is a one-time setup per account.
+Before deploying infrastructure via CI/CD, you need to bootstrap your AWS accounts and GitHub organization for Terraform management. This is a one-time setup that creates the foundation for all automation.
 
 ### How Cross-Account Access Works
 
@@ -251,6 +251,40 @@ The manual commands in Steps 1-2 use scripts in `terraform/bootstrap/`. These mu
   </Step>
 </Steps>
 
+## Import GitHub Organization Members
+
+The kit uses Terraform to manage GitHub organization members and teams. Before running Terraform on the management stack, you need to import existing GitHub users into Terraform state.
+
+<Steps>
+  <Step title="List existing organization members">
+    Use the GitHub CLI to list current members:
+
+    ```bash
+    gh api orgs/YOUR-ORG/members --jq '.[].login'
+    ```
+  </Step>
+
+  <Step title="Import members into Terraform state">
+    For each existing member, run an import command:
+
+    ```bash
+    cd terraform/live/shared/global/github-org
+    
+    terraform import 'github_membership.members["username"]' YOUR-ORG:username
+    ```
+
+    Repeat for each member in your organization.
+  </Step>
+
+  <Step title="Update the Terraform configuration">
+    Ensure each imported member is defined in the Terraform configuration. See [User Management](/features/04-user-management) for the configuration format.
+  </Step>
+</Steps>
+
+<Note>
+If you skip this step, Terraform will attempt to remove existing members that aren't in its state, which could lock you out of your organization.
+</Note>
+
 ## What Gets Created
 
 ### Infrastructure Account (Central Hub)
@@ -321,4 +355,4 @@ All Terraform state is stored in the Infrastructure account's S3 bucket, regardl
 
 ## Next Steps
 
-With accounts bootstrapped, you're ready to [deploy infrastructure](/usage/getting-started/04-deploy-infrastructure) using the Terraform stacks.
+With accounts bootstrapped, proceed to [Configure Integrations](/usage/getting-started/04-configure-integrations) to set up AWS, GitHub, and Terramate Cloud integrations for CI/CD.
