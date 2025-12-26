@@ -3,3 +3,97 @@ title: 'Repository Setup'
 description: 'Fork and customize the repository for your organization'
 icon: 'code-fork'
 ---
+
+## Overview
+
+Kube Starter Kit is designed to be forked and customized for your organization. This page walks you through the initial repository setup: forking, installing tools, and setting your namespace prefix.
+
+<Note>
+Before proceeding, ensure you have completed the [Prerequisites](/usage/getting-started/01-prerequisites) setup.
+</Note>
+
+## Fork and Clone
+
+<Steps>
+  <Step title="Create your fork">
+    Fork the repository to your GitHub organization:
+
+    1. Navigate to the [Kube Starter Kit repository](https://github.com/DevOps-Directive/kube-starter-kit)
+    2. Click **Fork** and select your organization as the owner
+    3. Keep the repository name or rename it to match your conventions
+  </Step>
+
+  <Step title="Clone your fork locally">
+    ```bash
+    git clone https://github.com/YOUR-ORG/kube-starter-kit.git
+    cd kube-starter-kit
+    ```
+  </Step>
+
+  <Step title="Install mise">
+    The repository uses [mise](https://mise.jdx.dev/) to manage tool versions. Install it first:
+
+    ```bash
+    curl https://mise.run | sh
+    ```
+
+    Then activate mise in your shell (add to your `.bashrc` or `.zshrc` for persistence):
+
+    ```bash
+    eval "$(~/.local/bin/mise activate bash)"  # or zsh/fish
+    ```
+
+    See the [mise installation docs](https://mise.jdx.dev/getting-started.html) for alternative installation methods.
+  </Step>
+
+  <Step title="Install development tools">
+    With mise installed, install the project's tool dependencies:
+
+    ```bash
+    mise install
+    ```
+
+    This installs Terramate, Terraform, kubectl, Helm, and other tools at the versions specified in `mise.toml`.
+  </Step>
+</Steps>
+
+## Set Your Namespace
+
+<Warning>
+This "namespace" refers to the naming convention from [Cloud Posse's terraform-null-label](https://github.com/cloudposse/terraform-null-label), **not** a Kubernetes namespace. It's a prefix used to generate consistent, unique names for AWS resources (S3 buckets, IAM roles, etc.) across your infrastructure.
+</Warning>
+
+The default namespace is `ksk` ("Kube Starter Kit"). Replace it with your own short identifier (3-5 characters recommended).
+
+Edit `terraform/config.tm.hcl` and change the namespace:
+
+```hcl
+globals {
+  namespace = "acme"  # Replace with your identifier
+  # ... other settings (leave as-is for now)
+}
+```
+
+<Tip>
+After changing the namespace, run `terramate generate` from the `terraform/` directory to propagate changes to generated files.
+</Tip>
+
+## Verify Your Setup
+
+```bash
+cd terraform
+terramate fmt --check
+terramate generate
+terramate list
+```
+
+## Commit Your Changes
+
+```bash
+git add .
+git commit -m "chore: configure namespace for organization"
+```
+
+## Next Steps
+
+You're now ready to proceed to [Bootstrap Accounts](/usage/getting-started/03-bootstrap-accounts) to set up AWS IAM roles and import GitHub organization members.

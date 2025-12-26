@@ -35,6 +35,7 @@ jobs:
         with:
           version: "0.15.1"
           cloud_organization: devops-directive
+
       - name: HashiCorp - Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
