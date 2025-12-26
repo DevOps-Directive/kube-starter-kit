@@ -1,0 +1,344 @@
+---
+title: 'Local Development Setup'
+description: 'Set up KinD, Tilt, and mirrord for local development'
+icon: 'laptop-code'
+---
+
+## Overview
+
+The kit includes a complete local development environment using:
+
+- **[KinD](https://kind.sigs.k8s.io/)** - Kubernetes in Docker for a local multi-node cluster
+- **[Tilt](https://tilt.dev/)** - Live development environment with hot reloading
+- **[mirrord](https://mirrord.dev/)** - Remote debugging by intercepting pod traffic
+
+This lets you develop and test Kubernetes deployments locally before pushing to staging.
+
+## Prerequisites
+
+Ensure you have:
+- A container runtime (Docker, Podman, or OrbStack)
+- mise installed (from [Repository Setup](/usage/getting-started/02-repository-setup))
+
+Install the local development tools:
+
+```bash
+mise install
+```
+
+This installs KinD, Tilt, Helm, kubectl, and other required tools.
+
+## Quick Start
+
+<Steps>
+  <Step title="Create the local cluster">
+    ```bash
+    cd local
+    mise run create-cluster
+    ```
+
+    This creates a 3-node KinD cluster (1 control-plane, 2 workers) with a local Docker registry.
+  </Step>
+
+  <Step title="Start the LoadBalancer provider">
+    In a **separate terminal** (requires sudo):
+
+    ```bash
+    cd local
+    mise run cloud-provider-kind
+    ```
+
+    This enables LoadBalancer services to get IPs in the `172.20.0.0/16` range.
+  </Step>
+
+  <Step title="Start Tilt">
+    ```bash
+    cd local
+    mise run tilt-up
+    ```
+
+    Open http://localhost:10350 to view the Tilt dashboard.
+  </Step>
+
+  <Step title="Access your services">
+    ```bash
+    mise run ingress-urls
+    ```
+
+    This prints the sslip.io URLs for accessing services:
+    - `http://go-backend-kustomize.172-20-0-100.sslip.io`
+    - `http://go-backend-helm.172-20-0-100.sslip.io`
+    - `http://go-backend-timoni.172-20-0-100.sslip.io`
+  </Step>
+</Steps>
+
+## What Gets Deployed
+
+Tilt deploys a subset of infrastructure and all demo services:
+
+### Infrastructure Components
+
+| Component | Purpose |
+|-----------|---------|
+| **cert-manager** | TLS certificates (using self-signed ClusterIssuer locally) |
+| **cloudnative-pg** | PostgreSQL operator for in-cluster databases |
+| **ingress-nginx** | Ingress controller |
+
+### Demo Services
+
+The kit includes three variants of `go-backend`, each demonstrating a different Kubernetes templating approach:
+
+| Service | Templating | Description |
+|---------|------------|-------------|
+| go-backend | Kustomize | Uses overlays for environment-specific configuration |
+| go-backend-helm | Helm | Traditional Helm chart with values files |
+| go-backend-timoni | Timoni | CUE-based configuration with type safety |
+
+All three deploy the same Go application with:
+- PostgreSQL database (via CloudNativePG)
+- Database migrations (via Atlas, run as init container)
+- Ingress for external access
+
+## Cluster Configuration
+
+### KinD Cluster
+
+The cluster is configured in `local/kind/cluster-config.yaml`:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker
+```
+
+Key features:
+- 3 nodes for realistic scheduling
+- Local registry on `localhost:5001`
+- Stable Docker network (`172.20.0.0/16`) for predictable IPs
+
+### Local Registry
+
+The `create-cluster` task creates a local Docker registry:
+
+```bash
+# Images pushed to localhost:5001 are available in the cluster
+docker build -t localhost:5001/my-app:latest .
+docker push localhost:5001/my-app:latest
+```
+
+Tilt automatically builds and pushes images to this registry.
+
+## Tilt Configuration
+
+### Tiltfile Structure
+
+```
+local/tilt/Tiltfile              # Main entrypoint
+├── kubernetes/src/infrastructure/Tiltfile  # Infrastructure components
+└── kubernetes/src/services/Tiltfile        # Application services
+```
+
+### Infrastructure Tiltfile
+
+Deploys cluster components in order:
+
+```python
+# 1. cert-manager (no dependencies)
+# 2. cloudnative-pg (depends on cert-manager)
+# 3. ingress-nginx (no dependencies)
+```
+
+Each component uses Helm with local values (`values.local.yaml`).
+
+### Services Tiltfile
+
+For each service:
+1. Builds the Docker image
+2. Waits for CloudNativePG to be ready
+3. Creates a PostgreSQL Cluster CR
+4. Runs database migrations
+5. Deploys the application
+
+### Customizing Tilt Behavior
+
+Edit the values files for local overrides:
+
+```bash
+# Infrastructure
+kubernetes/src/infrastructure/*/values.local.yaml
+
+# Services  
+kubernetes/src/services/*/values.local.yaml
+```
+
+## Remote Debugging with mirrord
+
+[mirrord](https://mirrord.dev/) lets you run your service locally while intercepting traffic from a remote cluster. This is useful for debugging issues that only occur in staging.
+
+### Configuration
+
+The mirrord config is in `services/go-backend/.mirrord/mirrord.json`:
+
+```json
+{
+  "target": { "path": "deployment/go-backend" },
+  "feature": {
+    "network": { "incoming": "steal", "outgoing": true },
+    "fs": "local",
+    "env": true
+  }
+}
+```
+
+This configuration:
+- **Steals** incoming traffic from the `go-backend` deployment
+- Enables **outgoing** connections to cluster resources (database, etc.)
+- Uses **local** filesystem
+- Mirrors pod **environment variables** to your local process
+
+### Using mirrord
+
+<Steps>
+  <Step title="Connect to the remote cluster">
+    Ensure you have kubectl access to staging (see [Cluster Access](/usage/getting-started/08-cluster-access)).
+  </Step>
+
+  <Step title="Run your service with mirrord">
+    ```bash
+    cd services/go-backend
+    mirrord exec -- go run ./cmd/main.go
+    ```
+
+    Your local process now receives traffic intended for the staging pod.
+  </Step>
+
+  <Step title="Debug as usual">
+    Use your IDE's debugger, add print statements, or modify code—changes take effect immediately without rebuilding or deploying.
+  </Step>
+</Steps>
+
+<Warning>
+mirrord in "steal" mode intercepts production traffic. Use with caution in shared environments. Consider "mirror" mode for read-only debugging.
+</Warning>
+
+## Common Tasks
+
+### Rebuild a Single Service
+
+In the Tilt UI, click the refresh button on the resource, or:
+
+```bash
+tilt trigger go-backend-helm
+```
+
+### View Logs
+
+```bash
+# Via Tilt UI: Click on a resource to see logs
+
+# Via kubectl
+kubectl logs -f deployment/go-backend -n go-backend
+```
+
+### Access the Database
+
+```bash
+# Get the database password
+kubectl get secret go-backend-cluster-app -n go-backend -o jsonpath='{.data.password}' | base64 -d
+
+# Port-forward to the database
+kubectl port-forward svc/go-backend-cluster-rw -n go-backend 5432:5432
+
+# Connect with psql
+psql -h localhost -U app -d app
+```
+
+### Reset the Cluster
+
+```bash
+cd local
+mise run delete-cluster
+mise run create-cluster
+```
+
+## Troubleshooting
+
+### "Cannot connect to the Docker daemon"
+
+Ensure your container runtime is running:
+```bash
+docker info  # or: podman info
+```
+
+### LoadBalancer services stuck in "Pending"
+
+The `cloud-provider-kind` process must be running:
+```bash
+mise run cloud-provider-kind
+```
+
+This requires sudo and must stay running in a separate terminal.
+
+### Ingress not accessible
+
+1. Check the ingress has an address:
+   ```bash
+   kubectl get ingress -A
+   ```
+
+2. Verify the ingress-nginx controller is running:
+   ```bash
+   kubectl get pods -n ingress-nginx
+   ```
+
+3. Check the sslip.io URL resolves:
+   ```bash
+   nslookup go-backend-helm.172-20-0-100.sslip.io
+   ```
+
+### Database connection issues
+
+1. Check the PostgreSQL cluster is ready:
+   ```bash
+   kubectl get clusters -A
+   ```
+
+2. Verify the database pods are running:
+   ```bash
+   kubectl get pods -n go-backend -l cnpg.io/cluster=go-backend-cluster
+   ```
+
+3. Check the migration job completed:
+   ```bash
+   kubectl get jobs -n go-backend
+   kubectl logs job/go-backend-migrations -n go-backend
+   ```
+
+### Tilt is slow or unresponsive
+
+1. Reduce the number of services in the Tiltfile
+2. Increase Docker resources (CPU, memory)
+3. Use `tilt down` and restart with `tilt up`
+
+## Comparison: Local vs Staging
+
+| Aspect | Local (KinD + Tilt) | Staging (EKS + ArgoCD) |
+|--------|---------------------|------------------------|
+| Cluster | KinD (Docker) | EKS (AWS) |
+| Registry | localhost:5001 | ECR |
+| Ingress | sslip.io | Route53 + real domain |
+| TLS | Self-signed | Let's Encrypt |
+| Secrets | Local values | AWS Secrets Manager |
+| Database | CloudNativePG | CloudNativePG (or RDS) |
+| Deployment | Tilt (live reload) | ArgoCD (GitOps) |
+
+## Next Steps
+
+With local development set up, you're ready to start building! See the [Operations](/usage/operations) guides for:
+
+- [Updating 1st Party Applications](/usage/operations/02-updating-1st-party-applications) - Modify and deploy your services
+- [Bootstrapping a New Service](/usage/operations/04-bootstrapping-new-service) - Add a new application
+- [Database Operations](/usage/operations/07-database-operations) - Manage migrations and databases

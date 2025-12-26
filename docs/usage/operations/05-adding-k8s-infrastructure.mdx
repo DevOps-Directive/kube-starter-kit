@@ -1,5 +1,361 @@
 ---
 title: 'Managing K8s Infrastructure Configurations'
-description: 'Add/modify Kubernetes manifests and configure for each environment'
+description: 'Add new infrastructure components and manage environment-specific configurations'
 icon: 'cube'
 ---
+
+## Overview
+
+This guide covers adding new Kubernetes infrastructure components and managing configurations across environments. Infrastructure components are third-party tools deployed via Helm that provide platform capabilities.
+
+## Add a New Infrastructure Component
+
+<Steps>
+  <Step title="Create the wrapper chart directory">
+    ```bash
+    mkdir -p kubernetes/src/infrastructure/my-component/templates
+    cd kubernetes/src/infrastructure/my-component
+    ```
+  </Step>
+
+  <Step title="Create Chart.yaml.tmpl">
+    The template allows environment-specific chart versions:
+
+    ```yaml
+    apiVersion: v2
+    name: my-component
+    version: 0.1.0
+    dependencies:
+      - name: my-component
+        version: "1.0.0"  # Placeholder, replaced during render
+        repository: https://charts.example.com
+    ```
+  </Step>
+
+  <Step title="Create values.yaml">
+    Define base configuration and chart versions:
+
+    ```yaml
+    # Chart dependency versions
+    chartVersions:
+      my-component: "1.2.3"
+
+    # Pass-through values to the upstream chart
+    my-component:
+      replicaCount: 2
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+    ```
+  </Step>
+
+  <Step title="Create environment-specific values">
+    **values.staging.yaml:**
+    ```yaml
+    chartVersions:
+      my-component: "1.2.3"
+
+    my-component:
+      replicaCount: 1
+    ```
+
+    **values.production.yaml:**
+    ```yaml
+    chartVersions:
+      my-component: "1.2.3"
+
+    my-component:
+      replicaCount: 3
+    ```
+
+    **values.local.yaml:**
+    ```yaml
+    my-component:
+      replicaCount: 1
+    ```
+  </Step>
+
+  <Step title="Add custom resources (optional)">
+    Create templates in `templates/` for resources not provided by the upstream chart:
+
+    ```yaml
+    # templates/ServiceMonitor.yaml
+    apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      name: my-component
+      namespace: {{ .Release.Namespace }}
+    spec:
+      selector:
+        matchLabels:
+          app: my-component
+      endpoints:
+        - port: metrics
+    ```
+  </Step>
+
+  <Step title="Create mise.toml for rendering">
+    ```toml
+    [tasks.render-cluster]
+    description = "Render manifests for a specific cluster"
+    usage = 'arg "<cluster>" help="Target cluster (staging, production)"'
+    run = '''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    CLUSTER="${usage_cluster}"
+    OUTPUT_DIR="$(git rev-parse --show-toplevel)/kubernetes/rendered/${CLUSTER}/infrastructure/my-component"
+
+    # Inject chart versions from values files
+    VALUES_ENV="$CLUSTER" mise run //tools:render:inject-chart-versions
+
+    # Build dependencies
+    mise run //tools:render:helm-dep-build
+
+    # Prepare output directory
+    mise run //tools:render:prep-output-dir "$OUTPUT_DIR"
+
+    # Render and split into individual files
+    helm template my-component . \
+      --namespace my-component \
+      --values values.yaml \
+      --values "values.${CLUSTER}.yaml" \
+      | mise run //tools:render:split-k8s-docs "$OUTPUT_DIR"
+    '''
+    ```
+  </Step>
+</Steps>
+
+## Register with ArgoCD
+
+<Steps>
+  <Step title="Add to infrastructure values">
+    Edit `kubernetes/src/argocd/infrastructure/values.yaml`:
+
+    ```yaml
+    applications:
+      argocd:
+        enabled: true
+      cert-manager:
+        enabled: true
+      my-component:
+        enabled: true  # Add this
+    ```
+  </Step>
+
+  <Step title="Render all manifests">
+    ```bash
+    cd kubernetes
+    mise run render
+    ```
+  </Step>
+
+  <Step title="Commit and push">
+    ```bash
+    git add .
+    git commit -m "feat: add my-component infrastructure"
+    git push origin main
+    ```
+  </Step>
+</Steps>
+
+## Environment-Specific Configuration
+
+### Values Hierarchy
+
+Values are merged in order (later files override earlier):
+
+1. `values.yaml` - Base configuration
+2. `values.{cluster}.yaml` - Environment-specific overrides
+
+### Common Patterns
+
+**Different resource limits per environment:**
+```yaml
+# values.yaml (base)
+my-component:
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+
+# values.staging.yaml
+my-component:
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+# values.production.yaml
+my-component:
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+```
+
+**Different hostnames:**
+```yaml
+# values.staging.yaml
+my-component:
+  ingress:
+    host: my-component.staging.example.com
+
+# values.production.yaml
+my-component:
+  ingress:
+    host: my-component.example.com
+```
+
+**Feature flags:**
+```yaml
+# values.staging.yaml
+my-component:
+  debug: true
+  metrics:
+    enabled: true
+
+# values.production.yaml
+my-component:
+  debug: false
+  metrics:
+    enabled: true
+```
+
+## Add to Local Development
+
+<Steps>
+  <Step title="Create local values">
+    Create `values.local.yaml` with local-specific settings:
+
+    ```yaml
+    my-component:
+      replicaCount: 1
+      ingress:
+        host: my-component.127-0-0-1.sslip.io
+    ```
+  </Step>
+
+  <Step title="Add to infrastructure Tiltfile">
+    Edit `kubernetes/src/infrastructure/Tiltfile`:
+
+    ```python
+    # Add my-component
+    k8s_yaml(
+        helm(
+            'my-component',
+            name='my-component',
+            namespace='my-component',
+            values=['my-component/values.yaml', 'my-component/values.local.yaml'],
+        )
+    )
+
+    k8s_resource(
+        'my-component',
+        resource_deps=['cert-manager'],  # Add dependencies if needed
+    )
+    ```
+  </Step>
+</Steps>
+
+## Update the Render Pipeline
+
+If your component needs to be rendered as part of the main render task:
+
+Edit `kubernetes/mise.toml` to include your component:
+
+```toml
+[tasks.render]
+description = "Render all manifests for all environments"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+for cluster in staging production; do
+  # ... existing components ...
+  
+  # Add your component
+  mise run //kubernetes/src/infrastructure/my-component:render-cluster "$cluster"
+done
+'''
+```
+
+## Namespace Management
+
+Components typically run in their own namespace. Create it in your templates:
+
+```yaml
+# templates/Namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: my-component
+```
+
+Or include it in the Helm install:
+
+```bash
+helm template my-component . \
+  --namespace my-component \
+  --create-namespace \
+  ...
+```
+
+## Troubleshooting
+
+### Helm dependency errors
+
+```bash
+# Clear cached dependencies
+rm -rf charts/ Chart.lock
+
+# Re-add the repository
+helm repo add my-repo https://charts.example.com
+helm repo update
+
+# Rebuild dependencies
+helm dependency build
+```
+
+### Template rendering errors
+
+```bash
+# Debug with verbose output
+helm template my-component . \
+  --debug \
+  --values values.yaml \
+  --values values.staging.yaml
+```
+
+### ArgoCD not detecting the new Application
+
+1. Verify the Application manifest was generated:
+   ```bash
+   ls kubernetes/rendered/staging/argocd/infrastructure/
+   ```
+
+2. Check the infrastructure app-of-apps is synced:
+   ```bash
+   argocd app get infrastructure-app-of-apps
+   ```
+
+3. Force a sync:
+   ```bash
+   argocd app sync infrastructure-app-of-apps
+   ```
+
+## Best Practices
+
+1. **Use the wrapper chart pattern** - Never modify upstream charts directly
+2. **Version pin dependencies** - Always specify exact versions in `chartVersions`
+3. **Minimize environment differences** - Keep staging similar to production
+4. **Document custom resources** - Explain why custom templates are needed
+5. **Test locally first** - Use Tilt before deploying to staging
+
+## Next Steps
+
+- [Managing Secrets](/usage/operations/06-managing-secrets) - Configure secrets for your component
+- [Updating 3rd Party Applications](/usage/operations/03-updating-3rd-party-applications) - Update component versions

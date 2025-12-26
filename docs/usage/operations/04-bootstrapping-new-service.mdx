@@ -3,3 +3,362 @@ title: 'Bootstrapping a New Service'
 description: 'Add a new application to the platform'
 icon: 'plus'
 ---
+
+## Overview
+
+This guide walks through adding a new service to the platform. You'll create the application code, Dockerfile, Kubernetes manifests, and CI/CD configuration.
+
+## Prerequisites
+
+Before starting, ensure you have:
+- A working [local development environment](/usage/getting-started/09-local-development-setup)
+- An ECR repository for the new service (created via Terraform)
+
+## Create the Service
+
+<Steps>
+  <Step title="Create the service directory">
+    ```bash
+    mkdir -p services/my-new-service
+    cd services/my-new-service
+    ```
+  </Step>
+
+  <Step title="Add your application code">
+    Create your application. For example, a Go service:
+
+    ```bash
+    go mod init my-new-service
+    mkdir cmd
+    ```
+
+    Create `cmd/main.go`:
+    ```go
+    package main
+
+    import (
+        "log"
+        "net/http"
+    )
+
+    func main() {
+        http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusOK)
+            w.Write([]byte("ok"))
+        })
+
+        log.Println("Starting server on :8080")
+        log.Fatal(http.ListenAndServe(":8080", nil))
+    }
+    ```
+  </Step>
+
+  <Step title="Create a Dockerfile">
+    Create `Dockerfile`:
+
+    ```dockerfile
+    FROM golang:1.23-alpine AS builder
+    WORKDIR /app
+    COPY go.mod go.sum ./
+    RUN go mod download
+    COPY . .
+    RUN CGO_ENABLED=0 go build -o server ./cmd
+
+    FROM gcr.io/distroless/static-debian12:nonroot
+    COPY --from=builder /app/server /server
+    EXPOSE 8080
+    ENTRYPOINT ["/server"]
+    ```
+  </Step>
+
+  <Step title="Create mise.toml for service configuration">
+    Create `mise.toml`:
+
+    ```toml
+    [env]
+    IMAGE_REPO = "YOUR_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/services/my-new-service"
+    SERVICE_RELEASE_TAG = "services/my-new-service"
+
+    [tasks]
+    run = "go run ./cmd"
+    build-image = "docker build ."
+    ```
+  </Step>
+
+  <Step title="Test locally">
+    ```bash
+    # Run the service
+    mise run run
+
+    # In another terminal, test it
+    curl http://localhost:8080/health
+    ```
+  </Step>
+</Steps>
+
+## Create ECR Repository
+
+Add a Terraform resource for the ECR repository:
+
+<Steps>
+  <Step title="Add ECR repository to Terraform">
+    Edit `terraform/live/shared/us-east-2/ecr-repositories/main.tf`:
+
+    ```hcl
+    module "ecr_my_new_service" {
+      source = "../../../../modules/ecr-repository"
+
+      name = "services/my-new-service"
+      # ... other settings
+    }
+    ```
+  </Step>
+
+  <Step title="Apply the Terraform change">
+    ```bash
+    cd terraform
+    terramate run --tags ecr -- terraform apply
+    ```
+  </Step>
+</Steps>
+
+## Create Kubernetes Manifests
+
+Choose your preferred templating approach. The kit demonstrates three options.
+
+<Tabs>
+  <Tab title="Helm (Recommended)">
+    Create a Helm chart in `kubernetes/src/services/my-new-service/`:
+
+    ```bash
+    mkdir -p kubernetes/src/services/my-new-service/templates
+    ```
+
+    **Chart.yaml:**
+    ```yaml
+    apiVersion: v2
+    name: my-new-service
+    version: 0.1.0
+    ```
+
+    **values.yaml:**
+    ```yaml
+    replicas: 1
+    image:
+      repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/services/my-new-service
+      version: 0.1.0 # staging_services/my-new-service
+    ingress:
+      hostname: my-new-service.staging.yourdomain.com
+    ```
+
+    **templates/deployment.yaml:**
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: my-new-service
+      namespace: my-new-service
+    spec:
+      replicas: {{ .Values.replicas }}
+      selector:
+        matchLabels:
+          app: my-new-service
+      template:
+        metadata:
+          labels:
+            app: my-new-service
+        spec:
+          containers:
+            - name: my-new-service
+              image: "{{ .Values.image.repository }}:{{ .Values.image.version }}"
+              ports:
+                - containerPort: 8080
+              livenessProbe:
+                httpGet:
+                  path: /health
+                  port: 8080
+    ```
+
+    Add additional templates for Service, Ingress, etc.
+  </Step>
+
+  <Tab title="Kustomize">
+    Create a Kustomize structure in `kubernetes/src/services/my-new-service/`:
+
+    ```bash
+    mkdir -p kubernetes/src/services/my-new-service/{base,staging,production}
+    ```
+
+    **base/kustomization.yaml:**
+    ```yaml
+    apiVersion: kustomize.config.k8s.io/v1beta1
+    kind: Kustomization
+    resources:
+      - deployment.yaml
+      - service.yaml
+      - ingress.yaml
+    ```
+
+    **staging/kustomization.yaml:**
+    ```yaml
+    apiVersion: kustomize.config.k8s.io/v1beta1
+    kind: Kustomization
+    resources:
+      - ../base
+    images:
+      - name: my-new-service
+        newName: YOUR_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/services/my-new-service
+        newTag: "0.1.0"  # staging_services/my-new-service
+    ```
+  </Tab>
+</Tabs>
+
+## Add mise Tasks for Rendering
+
+Create `kubernetes/src/services/my-new-service/mise.toml`:
+
+```toml
+[tasks.render-cluster]
+description = "Render manifests for a specific cluster"
+usage = 'arg "<cluster>" help="Target cluster (staging, production)"'
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLUSTER="${usage_cluster}"
+OUTPUT_DIR="$(git rev-parse --show-toplevel)/kubernetes/rendered/${CLUSTER}/services/my-new-service"
+
+mise run //tools:render:prep-output-dir "$OUTPUT_DIR"
+
+helm template my-new-service . \
+  --namespace my-new-service \
+  --values values.yaml \
+  --values "values.${CLUSTER}.yaml" \
+  | mise run //tools:render:split-k8s-docs "$OUTPUT_DIR"
+'''
+```
+
+## Register with ArgoCD
+
+Add the service to the ArgoCD services app-of-apps:
+
+<Steps>
+  <Step title="Add to services values">
+    Edit `kubernetes/src/argocd/services/values.yaml`:
+
+    ```yaml
+    applications:
+      go-backend:
+        enabled: true
+      go-backend-helm:
+        enabled: true
+      my-new-service:
+        enabled: true  # Add this
+    ```
+  </Step>
+
+  <Step title="Render ArgoCD manifests">
+    ```bash
+    cd kubernetes
+    mise run render
+    ```
+  </Step>
+</Steps>
+
+## Add to CI/CD
+
+<Steps>
+  <Step title="Add path filter">
+    Edit `.github/utils/file-filters.yaml`:
+
+    ```yaml
+    services/my-new-service:
+      - 'services/my-new-service/**'
+    ```
+  </Step>
+
+  <Step title="Add to workflow inputs">
+    Edit `.github/workflows/ci-build-push.yml`:
+
+    ```yaml
+    inputs:
+      service:
+        options:
+          - services/go-backend
+          - services/my-new-service  # Add this
+    ```
+
+    Also update `.github/workflows/gitops-update-manifests.yml`.
+  </Step>
+</Steps>
+
+## Test Locally
+
+<Steps>
+  <Step title="Add to Tilt">
+    Edit `kubernetes/src/services/Tiltfile` to include your new service:
+
+    ```python
+    # Add your service
+    load_dynamic('./my-new-service/Tiltfile')
+    ```
+
+    Create `kubernetes/src/services/my-new-service/Tiltfile` following the pattern of existing services.
+  </Step>
+
+  <Step title="Start Tilt">
+    ```bash
+    cd local
+    mise run tilt-up
+    ```
+  </Step>
+
+  <Step title="Verify the service">
+    Access via the sslip.io URL or port-forward:
+
+    ```bash
+    kubectl port-forward svc/my-new-service -n my-new-service 8080:80
+    curl http://localhost:8080/health
+    ```
+  </Step>
+</Steps>
+
+## Deploy to Staging
+
+<Steps>
+  <Step title="Commit and push">
+    ```bash
+    git add .
+    git commit -m "feat: add my-new-service"
+    git push origin main
+    ```
+  </Step>
+
+  <Step title="Monitor the deployment">
+    1. Watch the CI workflow build the image
+    2. Watch the GitOps workflow update manifests
+    3. Check ArgoCD for the new Application
+  </Step>
+</Steps>
+
+## Checklist
+
+Before considering the service complete:
+
+- [ ] Application code with health endpoints
+- [ ] Dockerfile that builds successfully
+- [ ] ECR repository created via Terraform
+- [ ] Kubernetes manifests (Helm, Kustomize, or Timoni)
+- [ ] Values files for each environment
+- [ ] mise.toml with render tasks
+- [ ] Registered in ArgoCD services app-of-apps
+- [ ] Added to CI path filters
+- [ ] Added to workflow dispatch options
+- [ ] Local development working with Tilt
+- [ ] Successfully deployed to staging
+
+## Next Steps
+
+- [Managing Secrets](/usage/operations/06-managing-secrets) - Add secrets for your service
+- [Database Operations](/usage/operations/07-database-operations) - Add a database if needed
+- [Observability](/usage/operations/08-observability) - Configure metrics and tracing

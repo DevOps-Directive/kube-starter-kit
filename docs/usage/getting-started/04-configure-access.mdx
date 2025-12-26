@@ -1,0 +1,191 @@
+---
+title: 'Configure Access'
+description: 'Set up user access for GitHub and AWS'
+icon: 'users'
+---
+
+## Overview
+
+After bootstrapping accounts, configure access for human administrators. This page covers:
+- IAM Identity Center users and groups
+- GitHub organization membership
+
+<Note>
+The user performing the bootstrap already exists in IAM Identity Center and GitHub. You must import these existing resources before Terraform can manage them (import instructions below).
+</Note>
+
+## Configure User Management
+
+The kit manages both AWS IAM Identity Center and GitHub organization membership from a single `users.yaml` file via Terraform.
+
+### Authenticate with GitHub CLI
+
+The Terraform GitHub provider uses credentials from the GitHub CLI. Authenticate with an account that has **Owner** permissions on your organization:
+
+```bash
+gh auth login
+```
+
+Follow the prompts to authenticate. Verify you have the necessary permissions:
+
+```bash
+gh api orgs/<YOUR_ORG>/memberships/$( gh api user --jq '.login' ) --jq '.role'
+```
+
+This should return `admin`.
+
+### Add Users
+
+<Steps>
+  <Step title="Edit the users configuration">
+    Add users to `terraform/live/shared/global/user-management/data/users.yaml`:
+
+    ```yaml
+    users:
+      - github:
+          username: your-github-username
+          role: admin
+          teams:
+            Admin:
+              role: maintainer
+        aws:
+          user_name: you@example.com
+          email: you@example.com
+          group_membership: [Admin]
+          given_name: Your
+          family_name: Name
+    ```
+
+    This file is the single source of truth for both GitHub and AWS access.
+  </Step>
+
+  <Step title="Import existing resources">
+    Import your existing IAM Identity Center user, groups, and GitHub membership. Add import blocks to `terraform/live/shared/global/user-management/imports.tf`:
+
+    ```hcl
+    # IAM Identity Center user
+    import {
+      to = module.aws-iam-identity-center.aws_identitystore_user.sso_users["you@example.com"]
+      id = "<IDENTITY_STORE_ID>/<USER_ID>"
+    }
+
+    # IAM Identity Center group (if it exists)
+    import {
+      to = module.aws-iam-identity-center.aws_identitystore_group.sso_groups["Admin"]
+      id = "<IDENTITY_STORE_ID>/<GROUP_ID>"
+    }
+
+    # IAM Identity Center group membership
+    import {
+      to = module.aws-iam-identity-center.aws_identitystore_group_membership.sso_group_membership["you@example.com_Admin"]
+      id = "<IDENTITY_STORE_ID>/<MEMBERSHIP_ID>"
+    }
+
+    # GitHub organization member
+    import {
+      to = module.github_membership.github_membership.this["your-github-username"]
+      id = "<YOUR_ORG>:your-github-username"
+    }
+    ```
+
+    To find the required AWS IDs:
+
+    ```bash
+    # Get the Identity Store ID
+    aws sso-admin list-instances --query 'Instances[0].IdentityStoreId' --output text
+
+    # List users
+    aws identitystore list-users --identity-store-id <IDENTITY_STORE_ID>
+
+    # List groups
+    aws identitystore list-groups --identity-store-id <IDENTITY_STORE_ID>
+
+    # Get a group membership ID
+    aws identitystore get-group-membership-id \
+      --identity-store-id <IDENTITY_STORE_ID> \
+      --group-id <GROUP_ID> \
+      --member-id UserId=<USER_ID>
+    ```
+
+    To find existing GitHub members:
+
+    ```bash
+    gh api orgs/<YOUR_ORG>/members --jq '.[].login'
+    ```
+  </Step>
+
+  <Step title="Apply the user-management stack">
+    ```bash
+    cd terraform
+    terramate run --tags user-management -- terraform init
+    terramate run --tags user-management -- terraform apply
+    ```
+
+    This creates/imports:
+    - IAM Identity Center users
+    - Group memberships (Admin, PowerUser, ReadOnly)
+    - Permission set assignments to all accounts
+    - GitHub organization memberships
+  </Step>
+
+</Steps>
+
+## Verify Access Configuration
+
+Before proceeding, verify that your existing users and groups are correctly configured in both AWS and GitHub.
+
+### Review IAM Identity Center
+
+1. Open the [IAM Identity Center console](https://console.aws.amazon.com/singlesignon/home) in your Management account
+2. Navigate to **Users** and verify your bootstrap user exists
+3. Navigate to **Groups** and verify the expected groups exist (Admin, PowerUser, ReadOnly)
+4. Check group memberships by clicking on each group
+
+Use the CLI to list current users and groups:
+
+```bash
+# Get the Identity Store ID
+IDENTITY_STORE_ID=$(aws sso-admin list-instances --query 'Instances[0].IdentityStoreId' --output text)
+
+# List all users
+aws identitystore list-users --identity-store-id $IDENTITY_STORE_ID \
+  --query 'Users[].{UserName:UserName,UserId:UserId}'
+
+# List all groups
+aws identitystore list-groups --identity-store-id $IDENTITY_STORE_ID \
+  --query 'Groups[].{DisplayName:DisplayName,GroupId:GroupId}'
+```
+
+### Review GitHub Organization
+
+1. Open your GitHub organization's **People** page: `https://github.com/orgs/<YOUR_ORG>/people`
+2. Verify your bootstrap user appears as an **Owner**
+3. Check the **Invitations** tab for pending invites — users who haven't accepted their invitation won't appear in the members list
+
+<Warning>
+Users with pending invitations only appear under the **Invitations** tab, not in the main members list. Make sure to check both when verifying membership.
+</Warning>
+
+Use the CLI to list current members and pending invitations:
+
+```bash
+# List current members
+gh api orgs/<YOUR_ORG>/members --jq '.[] | "\(.login) (\(.role // "member"))"'
+
+# List pending invitations
+gh api orgs/<YOUR_ORG>/invitations --jq '.[] | "\(.login // .email) (invited)"'
+```
+
+## Groups and Permission Sets
+
+The kit configures three groups with corresponding permission sets:
+
+| Group | Permission Set | Access Level |
+|-------|---------------|--------------|
+| Admin | AdministratorAccess | Full access to all accounts |
+| PowerUser | PowerUserAccess | Full access except IAM |
+| ReadOnly | ViewOnlyAccess | Read-only access |
+
+## Next Steps
+
+With access configured, proceed to [Configure Integrations](/usage/getting-started/05-configure-integrations) to set up external service integrations for CI/CD.

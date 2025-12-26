@@ -1,0 +1,299 @@
+---
+title: 'Deploy Infrastructure'
+description: 'Deploy networking, EKS, and application resources via Terraform'
+icon: 'server'
+---
+
+## Overview
+
+With accounts bootstrapped and integrations configured, you're ready to deploy the core AWS infrastructure. This includes networking (VPC, subnets, NAT), EKS clusters, and application-specific resources like S3 buckets and IAM roles.
+
+### Decisions
+
+TODO: 
+- NAT gateways (managed, how many, fck-nat)
+- CIDR ranges
+- node pool sizing
+- ...
+
+## Infrastructure Deployment Order
+
+Terramate manages dependencies between stacks automatically. The deployment order is:
+
+```
+1. Networking     → VPC, subnets, NAT gateway, bastion host
+2. EKS            → Kubernetes cluster, node groups, Karpenter
+3. App Resources  → S3 buckets, IAM roles for workloads
+```
+
+Each stack declares its dependencies, so Terramate applies them in the correct order.
+
+## Deploy via Pull Request (Recommended)
+
+The standard workflow is to deploy infrastructure via pull requests. This ensures all changes are reviewed and tracked.
+
+<Steps>
+  <Step title="Create a deployment branch">
+    ```bash
+    git checkout -b deploy/staging-infrastructure
+    ```
+  </Step>
+
+  <Step title="Review the stacks to deploy">
+    List the infrastructure stacks:
+
+    ```bash
+    cd terraform
+    terramate list --tags staging:infrastructure
+    ```
+
+    You should see:
+    - `staging-use2-networking`
+    - `staging-use2-eks`
+  </Step>
+
+  <Step title="Push and open a PR">
+    ```bash
+    git push -u origin deploy/staging-infrastructure
+    ```
+
+    Open a pull request. The CI workflow will:
+    1. Run `terraform plan` for each changed stack
+    2. Post plan output to Terramate Cloud (if configured)
+    3. Show a summary in the PR checks
+  </Step>
+
+  <Step title="Review the plan">
+    Check the plan output carefully. For initial deployment, you should see resources being created:
+    - VPC and subnets
+    - NAT gateway or fck-nat instances
+    - EKS cluster and node groups
+    - IAM roles and policies
+  </Step>
+
+  <Step title="Merge to apply">
+    Once approved, merge the PR. The deploy workflow will apply changes in dependency order.
+  </Step>
+</Steps>
+
+## Deploy Locally (Alternative)
+
+For initial setup or debugging, you can deploy directly from your local machine.
+
+<Warning>
+Local deployment bypasses PR review. Use this only for initial bootstrap or troubleshooting.
+</Warning>
+
+<Steps>
+  <Step title="Authenticate to AWS">
+    Use Leapp to start a session for the Infrastructure account:
+
+    ```bash
+    # Leapp sets AWS_PROFILE automatically
+    # Verify you're authenticated
+    aws sts get-caller-identity
+    ```
+  </Step>
+
+  <Step title="Initialize and deploy networking">
+    ```bash
+    cd terraform
+
+    # Initialize the networking stack
+    terramate run --tags staging:us-east-2:networking -- terraform init
+
+    # Preview changes
+    terramate run --tags staging:us-east-2:networking -- terraform plan
+
+    # Apply
+    terramate run --tags staging:us-east-2:networking -- terraform apply
+    ```
+  </Step>
+
+  <Step title="Deploy EKS">
+    After networking is complete:
+
+    ```bash
+    # Initialize the EKS stack
+    terramate run --tags staging:us-east-2:eks -- terraform init
+
+    # Preview and apply
+    terramate run --tags staging:us-east-2:eks -- terraform plan
+    terramate run --tags staging:us-east-2:eks -- terraform apply
+    ```
+
+    <Note>
+    EKS cluster creation takes 10-15 minutes. The stack also configures Karpenter, EBS CSI driver, and other EKS add-ons.
+    </Note>
+  </Step>
+
+  <Step title="Deploy application resources (optional)">
+    If you have application-specific infrastructure:
+
+    ```bash
+    terramate run --tags staging:us-east-2:services -- terraform init
+    terramate run --tags staging:us-east-2:services -- terraform apply
+    ```
+  </Step>
+</Steps>
+
+## What Gets Created
+
+### Networking Stack
+
+| Resource | Description |
+|----------|-------------|
+| VPC | Isolated network with configurable CIDR (default: `10.0.0.0/16`) |
+| Public subnets | 3 subnets across availability zones for load balancers and bastion |
+| Private subnets | 3 subnets for EKS nodes and workloads |
+| NAT gateway | Internet access for private subnets (fck-nat by default for cost savings) |
+| S3 VPC endpoint | Free gateway endpoint for S3 access without NAT |
+| Bastion host | EC2 instance for SSH tunneling to private resources |
+
+### EKS Stack
+
+| Resource | Description |
+|----------|-------------|
+| EKS cluster | Managed Kubernetes control plane |
+| Managed node group | Initial nodes for system workloads |
+| Karpenter | Autoscaler for dynamic node provisioning |
+| EBS CSI driver | Persistent volume support with encryption |
+| Pod Identity | AWS IAM integration for workload authentication |
+| CoreDNS, kube-proxy | Essential cluster add-ons |
+
+### Application Resources (go-backend example)
+
+| Resource | Description |
+|----------|-------------|
+| S3 bucket | Application-specific storage |
+| IAM role | Pod Identity role for AWS API access |
+| Pod Identity association | Links the IAM role to Kubernetes ServiceAccount |
+
+## Configuration Options
+
+### NAT Gateway Modes
+
+The networking module supports three NAT modes via `nat_mode` variable:
+
+| Mode | Cost | Availability | Use Case |
+|------|------|--------------|----------|
+| `fck_nat` | ~$5/month per AZ | HA with auto-failover | Development, staging |
+| `single_nat_gateway` | ~$45/month | Single point of failure | Cost-sensitive production |
+| `one_nat_gateway_per_az` | ~$135/month | Full HA | Production with strict availability requirements |
+
+Configure in `terraform/live/staging/us-east-2/networking/config.tm.hcl`:
+
+```hcl
+globals {
+  nat_mode = "fck_nat"  # or "single_nat_gateway" or "one_nat_gateway_per_az"
+}
+```
+
+### EKS Node Configuration
+
+Karpenter handles most node provisioning, but you can configure the initial managed node group:
+
+```hcl
+globals {
+  eks_managed_node_groups = {
+    system = {
+      instance_types = ["m6i.large"]
+      min_size       = 2
+      max_size       = 4
+      desired_size   = 2
+    }
+  }
+}
+```
+
+## Verify Deployment
+
+After deployment completes:
+
+<Steps>
+  <Step title="Check Terraform outputs">
+    ```bash
+    terramate run --tags staging:us-east-2:eks -- terraform output
+    ```
+
+    Note the `cluster_name` output—you'll need it for kubectl access.
+  </Step>
+
+  <Step title="Update kubeconfig">
+    ```bash
+    aws eks update-kubeconfig \
+      --name <cluster_name> \
+      --region us-east-2 \
+      --alias staging
+    ```
+  </Step>
+
+  <Step title="Verify cluster access">
+    ```bash
+    kubectl get nodes
+    kubectl get pods -A
+    ```
+
+    You should see nodes in `Ready` state and system pods running.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### "Error: Kubernetes cluster unreachable"
+
+This usually means the EKS cluster is still initializing or your kubeconfig is outdated:
+
+```bash
+# Update kubeconfig
+aws eks update-kubeconfig --name <cluster_name> --region us-east-2
+
+# Check cluster status
+aws eks describe-cluster --name <cluster_name> --query 'cluster.status'
+```
+
+### Karpenter nodes not launching
+
+1. Check Karpenter controller logs:
+   ```bash
+   kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
+   ```
+
+2. Verify the EC2NodeClass and NodePool are created:
+   ```bash
+   kubectl get ec2nodeclasses,nodepools
+   ```
+
+3. Ensure the Karpenter IAM role has correct permissions (created by the EKS Terraform module).
+
+### NAT connectivity issues
+
+If pods can't reach the internet:
+
+1. Check NAT gateway/instance status in AWS console
+2. Verify route tables point to the NAT gateway
+3. For fck-nat, check the instance logs:
+   ```bash
+   aws ec2 get-console-output --instance-id <nat-instance-id>
+   ```
+
+## Deploy Production
+
+Production deployment follows the same pattern with production-specific configuration:
+
+```bash
+# List production stacks
+terramate list --tags prod:infrastructure
+
+# Deploy via PR (recommended) or locally
+terramate run --tags prod:us-east-2:networking -- terraform apply
+terramate run --tags prod:us-east-2:eks -- terraform apply
+```
+
+<Warning>
+Production stacks are tagged with `example` by default and excluded from CI. Remove the `example` tag from `stack.tm.hcl` files when you're ready to deploy production.
+</Warning>
+
+## Next Steps
+
+With infrastructure deployed, proceed to [Deploy Kubernetes Baseline](/usage/getting-started/07-deploy-kubernetes-baseline) to bootstrap ArgoCD and install cluster components.

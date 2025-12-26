@@ -1,0 +1,309 @@
+---
+title: 'Cluster Access'
+description: 'Connect to your EKS clusters via bastion and SOCKS proxy'
+icon: 'key'
+---
+
+## Overview
+
+EKS clusters in Kube Starter Kit are configured with private API endpoints for security. This means you can't access the Kubernetes API directly from the internet—you need to go through the bastion host using a SOCKS5 proxy.
+
+This page covers:
+- Setting up SSH over AWS SSM Session Manager
+- Connecting to the cluster via SOCKS proxy
+- Configuring kubectl for persistent proxy access
+
+<Note>
+Before proceeding, ensure you have completed [Deploy Infrastructure](/usage/getting-started/06-deploy-infrastructure) which creates the bastion host.
+</Note>
+
+## Architecture
+
+```
+Your Machine                 AWS VPC
++-----------+               +---------------------------+
+|           |               |                           |
+| kubectl   |---SOCKS5----->| Bastion Host              |
+|           |   proxy       | (private subnet)          |
++-----------+               |         |                 |
+      |                     |         v                 |
+      | SSM Session         |  +---------------+        |
+      +-------------------->|  | EKS API       |        |
+        (via AWS APIs)      |  | (private)     |        |
+                            |  +---------------+        |
+                            +---------------------------+
+```
+
+The bastion host:
+- Lives in a private subnet (no public IP)
+- Uses AWS SSM Session Manager for access (no SSH keys to manage)
+- Acts as a SOCKS5 proxy for kubectl traffic
+
+## One-Time Setup
+
+### Install Prerequisites
+
+The required tools are managed by mise:
+
+```bash
+mise install
+```
+
+This installs:
+- AWS CLI v2
+- Session Manager plugin (`aqua:aws/session-manager-plugin`)
+- kubectl
+
+### Configure SSH for SSM
+
+Add the SSM proxy configuration to your SSH config:
+
+```bash
+# View the required config
+mise run //tools:bastion:setup-ssh-config
+```
+
+Add this to `~/.ssh/config`:
+
+```
+# AWS SSM Session Manager SSH proxy
+Host i-* mi-*
+    User ec2-user
+    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
+```
+
+This allows SSH to instances via SSM using the instance ID as the hostname.
+
+### Configure AWS Profiles
+
+Add the shell helpers to your `.bashrc` or `.zshrc`:
+
+```bash
+# Source the helper functions
+source /path/to/kube-starter-kit/tools/aws/.kube-starter-kit-rc
+```
+
+This provides convenience functions:
+- `aws_sso_staging` - Start Leapp session for staging account
+- `aws_sso_production` - Start Leapp session for production account
+- `aws_eks_staging` - Update kubeconfig for staging EKS
+
+## Connect to the Cluster
+
+<Steps>
+  <Step title="Authenticate to AWS">
+    Start a Leapp session for the target account:
+
+    ```bash
+    aws_sso_staging
+    # or: leapp session start "Staging"
+    ```
+
+    Verify authentication:
+    ```bash
+    aws sts get-caller-identity
+    ```
+  </Step>
+
+  <Step title="Get the bastion instance ID">
+    ```bash
+    AWS_PROFILE=staging mise run //tools:bastion:get-instance-id staging
+    ```
+
+    This returns the instance ID, e.g., `i-0abc123def456789`.
+
+    <Tip>
+    The bastion is identified by the Name tag pattern `*-staging-network-bastion`.
+    </Tip>
+  </Step>
+
+  <Step title="Start the SOCKS proxy">
+    In a **separate terminal**, start the proxy:
+
+    ```bash
+    AWS_PROFILE=staging mise run //tools:bastion:start-proxy i-0abc123def456789
+    ```
+
+    Keep this terminal open while accessing the cluster. The proxy runs on `localhost:1080` by default.
+
+    <Note>
+    The task automatically pushes your SSH public key via EC2 Instance Connect (valid for 60 seconds) before establishing the SSH tunnel.
+    </Note>
+  </Step>
+
+  <Step title="Update kubeconfig">
+    Get the cluster credentials:
+
+    ```bash
+    aws eks update-kubeconfig \
+      --name ksk-use2-staging-eks \
+      --region us-east-2 \
+      --alias staging
+    ```
+
+    Replace `ksk` with your namespace prefix.
+  </Step>
+
+  <Step title="Use kubectl with the proxy">
+    **Option A: Per-command (temporary)**
+    ```bash
+    HTTPS_PROXY=socks5://localhost:1080 kubectl get nodes
+    ```
+
+    **Option B: Update kubeconfig (persistent)**
+    ```bash
+    kubectl config set-cluster staging --proxy-url=socks5://localhost:1080
+    ```
+
+    Now kubectl commands work without the environment variable:
+    ```bash
+    kubectl get nodes
+    kubectl get pods -A
+    ```
+  </Step>
+</Steps>
+
+## Quick Access Helper
+
+For convenience, add this function to your shell profile:
+
+```bash
+eks_connect_staging() {
+  # Get instance ID and start proxy
+  local instance_id
+  instance_id=$(AWS_PROFILE=staging mise run //tools:bastion:get-instance-id staging)
+  echo "Bastion instance: $instance_id"
+  echo "Starting SOCKS proxy on localhost:1080..."
+  AWS_PROFILE=staging mise run //tools:bastion:start-proxy "$instance_id"
+}
+```
+
+Then connect with a single command:
+```bash
+eks_connect_staging
+```
+
+## Configure Persistent Access
+
+To avoid passing the proxy URL each time, configure it in your kubeconfig:
+
+<Tabs>
+  <Tab title="Per-cluster proxy">
+    Set the proxy for a specific cluster context:
+
+    ```bash
+    kubectl config set-cluster staging --proxy-url=socks5://localhost:1080
+    ```
+
+    This modifies `~/.kube/config` to include the proxy URL for that cluster.
+  </Tab>
+
+  <Tab title="Environment variable">
+    Set the proxy globally for all kubectl commands:
+
+    ```bash
+    export HTTPS_PROXY=socks5://localhost:1080
+    kubectl get nodes
+    ```
+
+    Add to your shell profile for persistence (but note this affects all HTTPS traffic).
+  </Tab>
+</Tabs>
+
+## Access ArgoCD UI
+
+Once connected via the SOCKS proxy, you can access the ArgoCD UI:
+
+<Steps>
+  <Step title="Port-forward ArgoCD">
+    With the proxy running:
+    ```bash
+    HTTPS_PROXY=socks5://localhost:1080 kubectl port-forward svc/argocd-server -n argocd 8080:443
+    ```
+  </Step>
+
+  <Step title="Open the UI">
+    Navigate to https://localhost:8080
+
+    Get the admin password:
+    ```bash
+    HTTPS_PROXY=socks5://localhost:1080 kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+Once the infrastructure-app-of-apps deploys, ArgoCD is accessible via ingress at `argocd.staging.yourdomain.com` with GitHub OAuth—no port-forward needed.
+</Tip>
+
+## Troubleshooting
+
+### "Unable to connect to the server: dial tcp: lookup ... on ...: no such host"
+
+The kubectl command isn't using the proxy. Ensure:
+1. The SOCKS proxy is running (`mise run //tools:bastion:start-proxy`)
+2. You're using `HTTPS_PROXY=socks5://localhost:1080` or have configured the cluster proxy URL
+
+### "An error occurred (TargetNotConnected)"
+
+The bastion instance isn't reachable via SSM. Check:
+1. The instance is running:
+   ```bash
+   aws ec2 describe-instances --instance-ids <instance-id> --query 'Reservations[0].Instances[0].State.Name'
+   ```
+2. SSM agent is running (it's pre-installed on Amazon Linux 2023)
+3. The instance has the required IAM role with `AmazonSSMManagedInstanceCore` policy
+
+### "Permission denied (publickey)"
+
+EC2 Instance Connect key push failed. Ensure:
+1. You have an SSH key at `~/.ssh/id_ed25519.pub` or `~/.ssh/id_rsa.pub`
+2. Or set `SSH_PUBLIC_KEY=/path/to/key.pub`
+
+### Proxy disconnects after 60 seconds
+
+The SSH key pushed via EC2 Instance Connect expires after 60 seconds, but the SSH session should remain open. If it disconnects:
+1. Check your network connectivity
+2. Ensure the bastion security group allows outbound traffic
+
+### kubectl works but Helm/ArgoCD CLI doesn't
+
+Some tools don't respect `HTTPS_PROXY`. For ArgoCD CLI:
+```bash
+argocd login argocd.staging.yourdomain.com --sso
+```
+
+Use the ingress URL instead of port-forwarding.
+
+## Production Access
+
+The same process applies to production:
+
+```bash
+# Authenticate to production
+aws_sso_production
+
+# Get bastion instance
+AWS_PROFILE=production mise run //tools:bastion:get-instance-id production
+
+# Start proxy (in separate terminal)
+AWS_PROFILE=production mise run //tools:bastion:start-proxy <instance-id>
+
+# Update kubeconfig
+aws eks update-kubeconfig --name ksk-use2-production-eks --region us-east-2 --alias production
+kubectl config set-cluster production --proxy-url=socks5://localhost:1080
+
+# Use kubectl
+kubectl get nodes
+```
+
+<Warning>
+For production access, consider implementing additional access controls:
+- Require MFA for SSM sessions
+- Use AWS CloudTrail to audit access
+- Implement just-in-time access with temporary permissions
+</Warning>
+
+## Next Steps
+
+With cluster access configured, proceed to [Local Development Setup](/usage/getting-started/09-local-development-setup) to set up KinD, Tilt, and mirrord for local development.

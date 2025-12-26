@@ -3,3 +3,389 @@ title: 'Common Issues'
 description: 'Troubleshoot pods, ingress, certificates, DNS, and secrets'
 icon: 'bug'
 ---
+
+## Pods
+
+### Pod stuck in Pending
+
+**Symptoms:** Pod stays in `Pending` state, never starts.
+
+**Diagnose:**
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+**Common causes:**
+
+1. **Insufficient resources** - No nodes with enough CPU/memory
+   ```bash
+   kubectl describe nodes | grep -A5 "Allocated resources"
+   ```
+   *Fix:* Wait for Karpenter to provision nodes, or reduce resource requests.
+
+2. **Node selector/affinity not satisfied**
+   ```bash
+   kubectl get pod <pod-name> -n <namespace> -o yaml | grep -A10 nodeSelector
+   ```
+   *Fix:* Check node labels match the selector.
+
+3. **PVC not bound**
+   ```bash
+   kubectl get pvc -n <namespace>
+   ```
+   *Fix:* Check storage class exists and has available capacity.
+
+### Pod stuck in CrashLoopBackOff
+
+**Symptoms:** Pod repeatedly crashes and restarts.
+
+**Diagnose:**
+```bash
+# Check logs from current container
+kubectl logs <pod-name> -n <namespace>
+
+# Check logs from previous crash
+kubectl logs <pod-name> -n <namespace> --previous
+
+# Check events
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+**Common causes:**
+
+1. **Application error** - Check application logs for stack traces
+2. **Missing environment variables/secrets** - Verify all required env vars are set
+3. **Database connection failure** - Check database is accessible
+4. **Health check failing** - Verify liveness/readiness probes
+
+### Pod stuck in ImagePullBackOff
+
+**Symptoms:** Container image can't be pulled.
+
+**Diagnose:**
+```bash
+kubectl describe pod <pod-name> -n <namespace> | grep -A5 "Events"
+```
+
+**Common causes:**
+
+1. **Image doesn't exist** - Verify image tag exists in ECR
+   ```bash
+   aws ecr describe-images --repository-name services/go-backend --image-ids imageTag=<tag>
+   ```
+
+2. **ECR authentication** - Node can't authenticate to ECR
+   ```bash
+   # Check node IAM role has ECR permissions
+   kubectl describe node <node-name> | grep "ProviderID"
+   ```
+
+3. **Image pull secret missing** - For private registries outside ECR
+
+### OOMKilled
+
+**Symptoms:** Container killed due to memory limit.
+
+**Diagnose:**
+```bash
+kubectl describe pod <pod-name> -n <namespace> | grep -i oom
+```
+
+**Fix:**
+1. Increase memory limits in your Deployment
+2. Investigate memory leaks in your application
+3. Add memory profiling to identify the cause
+
+## Ingress
+
+### Ingress has no ADDRESS
+
+**Symptoms:** `kubectl get ingress` shows no ADDRESS.
+
+**Diagnose:**
+```bash
+kubectl describe ingress <ingress-name> -n <namespace>
+kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
+```
+
+**Common causes:**
+
+1. **Ingress controller not running**
+   ```bash
+   kubectl get pods -n ingress-nginx
+   ```
+
+2. **Ingress class mismatch**
+   ```yaml
+   # Ensure ingressClassName is set
+   spec:
+     ingressClassName: nginx
+   ```
+
+3. **Load balancer pending** - Check AWS for NLB status
+
+### 404 Not Found
+
+**Symptoms:** Ingress returns 404 for all requests.
+
+**Diagnose:**
+```bash
+# Check ingress rules
+kubectl get ingress <ingress-name> -n <namespace> -o yaml
+
+# Check backend service exists
+kubectl get svc -n <namespace>
+
+# Check endpoints
+kubectl get endpoints <service-name> -n <namespace>
+```
+
+**Common causes:**
+
+1. **Service selector doesn't match pods**
+2. **Wrong port in ingress backend**
+3. **Path prefix not matching**
+
+### 502 Bad Gateway
+
+**Symptoms:** Ingress returns 502 errors.
+
+**Diagnose:**
+```bash
+kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep 502
+```
+
+**Common causes:**
+
+1. **Backend pods not ready** - Check pod readiness
+2. **Backend timeout** - Increase proxy timeouts
+3. **Health check failing** - Check readiness probe
+
+## Certificates
+
+### Certificate not issuing
+
+**Symptoms:** Certificate stuck in `False` ready state.
+
+**Diagnose:**
+```bash
+kubectl get certificates -A
+kubectl describe certificate <cert-name> -n <namespace>
+kubectl get certificaterequests -A
+kubectl describe certificaterequest <cr-name> -n <namespace>
+```
+
+**Common causes:**
+
+1. **DNS not propagated** - Verify DNS record exists
+   ```bash
+   nslookup <hostname>
+   ```
+
+2. **Rate limited by Let's Encrypt** - Check cert-manager logs
+   ```bash
+   kubectl logs -n cert-manager -l app=cert-manager
+   ```
+
+3. **ClusterIssuer not ready**
+   ```bash
+   kubectl get clusterissuers
+   kubectl describe clusterissuer letsencrypt-production
+   ```
+
+4. **DNS01 challenge failing** - Check external-dns and Route53 permissions
+
+### Certificate expired
+
+**Symptoms:** Browser shows certificate warning.
+
+**Diagnose:**
+```bash
+kubectl get certificates -A
+```
+
+**Fix:**
+```bash
+# Delete the certificate to trigger renewal
+kubectl delete certificate <cert-name> -n <namespace>
+
+# Or delete the secret
+kubectl delete secret <cert-secret-name> -n <namespace>
+```
+
+## DNS
+
+### DNS record not created
+
+**Symptoms:** Domain doesn't resolve to the ingress.
+
+**Diagnose:**
+```bash
+# Check external-dns logs
+kubectl logs -n external-dns -l app.kubernetes.io/name=external-dns
+
+# Check ingress annotations
+kubectl get ingress <ingress-name> -n <namespace> -o yaml
+```
+
+**Common causes:**
+
+1. **Missing annotation** - Add `external-dns.alpha.kubernetes.io/hostname`
+2. **Zone filter mismatch** - Check external-dns zone configuration
+3. **IAM permissions** - Verify Route53 access
+
+### DNS propagation delay
+
+**Symptoms:** DNS works sometimes, not others.
+
+**Diagnose:**
+```bash
+# Check multiple DNS servers
+nslookup <hostname> 8.8.8.8
+nslookup <hostname> 1.1.1.1
+```
+
+**Fix:** Wait for TTL to expire (usually 5-60 minutes).
+
+## Secrets
+
+### ExternalSecret not syncing
+
+**Symptoms:** ExternalSecret shows `SecretSyncedError`.
+
+**Diagnose:**
+```bash
+kubectl describe externalsecret <name> -n <namespace>
+kubectl logs -n external-secrets -l app.kubernetes.io/name=external-secrets
+```
+
+**Common causes:**
+
+1. **Secret doesn't exist in AWS**
+   ```bash
+   aws secretsmanager describe-secret --secret-id <secret-name>
+   ```
+
+2. **IAM permissions missing** - Check Pod Identity role
+
+3. **Wrong secret path or property**
+
+### Secret not updating in pod
+
+**Symptoms:** Pod has old secret value.
+
+**Fix:**
+1. Check if Reloader is enabled:
+   ```bash
+   kubectl get deployment <name> -n <namespace> -o yaml | grep reloader
+   ```
+
+2. Restart the deployment:
+   ```bash
+   kubectl rollout restart deployment <name> -n <namespace>
+   ```
+
+## ArgoCD
+
+### Application stuck in Progressing
+
+**Symptoms:** ArgoCD Application never becomes Healthy.
+
+**Diagnose:**
+```bash
+argocd app get <app-name>
+kubectl describe application <app-name> -n argocd
+```
+
+**Common causes:**
+
+1. **Deployment not reaching desired replicas** - Check pod issues above
+2. **Sync hook failing** - Check hook job logs
+3. **Resource waiting on dependency** - Check other resources
+
+### OutOfSync but won't sync
+
+**Symptoms:** Application shows OutOfSync, sync has no effect.
+
+**Diagnose:**
+```bash
+argocd app diff <app-name>
+```
+
+**Common causes:**
+
+1. **Mutating webhook modifying resources** - Use ignoreDifferences
+2. **Helm hook resources** - May need special handling
+3. **Server-side apply conflicts** - Check resource ownership
+
+**Fix:**
+```bash
+# Force sync with replace
+argocd app sync <app-name> --force
+
+# Or prune and sync
+argocd app sync <app-name> --prune
+```
+
+### Repository not accessible
+
+**Symptoms:** "repository not accessible" error.
+
+**Diagnose:**
+```bash
+kubectl get secrets -n argocd | grep repo
+kubectl describe secret repo-<name> -n argocd
+```
+
+**Fix:**
+1. Verify the deploy key is correct
+2. Check ExternalSecret is syncing
+3. Test SSH access:
+   ```bash
+   ssh -T git@github.com -i /path/to/key
+   ```
+
+## Karpenter
+
+### Nodes not provisioning
+
+**Symptoms:** Pods pending, no new nodes created.
+
+**Diagnose:**
+```bash
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
+kubectl get nodepools
+kubectl get ec2nodeclasses
+```
+
+**Common causes:**
+
+1. **NodePool limits reached** - Check limits in NodePool spec
+2. **No matching instance types** - Check requirements vs. available types
+3. **Subnet/security group issues** - Verify discovery tags
+
+### Nodes terminating unexpectedly
+
+**Diagnose:**
+```bash
+kubectl get nodes --watch
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter | grep -i consolidat
+```
+
+**Common causes:**
+
+1. **Consolidation** - Karpenter optimizing costs (expected behavior)
+2. **Drift detection** - Node template changed
+3. **Spot interruption** - Check for spot termination notices
+
+## Quick Reference
+
+| Symptom | First Command |
+|---------|---------------|
+| Pod not starting | `kubectl describe pod <pod> -n <ns>` |
+| Container crashing | `kubectl logs <pod> -n <ns> --previous` |
+| Ingress not working | `kubectl describe ingress <name> -n <ns>` |
+| Certificate issues | `kubectl describe certificate <name> -n <ns>` |
+| Secret not syncing | `kubectl describe externalsecret <name> -n <ns>` |
+| ArgoCD problems | `argocd app get <app-name>` |
+| Node issues | `kubectl describe node <node-name>` |

@@ -30,6 +30,7 @@ kustomize = "5.8"
 argocd = "3.2"
 timoni = "0.25"
 mirrord = "3"
+"npm:@noovolari/leapp-cli" = "0.1"
 
 [tasks.mise-fzf]
 description = "[Mise] Pick one task; print it and copy the run command"
