@@ -76,8 +76,8 @@ generate_hcl "_outputs.tm.hcl" {
 
     # Only output zone_arn when a zone is created
     tm_dynamic "output" {
-      labels     = ["zone_arn"]
-      condition  = global.bootstrapping.create_zone
+      labels    = ["zone_arn"]
+      condition = global.bootstrapping.create_zone
       attributes = {
         backend = "terraform"
         value   = tm_hcl_expression("module.bootstrapping.zone_arn")
