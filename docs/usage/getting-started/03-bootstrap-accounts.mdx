@@ -8,282 +8,89 @@ icon: 'rocket'
 
 Before deploying infrastructure via CI/CD, you need to bootstrap your AWS accounts and GitHub organization for Terraform management. This is a one-time setup that creates the foundation for all automation.
 
-### How Cross-Account Access Works
+### Decisions
 
-The **Infrastructure account** is the central hub for all Terraform operations:
+This setup step requires deciding the following:
 
-```
-GitHub Actions
-       |
-       | OIDC authentication
-       v
-+-------------------------------------------+
-|          Infrastructure Account           |
-|  +---------------+  +------------------+  |
-|  | GitHub OIDC   |  | Terraform        |  |
-|  | Role          |  | State Bucket     |  |
-|  +---------------+  +------------------+  |
-+-------------------------------------------+
-       |
-       | sts:AssumeRole (cross-account)
-       v
-+----------+  +----------+  +----------+  +----------+
-|Management|  |   ECR    |  | Staging  |  |Production|
-| Account  |  | Account  |  | Account  |  | Account  |
-|          |  |          |  |          |  |          |
-| IAM Role |  | IAM Role |  | IAM Role |  | IAM Role |
-| (trusts  |  | (trusts  |  | (trusts  |  | (trusts  |
-|  infra)  |  |  infra)  |  |  infra)  |  |  infra)  |
-+----------+  +----------+  +----------+  +----------+
-```
+#### Namespace
 
-1. GitHub Actions authenticates via OIDC to a role in the Infrastructure account
-2. That role assumes target account roles via cross-account IAM trust policies
-3. Terraform runs with credentials for the target account, but state is stored centrally in the Infrastructure account
+The **namespace** is a short prefix (3-5 characters) used to generate unique names for all AWS resources: S3 buckets, IAM roles, EKS clusters, etc. Choose something that identifies your organization.
 
-This pattern keeps credentials management simple (one OIDC integration) while maintaining proper account isolation.
+| Examples | Description |
+|----------|-------------|
+| `acme` | Company name abbreviation |
+| `myco` | Short identifier |
+| `xyz` | Project code |
 
-### What Gets Bootstrapped
-
-| Account | Resources Created |
-|---------|-------------------|
-| **Infrastructure** | S3 state bucket, GitHub OIDC provider, GitHub OIDC role |
-| **All other accounts** | IAM role with trust policy allowing the Infrastructure account to assume it |
-
-<Note>
-For an overview of the multi-account structure and why it's designed this way, see [AWS Architecture](/features/03-aws-architecture).
-</Note>
-
-## Prerequisites
-
-Before starting, you need:
-
-- **AWS Organization** with member accounts created for each environment
-- **[mise](https://mise.jdx.dev/)** installed (handles installing AWS CLI, jq, and other tools)
-- **[Leapp](https://www.leapp.cloud/)** installed for AWS SSO authentication
-
-### Required Accounts
-
-Based on the [account structure](/features/03-aws-architecture#account-structure), you need these AWS accounts:
-
-| Account | Purpose |
-|---------|---------|
-| **Management** | AWS Organizations, IAM Identity Center |
-| **Infrastructure** | Terraform state, GitHub OIDC, CI/CD automation |
-| **ECR** | Container registry (shared across environments) |
-| **Staging** | Staging environment resources |
-| **Production** | Production environment resources |
-
-## Bootstrapping Steps
-
-Bootstrapping involves two phases:
-
-1. **Manual setup** (Steps 1-2): Run CLI commands locally to create the initial IAM roles and S3 bucket. This solves the chicken-and-egg problem where Terraform can't create the roles it needs to assume.
-
-2. **Terraform takeover** (Steps 3-5): Once manual roles exist, Terraform can manage everything going forward, including importing the manually-created resources.
+The default is `ksk` ("Kube Starter Kit"). You'll use this namespace consistently across all configuration, it cannot be easily changed later.
 
 <Warning>
-The manual commands in Steps 1-2 use scripts in `terraform/bootstrap/`. These must be run locally with AWS CLI credentials before any Terraform commands will work.
+This "namespace" refers to the naming convention from [Cloud Posse's terraform-null-label](https://github.com/cloudposse/terraform-null-label), **not** a Kubernetes namespace.
 </Warning>
 
-<Steps>
-  <Step title="Create S3 state bucket and get SSO role ARN (manual)">
-    The Infrastructure account is bootstrapped first because it hosts the Terraform state bucket that all accounts depend on.
+#### Primary AWS Region
 
-    1. Log into the Infrastructure account using Leapp. Start the session for the Infrastructure account, which will set the `AWS_PROFILE` environment variable.
+Choose a primary AWS region for your infrastructure. This region will host:
+- The Terraform state S3 bucket
+- Your EKS clusters (staging and production)
+- Most other AWS resources
 
-    2. Navigate to the bootstrap directory:
-       ```bash
-       cd terraform/bootstrap
-       ```
+The default is `us-east-2`. Consider factors like latency to your users, service availability, and pricing when choosing.
 
-    3. Create the S3 bucket for Terraform state:
-       ```bash
-       mise run create-state-bucket \
-         --bucket-name ksk-gbl-infra-bootstrap-state \
-         --aws-region us-east-2
-       ```
-       <Warning>
-       Bucket names must be globally unique. Replace `ksk` with your organization's namespace.
-       </Warning>
+<Tip>
+You can deploy to multiple regions later, but the state bucket region cannot be changed without migrating state.
+</Tip>
 
-    4. Get your SSO role ARN (you'll need this for cross-account trust):
-       ```bash
-       mise run get-sso-role-arn
-       ```
-       Save this ARN, it looks like: `arn:aws:iam::ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX`
-  </Step>
+### How Cross-Account Access Works
 
-  <Step title="Create IAM roles in target accounts (manual)">
-    Each target account needs an IAM role that can be assumed from the Infrastructure account. These roles must be created manually because Terraform can't assume a role that doesn't exist yet.
+The **Infrastructure account** is the central hub for all Terraform operations. There are two access paths:
 
-    Repeat these steps for each account (Management, ECR, Staging, Production):
+1. **CI/CD (GitHub Actions)**: Authenticates via OIDC, then assumes roles in target accounts
+2. **Human admins (IAM Identity Center)**: Authenticates via SSO to the Infrastructure account, then assumes roles in target accounts
 
-    1. Log into the target account using Leapp. Start the session for the target account (e.g., Staging), which will set the `AWS_PROFILE` environment variable.
+```
+GitHub Actions               Human Admin (You)
+       |                            |
+       | OIDC                       | IAM Identity Center (SSO)
+       v                            v
++-----------------------------------------------------+
+|                Infrastructure Account               |
+|                                                     |
+|   +-----------------+     +--------------------+    |
+|   |  GitHub OIDC    |     |   SSO Admin Role   |    |
+|   |  Role           |     |   (via Leapp)      |    |
+|   +-----------------+     +--------------------+    |
+|             \                   /                   |
+|              v                 v                    |
+|          +----------------------+                   |
+|          |   Terraform State    |                   |
+|          |   Bucket (S3)        |                   |
+|          +----------------------+                   |
++-----------------------------------------------------+
+          |                   |
+          | sts:AssumeRole (cross-account)
+          v                   v
++--------------+  +--------------+  +--------------+  +--------------+
+|  Management  |  |     ECR      |  |   Staging    |  |  Production  |
+|   Account    |  |   Account    |  |   Account    |  |   Account    |
+|              |  |              |  |              |  |              |
+|   IAM Role   |  |   IAM Role   |  |   IAM Role   |  |   IAM Role   |
+|   (trusts    |  |   (trusts    |  |   (trusts    |  |   (trusts    |
+|    infra)    |  |    infra)    |  |    infra)    |  |    infra)    |
++--------------+  +--------------+  +--------------+  +--------------+
+```
 
-    2. Create the IAM role with cross-account trust:
-       ```bash
-       cd terraform/bootstrap
+**For CI/CD (GitHub Actions):**
+1. GitHub Actions authenticates via OIDC to the GitHub OIDC role in the Infrastructure account
+2. That role assumes target account roles via cross-account IAM trust policies
+3. Terraform runs with credentials for the target account, state stored in Infrastructure account
 
-       mise run create-terraform-iam-role-in-target-account \
-         --role-name ksk-gbl-staging-bootstrap-admin \
-         --infra-sso-role-arn "arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
-       ```
+**For Human Admins:**
+1. Admin authenticates to the Infrastructure account via IAM Identity Center (using Leapp)
+2. The SSO role in Infrastructure account can assume target account roles
+3. Admin runs Terraform locally with the same cross-account access as CI/CD
 
-       This creates an IAM role with:
-       - `AdministratorAccess` policy attached
-       - Trust policy allowing the specified Infrastructure account role to assume it
-
-    Use consistent naming for each account:
-    | Account | Role Name |
-    |---------|-----------|
-    | Management | `ksk-gbl-mgmt-bootstrap-admin` |
-    | ECR | `ksk-gbl-ecr-bootstrap-admin` |
-    | Staging | `ksk-gbl-staging-bootstrap-admin` |
-    | Production | `ksk-gbl-prod-bootstrap-admin` |
-
-    <Note>
-    These manually-created roles will be imported into Terraform state in the next step, so Terraform can manage them going forward.
-    </Note>
-  </Step>
-
-  <Step title="Apply Terraform bootstrapping stacks (Terraform)">
-    With manual IAM roles in place, Terraform can now take over. The bootstrapping stacks:
-    - Import the manually-created S3 bucket and IAM roles into Terraform state
-    - Create the GitHub OIDC provider and role in the Infrastructure account
-    - Update target account IAM roles to also trust the GitHub OIDC role (not just your SSO role)
-    - Create Route53 hosted zones for each environment
-
-    1. Update the root configuration with your account-specific values:
-
-       Edit `terraform/config.tm.hcl`:
-       ```hcl
-       globals {
-         namespace = "ksk"  # Your organization namespace
-
-         # GitHub OIDC role in Infrastructure account (this role assumes roles in other accounts)
-         github_oidc_assume_role_arn = "arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc"
-
-         # Your SSO admin role in Infrastructure account (for local Terraform runs)
-         sso_admin_assume_role_arn = "arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX"
-
-         # S3 backend in Infrastructure account (stores state for ALL accounts)
-         backend_bucket = "ksk-gbl-infra-bootstrap-state"
-         backend_region = "us-east-2"
-       }
-       ```
-
-       These values define who can assume roles in target accounts:
-       - `github_oidc_assume_role_arn`: Used by CI/CD pipelines
-       - `sso_admin_assume_role_arn`: Used when running Terraform locally
-
-    2. Update each target account's bootstrapping stack with its IAM role ARN in `config.tm.hcl` files.
-
-    3. Initialize and apply the bootstrapping stacks in order:
-       ```bash
-       cd terraform
-
-       # Infrastructure account bootstrapping (creates OIDC provider and state bucket)
-       terramate run --tags infra:bootstrapping -- terraform init
-       terramate run --tags infra:bootstrapping -- terraform apply
-
-       # Management account bootstrapping
-       terramate run --tags management:bootstrapping -- terraform init
-       terramate run --tags management:bootstrapping -- terraform apply
-
-       # ECR account bootstrapping
-       terramate run --tags ecr:bootstrapping -- terraform init
-       terramate run --tags ecr:bootstrapping -- terraform apply
-
-       # Staging account bootstrapping
-       terramate run --tags staging:bootstrapping -- terraform init
-       terramate run --tags staging:bootstrapping -- terraform apply
-
-       # Production account bootstrapping
-       terramate run --tags prod:bootstrapping -- terraform init
-       terramate run --tags prod:bootstrapping -- terraform apply
-       ```
-
-       <Tip>
-       After the Infrastructure account stack runs, the GitHub OIDC role exists. The target account stacks then update their IAM roles' trust policies to allow both the SSO admin role AND the GitHub OIDC role to assume them.
-       </Tip>
-  </Step>
-
-  <Step title="Configure GitHub repository secrets">
-    GitHub Actions needs to know which role to authenticate to. This is always the GitHub OIDC role in the Infrastructure account, which then assumes roles in other accounts as needed.
-
-    Add these secrets to your GitHub repository:
-
-    | Secret | Value |
-    |--------|-------|
-    | `AWS_ROLE_ARN` | The GitHub OIDC role ARN in the Infrastructure account |
-    | `AWS_REGION` | Your primary AWS region (e.g., `us-east-2`) |
-
-    The GitHub OIDC role ARN has the format:
-    ```
-    arn:aws:iam::INFRA_ACCOUNT_ID:role/ksk-gbl-infra-bootstrap-github-oidc
-    ```
-
-    <Note>
-    The Terraform provider configuration in each stack specifies which target account role to assume. GitHub Actions only needs the Infrastructure account role; cross-account access is handled by the provider's `assume_role` block.
-    </Note>
-  </Step>
-
-  <Step title="Verify the setup">
-    Confirm everything is working:
-
-    1. Check that you can assume roles from the Infrastructure account:
-       ```bash
-       # From Infrastructure account credentials
-       aws sts assume-role \
-         --role-arn arn:aws:iam::STAGING_ACCOUNT_ID:role/ksk-gbl-staging-bootstrap-admin \
-         --role-session-name test
-       ```
-
-    2. Verify Terraform state is accessible:
-       ```bash
-       cd terraform
-       terramate run --tags staging:bootstrapping -- terraform init
-       terramate run --tags staging:bootstrapping -- terraform plan
-       ```
-
-    3. Push a commit to trigger a CI workflow and verify GitHub Actions can authenticate.
-  </Step>
-</Steps>
-
-## Import GitHub Organization Members
-
-The kit uses Terraform to manage GitHub organization members and teams. Before running Terraform on the management stack, you need to import existing GitHub users into Terraform state.
-
-<Steps>
-  <Step title="List existing organization members">
-    Use the GitHub CLI to list current members:
-
-    ```bash
-    gh api orgs/YOUR-ORG/members --jq '.[].login'
-    ```
-  </Step>
-
-  <Step title="Import members into Terraform state">
-    For each existing member, run an import command:
-
-    ```bash
-    cd terraform/live/shared/global/github-org
-    
-    terraform import 'github_membership.members["username"]' YOUR-ORG:username
-    ```
-
-    Repeat for each member in your organization.
-  </Step>
-
-  <Step title="Update the Terraform configuration">
-    Ensure each imported member is defined in the Terraform configuration. See [User Management](/features/04-user-management) for the configuration format.
-  </Step>
-</Steps>
-
-<Note>
-If you skip this step, you will run into errors about the users already existing.
-</Note>
+This pattern keeps credentials management simple while maintaining proper account isolation.
 
 ## What Gets Created
 
@@ -299,30 +106,289 @@ If you skip this step, you will run into errors about the users already existing
 
 | Resource | Purpose |
 |----------|---------|
-| IAM role | Admin role with trust policy allowing the Infrastructure account's GitHub OIDC role and SSO admin role to assume it |
+| Terraform IAM role | Admin role with trust policy allowing **both** the GitHub OIDC role (for CI/CD) **and** SSO admin role (for human admins) from the Infrastructure account to assume it |
 | Route53 hosted zone | DNS zone for the environment (e.g., `staging.example.com`); not created in Management or ECR accounts |
 
+## Prerequisites
+
+### Required Accounts
+
+Based on the [account structure](/features/03-aws-architecture#account-structure), you need these AWS accounts:
+
+| Account | Purpose |
+|---------|---------|
+| **Management** | AWS Organizations, IAM Identity Center |
+| **Infrastructure** | Terraform state, GitHub OIDC, CI/CD automation |
+| **ECR** | Container registry (shared across environments) |
+| **Staging** | Staging environment resources |
+| **Production** | Production environment resources |
+
+## Bootstrapping Overview
+
+Bootstrapping solves a chicken-and-egg problem: Terraform needs IAM roles and an S3 bucket to run, but we want Terraform to manage those resources. The solution is to manually create minimal resources, then let Terraform import and manage them.
+
+Each account needs a bootstrap IAM role. The Infrastructure account additionally needs an S3 bucket for Terraform state.
+
+<Warning>
+The bootstrap scripts in `terraform/bootstrap/` must be run manually with AWS CLI credentials before Terraform can take over.
+</Warning>
+
+## Configure Leapp CLI
+
+Before you can authenticate to AWS accounts, configure the Leapp CLI with your IAM Identity Center portal:
+
+```bash
+leapp integration create \
+  --integrationType AWS-SSO \
+  --integrationAlias "My Organization" \
+  --integrationPortalUrl https://d-xxxxxxxxxx.awsapps.com/start \
+  --integrationRegion <AWS_REGION>
+```
+
+Replace the portal URL with your IAM Identity Center URL (found in the AWS IAM Identity Center console under **Settings > Identity source**) and `<AWS_REGION>` with your [primary region](#primary-aws-region).
+
+<Tip>
+For a GUI experience, [Leapp](https://www.leapp.cloud/) provides a desktop app for managing AWS SSO sessions. It discovers available accounts and permission sets automatically from your configured integration.
+</Tip>
+
+## Bootstrap the Infrastructure Account
+
+The Infrastructure account is special, it hosts the S3 state bucket that all other accounts depend on.
+
+<Steps>
+  <Step title="Log into the Infrastructure account">
+    Start a Leapp session for the Infrastructure account:
+
+    ```bash
+    leapp session start "Infrastructure"
+    aws sts get-caller-identity
+    ```
+  </Step>
+
+  <Step title="Get your SSO role ARN">
+    You'll need this ARN for cross-account trust policies:
+
+    ```bash
+    mise run //terraform/bootstrap:get-sso-role-arn
+    ```
+
+    Save this ARN, it looks like:
+    ```
+    arn:aws:iam::INFRA_ACCOUNT_ID:role/aws-reserved/sso.amazonaws.com/REGION/AWSReservedSSO_AdministratorAccess_XXXXX
+    ```
+  </Step>
+
+  <Step title="Create the S3 state bucket">
+    ```bash
+    mise run //terraform/bootstrap:create-state-bucket \
+      --bucket-name <NAMESPACE>-gbl-infra-bootstrap-state \
+      --aws-region <AWS_REGION>
+    ```
+
+    <Warning>
+    S3 bucket names are globally unique. Replace `<NAMESPACE>` with your [namespace](#namespace) and `<AWS_REGION>` with your [primary region](#primary-aws-region).
+    </Warning>
+  </Step>
+
+  <Step title="Update Terraform configuration">
+    Edit `terraform/config.tm.hcl` with your namespace and account details:
+
+    ```hcl
+    globals {
+      namespace = "<NAMESPACE>"  # Your chosen namespace
+
+      # Your SSO admin role in Infrastructure account (for local Terraform runs)
+      sso_admin_assume_role_arn = "arn:aws:iam::<INFRA_ACCOUNT_ID>:role/aws-reserved/sso.amazonaws.com/<AWS_REGION>/AWSReservedSSO_AdministratorAccess_XXXXX"
+
+      # GitHub OIDC role (will be created by Terraform)
+      github_oidc_assume_role_arn = "arn:aws:iam::<INFRA_ACCOUNT_ID>:role/<NAMESPACE>-gbl-infra-bootstrap-github-oidc"
+
+      # S3 backend configuration (must match the bucket you created above)
+      backend_bucket = "<NAMESPACE>-gbl-infra-bootstrap-state"
+      backend_region = "<AWS_REGION>"
+    }
+    ```
+
+    Replace the placeholders with your values from [Decisions](#decisions).
+  </Step>
+
+  <Step title="Generate Terraform files">
+    Propagate the configuration changes to generated files:
+
+    ```bash
+    cd terraform
+    terramate generate
+    ```
+  </Step>
+
+  <Step title="Apply the Infrastructure bootstrapping stack">
+    This imports the S3 bucket and creates the GitHub OIDC provider and role:
+
+    ```bash
+    cd terraform
+    terramate run --tags infra:bootstrapping --parallel 1 -- terraform init
+    terramate run --tags infra:bootstrapping -- terraform apply
+    ```
+  </Step>
+</Steps>
+
+## Bootstrap Target Accounts
+
+Each target account (Management, ECR, Staging, Production) needs an IAM role that can be assumed from the Infrastructure account.
+
+### Manual Role Creation
+
+For each account:
+
+<Steps>
+  <Step title="Log into the target account">
+    ```bash
+    leapp session start "Staging"  # or Management, ECR, Production
+    aws sts get-caller-identity
+    ```
+  </Step>
+
+  <Step title="Create the IAM role">
+    ```bash
+    cd terraform/bootstrap
+
+    mise run create-terraform-iam-role-in-target-account \
+      --role-name <ROLE_NAME> \
+      --infra-sso-role-arn "<INFRA_SSO_ROLE_ARN>"
+    ```
+
+    Replace `<INFRA_SSO_ROLE_ARN>` with the SSO role ARN you recorded during [Bootstrap the Infrastructure Account](#bootstrap-the-infrastructure-account).
+
+    Use the appropriate role name for each account:
+
+    | Account | Role Name |
+    |---------|-----------|
+    | Management | `<NAMESPACE>-gbl-mgmt-bootstrap-admin` |
+    | ECR | `<NAMESPACE>-gbl-ecr-bootstrap-admin` |
+    | Staging | `<NAMESPACE>-gbl-staging-bootstrap-admin` |
+    | Production | `<NAMESPACE>-gbl-prod-bootstrap-admin` |
+
+    This creates an IAM role with:
+    - `AdministratorAccess` policy attached
+    - Trust policy allowing your SSO role from the Infrastructure account to assume it
+  </Step>
+</Steps>
+
+Repeat these steps for each target account.
+
+### Terraform Takeover
+
+Once the manual roles exist, Terraform can import and manage them. Terramate generates an `import` block in each root module to bring the manually-created role into Terraform state.
+
+#### How Import Works
+
+The Terramate template in `terraform/imports/mixins/modules/bootstrapping.tm.hcl` generates both the import block and module call for each bootstrapping stack:
+
+```hcl
+# Generated in each root module (e.g., terraform/live/staging/global/bootstrapping/_main.tf)
+
+import {
+  to = module.bootstrapping.module.iam_role.aws_iam_role.this[0]
+  id = "ksk-gbl-staging-bootstrap-admin"  # Uses globals: namespace-environment-stage
+}
+
+module "bootstrapping" {
+  source = "../../../../modules/account-bootstrapping"
+  # ...
+}
+```
+
+The import block ID is constructed from your configured globals (`namespace`, `environment`, `stage`) to match the role name you created manually (e.g., `"<NAMESPACE>-gbl-staging-bootstrap-admin"`).
+
+<Note>
+Import blocks must be in root modules, not child modules. This is a Terraform requirement. The `account-bootstrapping` module itself does not contain the import block; it's generated by Terramate at the root module level.
+</Note>
+
+When you run `terraform apply`, Terraform:
+1. Imports the existing IAM role into state (instead of trying to create it)
+2. Updates the role's trust policy to allow **both** your SSO role **and** the GitHub OIDC role to assume it
+
+This enables CI/CD pipelines to manage infrastructure going forward.
+
+#### Apply the Bootstrapping Stacks
+
+```bash
+cd terraform
+
+# Log back into Infrastructure account
+leapp session start "Infrastructure"
+
+# Apply each account's bootstrapping stack
+terramate run --tags management:bootstrapping -- terraform init
+terramate run --tags management:bootstrapping -- terraform apply
+
+terramate run --tags ecr:bootstrapping -- terraform init
+terramate run --tags ecr:bootstrapping -- terraform apply
+
+terramate run --tags staging:bootstrapping -- terraform init
+terramate run --tags staging:bootstrapping -- terraform apply
+
+terramate run --tags prod:bootstrapping -- terraform init
+terramate run --tags prod:bootstrapping -- terraform apply
+```
+
+<Note>
+The `import` block was added in Terraform 1.5. It allows declarative imports without running `terraform import` commands manually. See the [Terraform import block documentation](https://developer.hashicorp.com/terraform/language/block/import) for more details.
+</Note>
+
+## Configure Domain Nameservers
+
+The bootstrapping stacks create Route53 hosted zones for Staging and Production (e.g., `staging.example.com`, `prod.example.com`). For DNS to work, you must configure your domain registrar to use the Route53 nameservers.
+
+<Steps>
+  <Step title="Get the Route53 nameservers">
+    After applying the bootstrapping stacks, retrieve the nameservers for each hosted zone:
+
+    ```bash
+    # Get staging nameservers
+    terramate run --tags staging:bootstrapping -- terraform output hosted_zone_nameservers
+
+    # Get production nameservers
+    terramate run --tags prod:bootstrapping -- terraform output hosted_zone_nameservers
+    ```
+
+    You'll see 4 nameservers like:
+    ```
+    ns-123.awsdns-45.com
+    ns-678.awsdns-90.net
+    ns-111.awsdns-22.org
+    ns-333.awsdns-44.co.uk
+    ```
+  </Step>
+
+  <Step title="Configure your domain registrar">
+    How you configure nameservers depends on your setup:
+
+    **If using a subdomain** (e.g., `staging.example.com`):
+    - Add NS records in your parent domain's DNS pointing to the Route53 nameservers
+    - Example: Add NS records for `staging` subdomain pointing to the 4 nameservers above
+
+    **If using a dedicated domain** (e.g., `example-staging.com`):
+    - Update the domain's nameservers at your registrar (Namecheap, GoDaddy, Route53, etc.)
+    - Replace the default nameservers with the 4 Route53 nameservers
+  </Step>
+
+  <Step title="Verify DNS propagation">
+    DNS changes can take up to 48 hours to propagate, but usually complete within minutes. Verify with:
+
+    ```bash
+    dig NS staging.example.com +short
+    ```
+
+    You should see the Route53 nameservers in the response.
+  </Step>
+</Steps>
+
+<Warning>
+If you skip this step, external-dns and cert-manager will not work. DNS records created in Route53 won't resolve, and Let's Encrypt DNS-01 challenges will fail.
+</Warning>
+
 ## Troubleshooting
-
-### "Access Denied" when assuming cross-account role
-
-The two-step authentication means there are two places trust can fail:
-
-1. **GitHub → Infrastructure account**: Check the OIDC role trust policy
-   ```bash
-   # Run from Infrastructure account
-   aws iam get-role --role-name ksk-gbl-infra-bootstrap-github-oidc \
-     --query 'Role.AssumeRolePolicyDocument'
-   ```
-
-2. **Infrastructure account → Target account**: Check the target role trust policy
-   ```bash
-   # Run from target account (e.g., staging)
-   aws iam get-role --role-name ksk-gbl-staging-bootstrap-admin \
-     --query 'Role.AssumeRolePolicyDocument'
-   ```
-
-The target account's trust policy should include the Infrastructure account's GitHub OIDC role ARN as a trusted principal.
 
 ### "Bucket already exists" error
 
@@ -331,20 +397,6 @@ S3 bucket names are globally unique. If the bucket name is taken:
 2. Update `backend_bucket` in `terraform/config.tm.hcl`
 3. Update any hardcoded references in bootstrapping stacks
 
-### GitHub Actions can't authenticate
-
-1. Verify the OIDC provider exists in the Infrastructure account:
-   ```bash
-   aws iam list-open-id-connect-providers
-   ```
-
-2. Check the GitHub OIDC role trust policy allows your repository:
-   ```bash
-   aws iam get-role --role-name ksk-gbl-infra-bootstrap-github-oidc \
-     --query 'Role.AssumeRolePolicyDocument'
-   ```
-
-3. Ensure the repository name in the trust policy matches exactly (case-sensitive, including organization name).
 
 ### State file in wrong location
 
@@ -355,4 +407,4 @@ All Terraform state is stored in the Infrastructure account's S3 bucket, regardl
 
 ## Next Steps
 
-With accounts bootstrapped, proceed to [Configure Integrations](/usage/getting-started/04-configure-integrations) to set up AWS, GitHub, and Terramate Cloud integrations for CI/CD.
+With accounts bootstrapped, proceed to [Configure Access](/usage/getting-started/04-configure-access) to set up CI/CD and user access for GitHub and AWS.

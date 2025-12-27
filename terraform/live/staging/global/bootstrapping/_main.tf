@@ -1,5 +1,9 @@
 // TERRAMATE: GENERATED AUTOMATICALLY DO NOT EDIT
 
+import {
+  id = "ksk-gbl-staging-bootstrap-admin"
+  to = module.bootstrapping.module.iam_role.aws_iam_role.this[0]
+}
 module "bootstrapping" {
   aws_region                  = "us-east-2"
   create_zone                 = true

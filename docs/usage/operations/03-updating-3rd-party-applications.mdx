@@ -1,6 +1,247 @@
 ---
-title: 'Updating 3rd party applications'
-description: 'Adding/modifying configurations of 3rd party applications'
-icon: "arrow-up-right-from-square"
+title: 'Updating 3rd Party Applications'
+description: 'Update infrastructure components like ingress-nginx, cert-manager, and more'
+icon: 'arrow-up-right-from-square'
 ---
 
+## Overview
+
+Third-party applications are infrastructure components deployed via Helm charts—things like ingress-nginx, cert-manager, external-secrets, and ArgoCD itself. This page covers how to update their versions and configurations.
+
+## Infrastructure Components
+
+The kit includes these third-party components in `kubernetes/src/infrastructure/`:
+
+| Component | Chart Source | Purpose |
+|-----------|-------------|---------|
+| argocd | argoproj.github.io | GitOps controller |
+| cert-manager | quay.io/jetstack | TLS certificate automation |
+| cloudnative-pg | cloudnative-pg.github.io | PostgreSQL operator |
+| external-dns | kubernetes-sigs.github.io | DNS record management |
+| external-secrets | charts.external-secrets.io | Secret synchronization |
+| ingress-nginx | kubernetes.github.io | Ingress controller |
+| karpenter | public.ecr.aws/karpenter | Node autoscaling |
+| reloader | stakater.github.io | Pod restart on config changes |
+| signoz-k8s-infra | charts.signoz.io | Observability collectors |
+
+## Update Chart Versions
+
+Each component uses a "wrapper chart" pattern—a local Helm chart that includes the upstream chart as a dependency.
+
+<Steps>
+  <Step title="Find the current version">
+    Check the current version in the component's `values.yaml`:
+
+    ```bash
+    cat kubernetes/src/infrastructure/ingress-nginx/values.yaml
+    ```
+
+    Look for the `chartVersions` section:
+    ```yaml
+    chartVersions:
+      ingress-nginx: "4.12.2"
+    ```
+  </Step>
+
+  <Step title="Check for new versions">
+    Find the latest version from the chart repository:
+
+    ```bash
+    # Add the repo if not already added
+    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+    helm repo update
+
+    # Search for versions
+    helm search repo ingress-nginx/ingress-nginx --versions | head -10
+    ```
+  </Step>
+
+  <Step title="Update the version">
+    Edit the values file to update the version:
+
+    ```bash
+    vim kubernetes/src/infrastructure/ingress-nginx/values.yaml
+    ```
+
+    ```yaml
+    chartVersions:
+      ingress-nginx: "4.13.0"  # Updated version
+    ```
+
+    For environment-specific versions, edit `values.staging.yaml` or `values.production.yaml`. Setting these independently allows for testing upgrades in lower environments before rolling out to production.
+  </Step>
+
+  <Step title="Update Chart.lock">
+    Regenerate the lock file with the new dependency:
+
+    ```bash
+    cd kubernetes/src/infrastructure/ingress-nginx
+    helm dependency update
+    ```
+  </Step>
+
+  <Step title="Render and commit">
+    ```bash
+    mise run //kubernetes/src/infrastructure:render-all
+
+    git add .
+    git commit -m "chore: update ingress-nginx to 4.13.0"
+    git push origin main
+    ```
+  </Step>
+</Steps>
+
+## Update Configuration
+
+To change component settings without upgrading versions:
+
+<Steps>
+  <Step title="Edit the values file">
+    Modify `values.yaml` for base configuration or `values.{environment}.yaml` for environment-specific settings:
+
+    ```bash
+    vim kubernetes/src/infrastructure/ingress-nginx/values.yaml
+    ```
+
+    For example, increase controller replicas:
+    ```yaml
+    ingress-nginx:
+      controller:
+        replicaCount: 3
+    ```
+  </Step>
+
+  <Step title="Render manifests">
+    ```bash
+    mise run //kubernetes/src/infrastructure:render-all
+    ```
+  </Step>
+
+  <Step title="Review and commit">
+    ```bash
+    git diff kubernetes/rendered/
+    git add .
+    git commit -m "chore: increase ingress-nginx replicas to 3"
+    git push origin main
+    ```
+  </Step>
+</Steps>
+
+ArgoCD automatically syncs the changes.
+
+## Add Additional Manifests
+
+Many components need additional manifests beyond the upstream chart (ClusterIssuers, StorageClasses, etc.). Add these in the wrapper chart's `templates/` directory:
+
+```
+kubernetes/src/infrastructure/cert-manager/
+├── Chart.yaml
+├── Chart.yaml.tmpl
+├── values.yaml
+├── values.staging.yaml
+└── templates/
+    ├── ClusterIssuer.letsencrypt-production.yaml
+    ├── ClusterIssuer.letsencrypt-staging.yaml
+    └── ClusterIssuer.selfsigned.yaml
+```
+
+These templates are rendered alongside the upstream chart resources.
+
+## Environment-Specific Configuration
+
+Use values overlay files for environment differences:
+
+```yaml
+# values.yaml (base)
+ingress-nginx:
+  controller:
+    replicaCount: 2
+
+# values.staging.yaml
+ingress-nginx:
+  controller:
+    replicaCount: 1  # Smaller for staging
+
+# values.production.yaml
+ingress-nginx:
+  controller:
+    replicaCount: 3  # Larger for production
+```
+
+The render process merges base values with environment-specific overrides.
+
+## Enable/Disable Components
+
+Components are enabled/disabled in the ArgoCD infrastructure app-of-apps:
+
+```bash
+vim kubernetes/src/argocd/infrastructure/values.yaml
+```
+
+```yaml
+applications:
+  argocd:
+    enabled: true
+  cert-manager:
+    enabled: true
+  envoy-gateway:
+    enabled: false  # Disabled
+  istio:
+    enabled: false  # Disabled
+```
+
+After changing, render and push:
+
+```bash
+mise run //kubernetes/src/infrastructure:render-all
+git add . && git commit -m "chore: disable envoy-gateway"
+git push origin main
+```
+
+## Upgrade Strategies
+
+### Minor/Patch Updates
+
+For minor and patch version updates (e.g., `4.12.2` → `4.12.3`):
+
+1. Update the version in values.yaml
+2. Run `helm dependency update`
+3. Render, commit, and push
+4. ArgoCD syncs automatically
+
+### Major Updates
+
+For major version updates (e.g., `4.x` → `5.x`):
+
+1. **Read the changelog** for breaking changes
+2. **Test in staging first** before production
+3. **Update values** if configuration schema changed
+4. **Have a rollback plan** if the component is critical
+
+<Warning>
+Major version upgrades may require CRD updates. Check the component's upgrade guide and apply CRD changes before upgrading the chart.
+</Warning>
+
+### CRD Updates
+
+Some components (cert-manager, ArgoCD, Karpenter) use CRDs that may need manual updates:
+
+```bash
+# Example: Update cert-manager CRDs
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.crds.yaml
+```
+
+Check the component's documentation for CRD upgrade procedures.
+
+## Best Practices
+
+1. **Test in staging first** - Always upgrade staging before production
+2. **Read changelogs** - Especially for major versions
+3. **Update one component at a time** - Easier to isolate issues
+4. **Keep versions consistent** - Use the same version across environments when possible
+5. **Monitor after upgrades** - Watch metrics and logs for regressions
+
+## Next Steps
+
+- [Adding K8s Infrastructure](/usage/operations/05-adding-k8s-infrastructure) - Add new infrastructure components
+- [Managing Secrets](/usage/operations/06-managing-secrets) - Configure External Secrets

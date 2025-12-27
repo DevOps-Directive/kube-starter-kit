@@ -1,9 +1,8 @@
 # Account bootstrapping module generation for stacks tagged with "bootstrapping"
-# Generates main.tf with module call and _outputs.tm.hcl for outputs sharing
+# Generates _main.tf with import block and module call, plus _outputs.tm.hcl for outputs sharing
 #
-# Note: Only applies to environment-specific bootstrapping stacks (staging, prod)
-# Shared bootstrapping stacks (terraform-bootstrapping, ecr-repositories-bootstrapping, etc.)
-# have inline main.tf files and are excluded via the !shared condition.
+# Applies to all bootstrapping stacks: staging, prod, management, ecr
+# Excludes terraform-bootstrapping (infra account) which has different requirements.
 #
 # Required globals:
 #   - global.namespace
@@ -18,13 +17,24 @@
 #   - global.bootstrapping.zone_external_dns_owner
 
 generate_hcl "_main.tf" {
-  # Only generate for environment-specific bootstrapping, not shared inline stacks
+  # Generate for all bootstrapping stacks except terraform-bootstrapping (infra account)
   condition = tm_alltrue([
     tm_contains(terramate.stack.tags, "bootstrapping"),
-    !tm_contains(terramate.stack.tags, "shared"),
+    !tm_contains(terramate.stack.tags, "infra"),
   ])
 
   content {
+    # Import the IAM role that was manually created during bootstrap.
+    # This is necessary because Terraform needs the role to exist before it can
+    # manage cross-account access, but we also want Terraform to manage the role
+    # going forward (e.g., to add GitHub OIDC trust for CI/CD).
+    #
+    # Note: import blocks must be in root modules, not child modules.
+    import {
+      to = tm_hcl_expression("module.bootstrapping.module.iam_role.aws_iam_role.this[0]")
+      id = "${global.namespace}-${global.environment}-${global.stage}-bootstrap-admin"
+    }
+
     module "bootstrapping" {
       source = "${terramate.stack.path.to_root}/terraform/modules//account-bootstrapping"
 
@@ -52,10 +62,10 @@ generate_hcl "_main.tf" {
 # Note: Requires running `terramate generate` twice - first creates this file,
 # second run parses it and updates _sharing.tf
 generate_hcl "_outputs.tm.hcl" {
-  # Only generate for environment-specific bootstrapping, not shared inline stacks
+  # Generate for all bootstrapping stacks except terraform-bootstrapping (infra account)
   condition = tm_alltrue([
     tm_contains(terramate.stack.tags, "bootstrapping"),
-    !tm_contains(terramate.stack.tags, "shared"),
+    !tm_contains(terramate.stack.tags, "infra"),
   ])
 
   content {
@@ -64,19 +74,25 @@ generate_hcl "_outputs.tm.hcl" {
       value   = tm_hcl_expression("module.bootstrapping.terraform_iam_role_arn")
     }
 
-    output "zone_arn" {
-      backend = "terraform"
-      value   = tm_hcl_expression("module.bootstrapping.zone_arn")
+    # Only output zone_arn when a zone is created
+    tm_dynamic "output" {
+      labels    = ["zone_arn"]
+      condition = global.bootstrapping.create_zone
+      attributes = {
+        backend = "terraform"
+        value   = tm_hcl_expression("module.bootstrapping.zone_arn")
+      }
     }
   }
 }
 
 # Generate informational outputs (not shared with other stacks)
+# Only generated when a Route53 zone is created
 generate_hcl "_outputs_info.tf" {
-  # Only generate for environment-specific bootstrapping, not shared inline stacks
   condition = tm_alltrue([
     tm_contains(terramate.stack.tags, "bootstrapping"),
-    !tm_contains(terramate.stack.tags, "shared"),
+    !tm_contains(terramate.stack.tags, "infra"),
+    tm_try(global.bootstrapping.create_zone, false),
   ])
 
   content {

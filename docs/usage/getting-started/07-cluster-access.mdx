@@ -1,5 +1,191 @@
 ---
-title: 'Cluster Access'
+title: 'Set Up Cluster Access'
 description: 'Connect to your EKS clusters via bastion and SOCKS proxy'
 icon: 'key'
 ---
+
+## Overview
+
+EKS clusters in Kube Starter Kit are configured with private API endpoints by default for security. This means you can't access the Kubernetes API directly from the internet—you need to go through the bastion host using a SOCKS5 proxy.
+
+This page covers:
+- Setting up SSH over AWS SSM Session Manager
+- Connecting to the cluster via SOCKS proxy
+- Configuring kubectl for persistent proxy access
+
+<Note>
+If you prefer simpler access, you can enable the public API endpoint by setting `endpoint_public_access = true` in the EKS configuration (see [Deploy Infrastructure - EKS Cluster](/usage/getting-started/06-deploy-infrastructure#eks-cluster)). With a public endpoint, you can run `aws eks update-kubeconfig` and use kubectl directly without a proxy. However, this exposes your Kubernetes API to the internet, while still protected by IAM authentication, it increases your attack surface and may not meet compliance requirements.
+</Note>
+
+## Architecture
+
+```
+Your Machine                 AWS VPC
++-----------+               +---------------------------+
+|           |               |                           |
+| kubectl   |---SOCKS5----->| Bastion Host              |
+|           |   proxy       | (private subnet)          |
++-----------+               |         |                 |
+      |                     |         v                 |
+      | SSM Session         |  +---------------+        |
+      +-------------------->|  | EKS API       |        |
+        (via AWS APIs)      |  | (private)     |        |
+                            |  +---------------+        |
+                            +---------------------------+
+```
+
+The bastion host:
+- Lives in a private subnet (no public IP)
+- Uses AWS SSM Session Manager for access (no SSH keys to manage)
+- Acts as a [SOCKS5](https://en.wikipedia.org/wiki/SOCKS) proxy for kubectl traffic
+
+## One-Time Setup
+
+<Tip>
+If you haven't already, run `mise install` to install the required tools (AWS CLI, Session Manager plugin, kubectl).
+</Tip>
+
+### Configure SSH for SSM
+
+Add the SSM proxy configuration to your SSH config:
+
+```bash
+# View the required config
+mise run //tools:bastion:setup-ssh-config
+```
+
+Add this to `~/.ssh/config`:
+
+```
+# AWS SSM Session Manager SSH proxy
+Host i-* mi-*
+    User ec2-user
+    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
+```
+
+This allows SSH to instances via SSM using the instance ID as the hostname.
+
+## Connect to the Cluster
+
+<Steps>
+  <Step title="Authenticate to AWS">
+    Start a Leapp session for the target account:
+
+    ```bash
+    leapp session start "Staging"
+    ```
+
+    Verify authentication:
+    ```bash
+    aws sts get-caller-identity
+    ```
+  </Step>
+
+  <Step title="Update kubeconfig">
+    Get the cluster credentials:
+
+    ```bash
+    mise run //tools:eks:get-credentials {cluster-name}
+    ```
+
+    Or manually:
+
+    ```bash
+    aws eks update-kubeconfig \
+      --name {cluster-name} \
+      --region us-east-2 \
+      --alias staging
+    ```
+  </Step>
+
+  <Step title="Start the SOCKS proxy">
+    In a **separate terminal** (with the same Leapp session active), start the proxy:
+
+    ```bash
+    mise run //tools:eks:connect staging
+    ```
+
+    This automatically looks up the bastion instance and starts a SOCKS5 proxy on `localhost:1080`. Keep this terminal open while accessing the cluster.
+
+    <Note>
+    The task automatically pushes your SSH public key via EC2 Instance Connect (valid for 60 seconds) before establishing the SSH tunnel.
+    </Note>
+  </Step>
+
+  <Step title="Use kubectl with the proxy">
+    **Option A: Per-command (temporary)**
+    ```bash
+    HTTPS_PROXY=socks5://localhost:1080 kubectl get nodes
+    ```
+
+    **Option B: Update kubeconfig (persistent)**
+    ```bash
+    kubectl config set-cluster {cluster-name} --proxy-url=socks5://localhost:1080
+    ```
+
+    Now kubectl commands work without the environment variable:
+    ```bash
+    kubectl get nodes
+    kubectl get pods -A
+    ```
+  </Step>
+</Steps>
+
+## Configure Persistent Access
+
+To avoid passing the proxy URL each time, configure it in your kubeconfig:
+
+<Tabs>
+  <Tab title="Per-cluster proxy">
+    Set the proxy for a specific cluster context:
+
+    ```bash
+    kubectl config set-cluster staging --proxy-url=socks5://localhost:1080
+    ```
+
+    This modifies `~/.kube/config` to include the proxy URL for that cluster.
+  </Tab>
+
+  <Tab title="Environment variable">
+    Set the proxy globally for all kubectl commands:
+
+    ```bash
+    export HTTPS_PROXY=socks5://localhost:1080
+    kubectl get nodes
+    ```
+
+    Add to your shell profile for persistence (but note this affects all HTTPS traffic).
+  </Tab>
+</Tabs>
+
+## Production Access
+
+The same process applies to production:
+
+```bash
+# Authenticate to production
+leapp session start "Production"
+
+# Update kubeconfig
+mise run //tools:eks:get-credentials {cluster-name}
+
+# Start proxy (in separate terminal)
+mise run //tools:eks:connect production
+
+# Configure persistent proxy
+kubectl config set-cluster {cluster-name} --proxy-url=socks5://localhost:1080
+
+# Use kubectl
+kubectl get nodes
+```
+
+<Warning>
+For production access, consider implementing additional access controls:
+- Require MFA for SSM sessions
+- Use AWS CloudTrail to audit access
+- Implement just-in-time access with temporary permissions
+</Warning>
+
+## Next Steps
+
+With cluster access configured, proceed to [Deploy Kubernetes Baseline](/usage/getting-started/08-deploy-kubernetes-baseline) to bootstrap ArgoCD and deploy infrastructure components.

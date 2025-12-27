@@ -1,0 +1,279 @@
+---
+title: 'Deploy Infrastructure'
+description: 'Deploy networking, EKS, and application resources via Terraform'
+icon: 'server'
+---
+
+## Overview
+
+With accounts bootstrapped and integrations configured, you're ready to deploy the core AWS infrastructure. This includes networking (VPC, subnets, NAT), EKS clusters, and application-specific resources like S3 buckets and IAM roles.
+
+### Decisions
+
+Before deploying, review and customize these configuration options in each stack's `config.tm.hcl`:
+
+#### Networking
+
+| Setting | Location | Default | Description |
+|---------|----------|---------|-------------|
+| VPC CIDR | `globals.networking.vpc_cidr` | `10.0.0.0/16` | IP address range for the VPC. Use non-overlapping ranges if deploying multiple VPCs or connecting to on-premise networks. |
+| NAT mode | `globals.networking.nat_mode` | `fck_nat` | How private subnets access the internet. See [NAT Gateway Modes](#nat-gateway-modes) below. |
+| Bastion host | `globals.networking.enable_bastion` | `true` | Whether to create a bastion host for SSH/SSM access to private resources. |
+| PlanetScale endpoint | `globals.networking.planetscale_endpoint_service_name` | Region-specific | VPC endpoint for PlanetScale private connectivity. Remove if not using PlanetScale. |
+
+#### EKS Cluster
+
+| Setting | Location | Default | Description |
+|---------|----------|---------|-------------|
+| Kubernetes version | `globals.eks.kubernetes_version` | `1.34` | EKS control plane version. Update when upgrading clusters. |
+| Node group version | `globals.eks.base_node_group_kubernetes_version` | `1.34` | Can lag control plane during rolling upgrades. |
+| Public endpoint | `globals.eks.endpoint_public_access` | `false` | Whether the API server is publicly accessible. Set `false` for private-only access (requires bastion/VPN). |
+| Private endpoint | `globals.eks.endpoint_private_access` | `true` | Whether the API server is accessible from within the VPC. |
+| ArgoCD hostname | `globals.eks.argocd_hostname` | Environment-specific | FQDN for ArgoCD (used for webhook configuration). |
+
+#### Hardcoded Values You May Want to Customize
+
+These values are set in the Terraform modules and require editing the module source code to change:
+
+| Setting | Location | Default | Description |
+|---------|----------|---------|-------------|
+| Availability zones | `terraform/modules/*/main.tf` | First 3 AZs | Number of AZs used for subnets. Currently hardcoded to 3. |
+| Base node group sizing | `terraform/modules/eks/main.tf` | 2-3 nodes | `min_size`, `max_size`, `desired_size` for the managed node group. |
+| Base node group instance types | `terraform/modules/eks/variables.tf` | `t3.large` | Instance types for the initial managed node group. |
+| Base node group AMI | `terraform/modules/eks/variables.tf` | `AL2023_x86_64_STANDARD` | AMI type (AL2023, Bottlerocket, etc.). |
+| fck-nat instance type | `terraform/modules/networking/variables.tf` | `t4g.nano` | Instance size for fck-nat NAT instances. |
+| Bastion instance type | `terraform/modules/networking/variables.tf` | `t4g.nano` | Instance size for the bastion host. |
+| EKS addon versions | `terraform/modules/eks/variables.tf` | Pinned versions | Versions for CoreDNS, VPC CNI, kube-proxy, EBS CSI driver, Pod Identity agent. |
+| SSO admin role ARN | `terraform/modules/eks/variables.tf` | Hardcoded | IAM Identity Center role granted cluster admin access. |
+
+
+## Infrastructure Deployment Order
+
+Terramate manages dependencies between stacks automatically. The deployment order is:
+
+```
+1. Networking     → VPC, subnets, NAT gateway, bastion host
+2. EKS            → Kubernetes cluster, node groups, Karpenter
+3. App Resources  → S3 buckets, IAM roles for workloads
+```
+
+Each stack declares its dependencies, so Terramate applies them in the correct order.
+
+## Initial Deployment (Local)
+
+For the first deployment, you must run Terraform locally. The CI/CD workflow only applies *changed* stacks, and new stacks without any Terraform state aren't detected as changed.
+
+<Note>
+Terramate can deploy all stacks at once with automatic dependency ordering (`terramate run --tags staging -- terraform apply`). However, deploying stacks sequentially makes it easier to follow progress, verify each component is working, and troubleshoot issues.
+</Note>
+
+<Steps>
+  <Step title="Authenticate to AWS">
+    Use Leapp to start a session for the Infrastructure account:
+
+    ```bash
+    leapp session start "Infrastructure"
+    # Verify you're authenticated
+    aws sts get-caller-identity
+    ```
+  </Step>
+
+  <Step title="Initialize and deploy networking">
+    ```bash
+    cd terraform
+
+    # Initialize the networking stack
+    terramate run --tags staging:us-east-2:networking -- terraform init
+
+    # Preview changes
+    terramate run --tags staging:us-east-2:networking -- terraform plan
+
+    # Apply
+    terramate run --tags staging:us-east-2:networking -- terraform apply
+    ```
+  </Step>
+
+  <Step title="Deploy EKS">
+    After networking is complete:
+
+    ```bash
+    # Initialize the EKS stack
+    terramate run --tags staging:us-east-2:eks -- terraform init
+
+    # Preview and apply
+    terramate run --tags staging:us-east-2:eks -- terraform plan
+    terramate run --tags staging:us-east-2:eks -- terraform apply
+    ```
+
+    <Note>
+    EKS cluster creation takes 10-15 minutes.
+    </Note>
+  </Step>
+
+  <Step title="Deploy example application resources (optional)">
+    If you have application-specific infrastructure:
+
+    ```bash
+    terramate run --tags staging:us-east-2:services -- terraform init
+    terramate run --tags staging:us-east-2:services -- terraform apply
+    ```
+  </Step>
+
+  <Step title="Commit the lock files">
+    After successful deployment, commit any updated `.terraform.lock.hcl` files:
+
+    ```bash
+    git add terraform/live/**/.terraform.lock.hcl
+    git commit -m "chore: update terraform lock files after initial deployment"
+    git push
+    ```
+  </Step>
+</Steps>
+
+## Subsequent Changes via Pull Request
+
+After the initial deployment, use pull requests for all infrastructure changes. This ensures changes are reviewed and tracked.
+
+<Steps>
+  <Step title="Make your changes">
+    Edit the relevant `config.tm.hcl` or module files, then regenerate:
+
+    ```bash
+    cd terraform
+    terramate generate
+    ```
+  </Step>
+
+  <Step title="Create a branch and push">
+    ```bash
+    git checkout -b infra/update-eks-version
+    git add .
+    git commit -m "chore: upgrade EKS to 1.34"
+    git push -u origin infra/update-eks-version
+    ```
+  </Step>
+
+  <Step title="Open a PR and review the plan">
+    The CI workflow will:
+    1. Run `terraform plan` for each changed stack
+    2. Post plan output to Terramate Cloud (if configured)
+    3. Post a plan summary as a PR comment (if using Terramate Cloud)
+
+    Review the plan carefully before approving.
+  </Step>
+
+  <Step title="Merge to apply">
+    Once approved, merge the PR. The deploy workflow will apply changes in dependency order.
+  </Step>
+</Steps>
+
+## What Gets Created
+
+### Networking Stack
+
+| Resource | Description |
+|----------|-------------|
+| VPC | Isolated network with configurable CIDR (default: `10.0.0.0/16`) |
+| Public subnets | 3 subnets across availability zones for load balancers |
+| Private subnets | 3 subnets for EKS nodes and workloads + bastion|
+| NAT gateway | Internet access for private subnets (fck-nat by default for cost savings) |
+| S3 VPC endpoint | Free gateway endpoint for S3 access without NAT |
+| Bastion host | EC2 instance for SSH tunneling to private resources |
+
+### EKS Stack
+
+| Resource | Description |
+|----------|-------------|
+| EKS cluster | Managed Kubernetes control plane |
+| Managed node group | Initial nodes for system workloads |
+| Karpenter Prerequisites | Autoscaler for dynamic node provisioning |
+| EBS CSI driver | Persistent volume support with encryption |
+| Pod Identity | AWS IAM integration for workload authentication |
+| CoreDNS, kube-proxy | Essential cluster add-ons |
+
+### Application Resources (go-backend example)
+
+| Resource | Description |
+|----------|-------------|
+| S3 bucket | Application-specific storage |
+| IAM role | Pod Identity role for AWS API access |
+| Pod Identity association | Links the IAM role to Kubernetes ServiceAccount |
+
+## Configuration Options
+
+### NAT Gateway Modes
+
+The networking module supports three NAT modes via `nat_mode` variable:
+
+| Mode | Cost | Availability | Use Case |
+|------|------|--------------|----------|
+| `fck_nat` | ~$5/month per AZ | HA with auto-failover | Development, staging |
+| `single_nat_gateway` | ~$45/month | Single point of failure | Cost-sensitive production |
+| `one_nat_gateway_per_az` | ~$135/month | Full HA | Production with strict availability requirements |
+
+Configure in `terraform/live/staging/us-east-2/networking/config.tm.hcl`:
+
+```hcl
+globals {
+  nat_mode = "fck_nat"  # or "single_nat_gateway" or "one_nat_gateway_per_az"
+}
+```
+
+### EKS Node Configuration
+
+Karpenter handles most node provisioning, but you can configure the initial managed node group:
+
+```hcl
+globals {
+  eks_managed_node_groups = {
+    system = {
+      instance_types = ["m6i.large"]
+      min_size       = 2
+      max_size       = 4
+      desired_size   = 2
+    }
+  }
+}
+```
+
+## Verify Deployment
+
+After deployment completes:
+
+<Steps>
+  <Step title="Check Terraform outputs">
+    ```bash
+    terramate run --tags staging:us-east-2:eks -- terraform output
+    ```
+
+    Note the `cluster_name` output—you'll need it for later steps.
+  </Step>
+
+  <Step title="Verify cluster health in AWS Console">
+    Navigate to the [EKS console](https://console.aws.amazon.com/eks) and verify:
+    - Cluster status is `Active`
+    - Node group shows nodes in `Ready` state
+    - Add-ons (CoreDNS, kube-proxy, VPC CNI, EBS CSI) are `Active`
+
+    <Note>
+    If you configured private-only endpoint access (`endpoint_public_access = false`), you cannot run `kubectl` commands from your local machine without first connecting through the bastion host. Console verification is sufficient for now—you'll configure cluster access via ArgoCD in the next step.
+    </Note>
+  </Step>
+</Steps>
+
+## Deploy Production
+
+Production deployment follows the same pattern with production-specific configuration:
+
+```bash
+# List production stacks
+terramate list --tags prod:infrastructure
+
+# Deploy locally
+terramate run --tags prod:us-east-2:networking -- terraform apply
+terramate run --tags prod:us-east-2:eks -- terraform apply
+```
+
+## Next Steps
+
+With infrastructure deployed, proceed to [Cluster Access](/usage/getting-started/07-cluster-access) to configure kubectl access to your EKS cluster.

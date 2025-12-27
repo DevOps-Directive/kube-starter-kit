@@ -48,11 +48,12 @@
               "usage/getting-started/01-prerequisites",
               "usage/getting-started/02-repository-setup",
               "usage/getting-started/03-bootstrap-accounts",
-              "usage/getting-started/04-configure-integrations",
-              "usage/getting-started/05-deploy-infrastructure",
-              "usage/getting-started/06-deploy-kubernetes-baseline",
+              "usage/getting-started/04-configure-access",
+              "usage/getting-started/05-configure-integrations",
+              "usage/getting-started/06-deploy-infrastructure",
               "usage/getting-started/07-cluster-access",
-              "usage/getting-started/08-local-development-setup"
+              "usage/getting-started/08-deploy-kubernetes-baseline",
+              "usage/getting-started/09-local-development-setup"
             ]
           },
           {
@@ -73,8 +74,7 @@
             "group": "Troubleshooting",
             "icon": "wrench",
             "pages": [
-              "usage/troubleshooting/01-common-issues",
-              "usage/troubleshooting/02-rollback-and-recovery"
+              "usage/troubleshooting/01-rollback-and-recovery"
             ]
           }
         ]

@@ -14,7 +14,7 @@ variable "create_zone" {
 }
 
 variable "zone_name" {
-  description = "Name of the Route53 hosted zone (e.g., staging.example.com)"
+  description = "Name of the Route53 hosted zone (e.g. staging.example.com)"
   type        = string
   default     = null
 }

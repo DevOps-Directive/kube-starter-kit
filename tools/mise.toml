@@ -459,15 +459,14 @@ set -euo pipefail
 usage() {
   cat >&2 <<'EOF'
 usage:
-  INSTANCE_ID=<id> AWS_PROFILE=<profile> mise run //tools:bastion:start-proxy
   mise run //tools:bastion:start-proxy <instance_id> [port]
 
 where:
-  INSTANCE_ID   EC2 instance ID of the bastion host (e.g., i-0abc123def456)
-  SOCKS_PORT    Local port for SOCKS5 proxy (default: 1080)
-  AWS_PROFILE   AWS profile to use for SSM session
+  INSTANCE_ID    EC2 instance ID of the bastion host (e.g., i-0abc123def456)
+  SOCKS_PORT     Local port for SOCKS5 proxy (default: 1080)
   SSH_PUBLIC_KEY Path to SSH public key (default: ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub)
 
+Requires an active Leapp session for the target account.
 Starts a SOCKS5 proxy on localhost:<port> via SSM Session Manager.
 Use with: HTTPS_PROXY=socks5://localhost:<port> kubectl ...
 EOF
@@ -477,7 +476,6 @@ case "${1:-}" in -h|--help|help) usage; exit 0;; esac
 
 INSTANCE_ID="${1:-${INSTANCE_ID:-}}"
 SOCKS_PORT="${2:-${SOCKS_PORT:-1080}}"
-: "${AWS_PROFILE:?Set AWS_PROFILE}"
 
 if [[ -z "$INSTANCE_ID" ]]; then
   usage
@@ -567,12 +565,12 @@ set -euo pipefail
 usage() {
   cat >&2 <<'EOF'
 usage:
-  AWS_PROFILE=<profile> mise run //tools:bastion:get-instance-id <environment>
+  mise run //tools:bastion:get-instance-id <environment>
 
 where:
-  environment   Environment name (e.g., staging, production)
-  AWS_PROFILE   AWS profile to use
+  environment   Environment name (e.g. staging, production)
 
+Requires an active Leapp session for the target account.
 Looks up the bastion instance ID by the Name tag pattern: *-<environment>-network-bastion
 EOF
 }
@@ -580,7 +578,6 @@ EOF
 case "${1:-}" in -h|--help|help) usage; exit 0;; esac
 
 ENVIRONMENT="${1:-}"
-: "${AWS_PROFILE:?Set AWS_PROFILE}"
 
 if [[ -z "$ENVIRONMENT" ]]; then
   usage
@@ -592,4 +589,91 @@ aws ec2 describe-instances \
             "Name=instance-state-name,Values=running" \
   --query 'Reservations[0].Instances[0].InstanceId' \
   --output text
+'''
+
+###############################################################################
+# EKS Connection Tasks
+###############################################################################
+
+[tasks."eks:get-credentials"]
+description = "Update kubeconfig for an EKS cluster"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:eks:get-credentials <cluster-name> [region] [alias]
+
+where:
+  cluster-name  Name of the EKS cluster
+  region        AWS region (default: us-east-2)
+  alias         Kubeconfig context alias (default: cluster name)
+
+Updates kubeconfig with credentials for the specified EKS cluster.
+Requires an active Leapp session for the target account.
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+CLUSTER_NAME="${1:-}"
+REGION="${2:-us-east-2}"
+ALIAS="${3:-$CLUSTER_NAME}"
+
+if [[ -z "$CLUSTER_NAME" ]]; then
+  usage
+  exit 2
+fi
+
+aws eks update-kubeconfig \
+  --name "$CLUSTER_NAME" \
+  --region "$REGION" \
+  --alias "$ALIAS"
+
+echo ""
+echo "If EKS cluster is using private-only endpoint, you will need to establish a proxy session via the bastion host:"
+echo "  mise run //tools:bastion:start-proxy <INSTANCE_ID>"
+'''
+
+[tasks."eks:connect"]
+description = "Start SOCKS proxy to access private EKS cluster"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:eks:connect <environment>
+
+where:
+  environment   Environment name (e.g. staging, production)
+
+Looks up the bastion instance for the environment and starts a SOCKS5 proxy.
+Requires an active Leapp session for the target account.
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+ENVIRONMENT="${1:-}"
+
+if [[ -z "$ENVIRONMENT" ]]; then
+  usage
+  exit 2
+fi
+
+echo "Looking up bastion instance for ${ENVIRONMENT}..."
+INSTANCE_ID=$(mise run //tools:bastion:get-instance-id "$ENVIRONMENT")
+
+if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
+  echo "ERROR: Could not find bastion instance for environment: $ENVIRONMENT" >&2
+  exit 1
+fi
+
+echo "Bastion instance: $INSTANCE_ID"
+echo "Starting SOCKS proxy on localhost:1080..."
+mise run //tools:bastion:start-proxy "$INSTANCE_ID"
 '''

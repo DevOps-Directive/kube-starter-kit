@@ -6,11 +6,7 @@ icon: 'code-fork'
 
 ## Overview
 
-Kube Starter Kit is designed to be forked and customized for your organization. This page walks you through the initial repository setup: forking, installing tools, and setting your namespace prefix.
-
-<Note>
-Before proceeding, ensure you have completed the [Prerequisites](/usage/getting-started/01-prerequisites) setup.
-</Note>
+Kube Starter Kit is designed to be forked and customized for your organization. This page walks you through the initial repository setup: forking, cloning, and installing development tools.
 
 ## Fork and Clone
 
@@ -56,43 +52,6 @@ Before proceeding, ensure you have completed the [Prerequisites](/usage/getting-
     This installs Terramate, Terraform, kubectl, Helm, and other tools at the versions specified in `mise.toml`.
   </Step>
 </Steps>
-
-## Set Your Namespace
-
-<Warning>
-This "namespace" refers to the naming convention from [Cloud Posse's terraform-null-label](https://github.com/cloudposse/terraform-null-label), **not** a Kubernetes namespace. It's a prefix used to generate consistent, unique names for AWS resources (S3 buckets, IAM roles, etc.) across your infrastructure.
-</Warning>
-
-The default namespace is `ksk` ("Kube Starter Kit"). Replace it with your own short identifier (3-5 characters recommended).
-
-Edit `terraform/config.tm.hcl` and change the namespace:
-
-```hcl
-globals {
-  namespace = "acme"  # Replace with your identifier
-  # ... other settings (leave as-is for now)
-}
-```
-
-<Tip>
-After changing the namespace, run `terramate generate` from the `terraform/` directory to propagate changes to generated files.
-</Tip>
-
-## Verify Your Setup
-
-```bash
-cd terraform
-terramate fmt --check
-terramate generate
-terramate list
-```
-
-## Commit Your Changes
-
-```bash
-git add .
-git commit -m "chore: configure namespace for organization"
-```
 
 ## Next Steps
 

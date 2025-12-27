@@ -9,7 +9,3 @@ stack {
 globals {
   terraform_iam_role_arn = "arn:aws:iam::085164809580:role/ksk-gbl-mgmt-bootstrap-admin"
 }
-
-globals "stack" {
-  inline = true # Stack has its own provider/terraform blocks in main.tf
-}

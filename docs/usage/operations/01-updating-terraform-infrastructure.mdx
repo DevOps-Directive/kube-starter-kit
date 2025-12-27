@@ -37,7 +37,7 @@ Infrastructure changes flow through Terramate and GitHub. Whether you're modifyi
     terramate run --changed -- terraform validate
 
     # Preview plan (requires AWS credentials)
-    terramate script run --changed -- preview
+    terramate script run --changed -- plan
     ```
   </Step>
 
@@ -52,6 +52,7 @@ Infrastructure changes flow through Terramate and GitHub. Whether you're modifyi
   <Step title="Review the plan">
     Check the plan output in:
     - GitHub Actions logs
+    - PR comment with plan summary (if using Terramate Cloud)
     - Terramate Cloud dashboard (for a unified view across stacks)
 
     Look for:
@@ -67,6 +68,10 @@ Infrastructure changes flow through Terramate and GitHub. Whether you're modifyi
     3. Sync deployment results to Terramate Cloud
   </Step>
 </Steps>
+
+<Tip>
+Use GitHub branch protection rules to control who can deploy infrastructure changes. Consider requiring PR approvals, setting up CODEOWNERS for the `terraform/` directory, and requiring status checks to pass before merging.
+</Tip>
 
 ## Common Tasks
 
@@ -98,6 +103,10 @@ Infrastructure changes flow through Terramate and GitHub. Whether you're modifyi
    ```bash
    terramate generate
    ```
+
+   <Note>
+   You may need to run `terramate generate` twice. The first pass generates `_outputs.tm.hcl` for some stacks (e.g., EKS), which is then used by dependent stacks in the second pass.
+   </Note>
 
 ### Modifying a Module
 
