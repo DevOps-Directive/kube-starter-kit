@@ -20,7 +20,7 @@ I've integrated [Terramate](https://terramate.io/) to orchestrate Terraform acro
 
 ### Change Detection
 
-Terramate detects which stacks are affected by your changes. On a PR, only modified stacks get planned—not your entire infrastructure. This makes CI faster, reduces noise, and lowers costs.
+Terramate detects which stacks are affected by your changes. On a PR, only modified stacks get planned, not your entire infrastructure. This makes CI faster, reduces noise, and lowers costs.
 
 ### Dependency Ordering
 
@@ -36,7 +36,7 @@ Common patterns (backend config, provider setup, module invocations) are generat
 
 ### Terramate Cloud
 
-Previews, deployments, and drift detection sync to a dashboard. See the state of your infrastructure across all stacks in one place—who requested changes, who approved them, what actually changed.
+Previews, deployments, and drift detection sync to a dashboard. See the state of your infrastructure across all stacks in one place: who requested changes, who approved them, what actually changed.
 
 ### Keyless Authentication
 
@@ -46,7 +46,7 @@ GitHub OIDC assumes an AWS role. No long-lived credentials stored in GitHub secr
 
 <Steps>
   <Step title="Open a PR">
-    Make changes to Terraform code—modules, stacks, or configuration.
+    Make changes to Terraform code: modules, stacks, or configuration.
   </Step>
   <Step title="Automatic Plan">
     Terramate detects affected stacks and runs `terraform plan` for each. Results sync to Terramate Cloud and appear in the PR checks.
@@ -80,7 +80,7 @@ Four GitHub Actions workflows handle different scenarios:
 
 | Decision | Rationale |
 |----------|-----------|
-| **Terramate over Digger/Atlantis** | Terramate provides stack orchestration, code generation, and outputs sharing—not just CI/CD. The unified platform reduces tooling complexity. |
+| **Terramate over Digger/Atlantis** | Terramate provides stack orchestration, code generation, and outputs sharing, not just CI/CD. The unified platform reduces tooling complexity. |
 | **Apply on merge (not before)** | Simpler workflow: merge triggers apply. Terramate Cloud provides visibility if rollback is needed. |
 | **Outputs sharing over remote_state** | No need to pass bucket names everywhere. Dependencies are explicit and type-safe. Mocks enable planning before dependencies exist. |
 | **OIDC over static credentials** | No secrets to rotate. Short-lived tokens exchanged at runtime. |

@@ -246,7 +246,7 @@ After deployment completes:
     terramate run --tags staging:us-east-2:eks -- terraform output
     ```
 
-    Note the `cluster_name` output—you'll need it for later steps.
+    Note the `cluster_name` output; you'll need it for later steps.
   </Step>
 
   <Step title="Verify cluster health in AWS Console">
@@ -256,7 +256,7 @@ After deployment completes:
     - Add-ons (CoreDNS, kube-proxy, VPC CNI, EBS CSI) are `Active`
 
     <Note>
-    If you configured private-only endpoint access (`endpoint_public_access = false`), you cannot run `kubectl` commands from your local machine without first connecting through the bastion host. Console verification is sufficient for now—you'll configure cluster access via ArgoCD in the next step.
+    If you configured private-only endpoint access (`endpoint_public_access = false`), you cannot run `kubectl` commands from your local machine without first connecting through the bastion host. Console verification is sufficient for now; you'll configure cluster access via ArgoCD in the next step.
     </Note>
   </Step>
 </Steps>
