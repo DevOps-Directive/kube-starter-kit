@@ -29,4 +29,8 @@ users:
       role: member
       teams:
         ReadOnly: {}
-# end of users
+  - github:
+      username: troyastorino
+      role: member
+      teams:
+        ReadOnly: {}
