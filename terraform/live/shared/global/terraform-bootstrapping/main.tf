@@ -33,7 +33,7 @@ module "github-oidc-provider" {
 }
 
 # We create the bucket manually at first and then import it here to bootstrap the backend.
-# See: terraform/bootstrap/Taskfile.yaml
+# See: terraform/bootstrap/mise.toml
 # import {
 #   to = module.state-bucket.aws_s3_bucket.this[0]
 #   id = "${module.label.id}-state"

@@ -1,12 +1,3 @@
-# Import the IAM role that was manually created during bootstrap.
-# This is necessary because Terraform needs the role to exist before it can
-# manage cross-account access, but we also want Terraform to manage the role
-# going forward (e.g., to add GitHub OIDC trust for CI/CD).
-import {
-  to = module.iam_role.aws_iam_role.this[0]
-  id = "${module.this.id}-admin"
-}
-
 module "iam_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
   version = "6.2.1"
