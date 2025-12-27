@@ -25,11 +25,6 @@ users:
       given_name: Sid
       family_name: Test
   - github:
-      username: jhoch-nmnl
-      role: member
-      teams:
-        ReadOnly: {}
-  - github:
       username: troyastorino
       role: member
       teams:
