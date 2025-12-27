@@ -45,6 +45,7 @@
             "group": "Getting Started",
             "icon": "rocket",
             "pages": [
+              "usage/getting-started/00-overview",
               "usage/getting-started/01-prerequisites",
               "usage/getting-started/02-repository-setup",
               "usage/getting-started/03-bootstrap-accounts",

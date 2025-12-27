@@ -1,0 +1,37 @@
+---
+title: 'Overview'
+description: 'Overview of the deployment process for Kube Starter Kit'
+icon: 'map'
+---
+
+This page provides a high-level overview of the deployment process. Each section links to detailed documentation with step-by-step instructions.
+
+## [1. Prerequisites](/usage/getting-started/01-prerequisites)
+Covers the AWS account structure, GitHub organization requirements, domain setup, and tooling you'll need before starting.
+
+## [2. Repository Setup](/usage/getting-started/02-repository-setup)
+Fork the repository and install the development tools.
+
+## [3. Bootstrap AWS Accounts](/usage/getting-started/03-bootstrap-accounts)
+Create the foundational resources that Terraform needs to manage everything else: state storage, IAM roles, and cross-account trust relationships. This is a one-time setup that enables both local Terraform runs and CI/CD automation.
+
+## [4. Configure Access](/usage/getting-started/04-configure-access)
+Set up user access for AWS and GitHub from a single configuration file.
+
+## [5. Configure CI/CD Integrations](/usage/getting-started/05-configure-integrations)
+Configure GitHub Actions to authenticate with AWS and set up any optional integrations like Terramate Cloud.
+
+## [6. Deploy Infrastructure](/usage/getting-started/06-deploy-infrastructure)
+Deploy the core AWS infrastructure: networking, EKS cluster, and application-specific resources.
+<Note>This step is performed for each deployment environment (e.g. staging and production).</Note>
+
+## [7. Cluster Access](/usage/getting-started/07-cluster-access)
+Configure kubectl access to your EKS cluster through the bastion host.
+<Note>This step is performed for each deployment environment (e.g. staging and production).</Note>
+
+## [8. Deploy Kubernetes Baseline](/usage/getting-started/08-deploy-kubernetes-baseline)
+Bootstrap ArgoCD and the infrastructure components it depends on. Once running, ArgoCD takes over and manages all remaining cluster resources.
+<Note>This step is performed for each deployment environment (e.g. staging and production).</Note>
+
+## [9. Local Development](/usage/getting-started/09-local-development-setup)
+Set up a local Kubernetes environment for development and testing.
