@@ -6,7 +6,7 @@ icon: 'arrow-up-right-from-square'
 
 ## Overview
 
-Third-party applications are infrastructure components deployed via Helm charts—things like ingress-nginx, cert-manager, external-secrets, and ArgoCD itself. This page covers how to update their versions and configurations.
+Third-party applications are infrastructure components deployed via Helm charts, things like ingress-nginx, cert-manager, external-secrets, and ArgoCD itself. This page covers how to update their versions and configurations.
 
 ## Infrastructure Components
 
@@ -26,7 +26,7 @@ The kit includes these third-party components in `kubernetes/src/infrastructure/
 
 ## Update Chart Versions
 
-Each component uses a "wrapper chart" pattern—a local Helm chart that includes the upstream chart as a dependency.
+Each component uses a "wrapper chart" pattern: a local Helm chart that includes the upstream chart as a dependency.
 
 <Steps>
   <Step title="Find the current version">
