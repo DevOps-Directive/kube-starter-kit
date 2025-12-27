@@ -10,14 +10,19 @@ First-party applications are services you build and deploy—like the `go-backen
 
 ## Deployment Flow
 
+Changes flow through staging first, then to production after verification:
+
 ```
-Code Change → Push to main → CI builds image → GitOps updates manifests → ArgoCD syncs
++------------+
+| STAGING    |  Merge to main -> Build -> Update manifests -> ArgoCD syncs -+
++------------+                                                              |
+                +-------------------- Verify Changes -----------------------+
++------------+  |
+| PRODUCTION |  +-> Merge Release PR -> Build -> Update manifests -> ArgoCD syncs
++------------+
 ```
 
-1. **Push code changes** to `main` branch (in `services/` directory)
-2. **CI workflow** detects changes, builds Docker image, pushes to ECR
-3. **GitOps workflow** updates image tags in Kubernetes manifests
-4. **ArgoCD** detects manifest changes and syncs to the cluster
+Each step is detailed in the sections below.
 
 ## Make Code Changes
 
@@ -32,11 +37,10 @@ Code Change → Push to main → CI builds image → GitOps updates manifests �
   </Step>
 
   <Step title="Test locally">
-    Use the local development environment to test:
+    Use the [local development environment](/usage/getting-started/09-local-development-setup) to test:
 
     ```bash
-    cd local
-    mise run tilt-up
+    mise run //local:tilt-up
     ```
 
     Tilt automatically rebuilds and redeploys when you save changes.
@@ -51,11 +55,11 @@ Code Change → Push to main → CI builds image → GitOps updates manifests �
   </Step>
 </Steps>
 
-## What Happens After Push
+## What Happens After Push (Staging)
 
 ### 1. CI Build Workflow
 
-The `ci-build-push.yml` workflow:
+The CI workflow (`.github/workflows/ci-build-push.yml`):
 
 1. Detects which services changed using path filters
 2. Generates a version tag (e.g., `0.2.2-rc0029-g1234567`)
@@ -65,7 +69,7 @@ The `ci-build-push.yml` workflow:
 
 ### 2. GitOps Update Workflow
 
-The `gitops-update-manifests.yml` workflow:
+The GitOps workflow (`.github/workflows/gitops-update-manifests.yml`):
 
 1. Updates the image tag in values files (e.g., `kubernetes/src/services/go-backend-helm/values.yaml`)
 2. Renders the Kubernetes manifests
@@ -123,16 +127,25 @@ This triggers the same build workflow but:
     Ensure the change works correctly in staging before promoting to production.
   </Step>
 
-  <Step title="Create a release">
-    Use Release Please (automated) or create a tag manually:
+  <Step title="Merge the Release Please PR">
+    The Release Please workflow (`.github/workflows/release-please.yml`) automatically creates a release PR when changes are pushed to `main`. The PR:
+    - Bumps the version based on conventional commit messages
+    - Updates the CHANGELOG
+    - Shows all changes since the last release
 
+    When you merge the release PR:
+    1. A GitHub release is created with the new version tag
+    2. The CI workflow (`.github/workflows/ci-build-push.yml`) builds and pushes the production image
+    3. The GitOps workflow (`.github/workflows/gitops-update-manifests.yml`) updates production manifests
+    4. ArgoCD syncs to the production cluster
+
+    <Note>
+    You can also create a release manually by pushing a tag:
     ```bash
-    # Manual tag
     git tag "services/go-backend@0.2.3"
     git push origin "services/go-backend@0.2.3"
     ```
-
-    Or merge a Release Please PR to trigger the release automatically.
+    </Note>
   </Step>
 
   <Step title="Monitor the deployment">
@@ -180,9 +193,15 @@ For debugging or hotfixes, you can trigger deployments manually:
 To change Kubernetes configuration (replicas, resources, etc.) without changing application code:
 
 <Steps>
-  <Step title="Edit the values file">
+  <Step title="Edit the configuration">
+    For Helm-based services, edit the values file:
     ```bash
     vim kubernetes/src/services/go-backend-helm/values.yaml
+    ```
+
+    For Kustomize-based services, edit the overlay:
+    ```bash
+    vim kubernetes/src/services/go-backend/staging/kustomization.yaml
     ```
 
     Example changes:
@@ -245,52 +264,6 @@ To rollback to a previous version:
     ```
   </Tab>
 </Tabs>
-
-## Troubleshooting
-
-### Build fails
-
-1. Check the workflow logs:
-   ```bash
-   gh run view --log
-   ```
-
-2. Common issues:
-   - Dockerfile syntax errors
-   - Missing dependencies
-   - Test failures
-
-### Image not updating in cluster
-
-1. Verify the image tag was updated:
-   ```bash
-   git log --oneline -5
-   # Look for "chore: update staging, services/go-backend, ..."
-   ```
-
-2. Check ArgoCD sync status:
-   ```bash
-   argocd app get go-backend-helm
-   ```
-
-3. Force a sync:
-   ```bash
-   argocd app sync go-backend-helm --force
-   ```
-
-### Pods crashing after deployment
-
-1. Check pod logs:
-   ```bash
-   kubectl logs -f deployment/go-backend -n go-backend
-   ```
-
-2. Check events:
-   ```bash
-   kubectl describe pod -l app=go-backend -n go-backend
-   ```
-
-3. Rollback if needed (see Rollback section above)
 
 ## Next Steps
 

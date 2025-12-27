@@ -18,23 +18,14 @@ This lets you develop and test Kubernetes deployments locally before pushing to 
 
 Ensure you have:
 - A container runtime (Docker, Podman, or OrbStack)
-- mise installed (from [Repository Setup](/usage/getting-started/02-repository-setup))
-
-Install the local development tools:
-
-```bash
-mise install
-```
-
-This installs KinD, Tilt, Helm, kubectl, and other required tools.
+- mise installed with tools (`mise install` from [Repository Setup](/usage/getting-started/02-repository-setup))
 
 ## Quick Start
 
 <Steps>
   <Step title="Create the local cluster">
     ```bash
-    cd local
-    mise run create-cluster
+    mise run //local:create-cluster
     ```
 
     This creates a 3-node KinD cluster (1 control-plane, 2 workers) with a local Docker registry.
@@ -44,8 +35,7 @@ This installs KinD, Tilt, Helm, kubectl, and other required tools.
     In a **separate terminal** (requires sudo):
 
     ```bash
-    cd local
-    mise run cloud-provider-kind
+    mise run //local:cloud-provider-kind
     ```
 
     This enables LoadBalancer services to get IPs in the `172.20.0.0/16` range.
@@ -53,8 +43,7 @@ This installs KinD, Tilt, Helm, kubectl, and other required tools.
 
   <Step title="Start Tilt">
     ```bash
-    cd local
-    mise run tilt-up
+    mise run //local:tilt-up
     ```
 
     Open http://localhost:10350 to view the Tilt dashboard.
@@ -62,7 +51,7 @@ This installs KinD, Tilt, Helm, kubectl, and other required tools.
 
   <Step title="Access your services">
     ```bash
-    mise run ingress-urls
+    mise run //local:ingress-urls
     ```
 
     This prints the sslip.io URLs for accessing services:
@@ -174,9 +163,14 @@ kubernetes/src/infrastructure/*/values.local.yaml
 kubernetes/src/services/*/values.local.yaml
 ```
 
-## Remote Debugging with mirrord
+## Developing Outside the Container with mirrord
 
-[mirrord](https://mirrord.dev/) lets you run your service locally while intercepting traffic from a remote cluster. This is useful for debugging issues that only occur in staging.
+While Tilt runs your services inside containers in the KinD cluster, [mirrord](https://mirrord.dev/) lets you run a service directly on your host machine while staying connected to the cluster. This is ideal when you want to iterate on application code without waiting for container rebuilds:
+
+- **Skip container builds:** Just recompile and restart, no Docker builds or image pushes
+- **Use your local tools:** Run with your IDE, debugger, profiler, or any host-native tooling
+- **Access cluster resources:** Your local process can reach cluster-internal services (databases, APIs)
+- **Inherit pod environment:** Environment variables and secrets from the target pod are available locally
 
 ### Configuration
 
@@ -194,7 +188,7 @@ The mirrord config is in `services/go-backend/.mirrord/mirrord.json`:
 ```
 
 This configuration:
-- **Steals** incoming traffic from the `go-backend` deployment
+- **Steals** incoming traffic from the `go-backend` deployment in the KinD cluster
 - Enables **outgoing** connections to cluster resources (database, etc.)
 - Uses **local** filesystem
 - Mirrors pod **environment variables** to your local process
@@ -202,8 +196,8 @@ This configuration:
 ### Using mirrord
 
 <Steps>
-  <Step title="Connect to the remote cluster">
-    Ensure you have kubectl access to staging (see [Cluster Access](/usage/getting-started/07-cluster-access)).
+  <Step title="Ensure the KinD cluster is running">
+    The service must be deployed in the local cluster (via Tilt) before mirrord can intercept its traffic.
   </Step>
 
   <Step title="Run your service with mirrord">
@@ -212,120 +206,21 @@ This configuration:
     mirrord exec -- go run ./cmd/main.go
     ```
 
-    Your local process now receives traffic intended for the staging pod.
+    Your local process now receives traffic that would go to the in-cluster pod.
   </Step>
 
   <Step title="Debug as usual">
-    Use your IDE's debugger, add print statements, or modify code—changes take effect immediately without rebuilding or deploying.
+    Use your IDE's debugger, add print statements, or modify code—changes take effect immediately without rebuilding containers.
   </Step>
 </Steps>
 
-<Warning>
-mirrord in "steal" mode intercepts production traffic. Use with caution in shared environments. Consider "mirror" mode for read-only debugging.
-</Warning>
+<Tip>
+Most IDEs have mirrord plugins that integrate debugging directly. See the [mirrord IDE docs](https://mirrord.dev/docs/ide-plugins/) for VS Code, IntelliJ, and others.
+</Tip>
 
-## Common Tasks
+## Comparison: Local vs Production
 
-### Rebuild a Single Service
-
-In the Tilt UI, click the refresh button on the resource, or:
-
-```bash
-tilt trigger go-backend-helm
-```
-
-### View Logs
-
-```bash
-# Via Tilt UI: Click on a resource to see logs
-
-# Via kubectl
-kubectl logs -f deployment/go-backend -n go-backend
-```
-
-### Access the Database
-
-```bash
-# Get the database password
-kubectl get secret go-backend-cluster-app -n go-backend -o jsonpath='{.data.password}' | base64 -d
-
-# Port-forward to the database
-kubectl port-forward svc/go-backend-cluster-rw -n go-backend 5432:5432
-
-# Connect with psql
-psql -h localhost -U app -d app
-```
-
-### Reset the Cluster
-
-```bash
-cd local
-mise run delete-cluster
-mise run create-cluster
-```
-
-## Troubleshooting
-
-### "Cannot connect to the Docker daemon"
-
-Ensure your container runtime is running:
-```bash
-docker info  # or: podman info
-```
-
-### LoadBalancer services stuck in "Pending"
-
-The `cloud-provider-kind` process must be running:
-```bash
-mise run cloud-provider-kind
-```
-
-This requires sudo and must stay running in a separate terminal.
-
-### Ingress not accessible
-
-1. Check the ingress has an address:
-   ```bash
-   kubectl get ingress -A
-   ```
-
-2. Verify the ingress-nginx controller is running:
-   ```bash
-   kubectl get pods -n ingress-nginx
-   ```
-
-3. Check the sslip.io URL resolves:
-   ```bash
-   nslookup go-backend-helm.172-20-0-100.sslip.io
-   ```
-
-### Database connection issues
-
-1. Check the PostgreSQL cluster is ready:
-   ```bash
-   kubectl get clusters -A
-   ```
-
-2. Verify the database pods are running:
-   ```bash
-   kubectl get pods -n go-backend -l cnpg.io/cluster=go-backend-cluster
-   ```
-
-3. Check the migration job completed:
-   ```bash
-   kubectl get jobs -n go-backend
-   kubectl logs job/go-backend-migrations -n go-backend
-   ```
-
-### Tilt is slow or unresponsive
-
-1. Reduce the number of services in the Tiltfile
-2. Increase Docker resources (CPU, memory)
-3. Use `tilt down` and restart with `tilt up`
-
-## Comparison: Local vs Staging
-
-| Aspect | Local (KinD + Tilt) | Staging (EKS + ArgoCD) |
+| Aspect | Local (KinD + Tilt) | Production (EKS + ArgoCD) |
 |--------|---------------------|------------------------|
 | Cluster | KinD (Docker) | EKS (AWS) |
 | Registry | localhost:5001 | ECR |

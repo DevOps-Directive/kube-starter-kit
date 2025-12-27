@@ -68,7 +68,7 @@ Each component uses a "wrapper chart" pattern—a local Helm chart that includes
       ingress-nginx: "4.13.0"  # Updated version
     ```
 
-    For environment-specific versions, edit `values.staging.yaml` or `values.production.yaml`.
+    For environment-specific versions, edit `values.staging.yaml` or `values.production.yaml`. Setting these independently allows for testing upgrades in lower environments before rolling out to production.
   </Step>
 
   <Step title="Update Chart.lock">
@@ -103,7 +103,7 @@ To change component settings without upgrading versions:
     vim kubernetes/src/infrastructure/ingress-nginx/values.yaml
     ```
 
-    Example—increase controller replicas:
+    For example, increase controller replicas:
     ```yaml
     ingress-nginx:
       controller:
@@ -129,9 +129,9 @@ To change component settings without upgrading versions:
 
 ArgoCD automatically syncs the changes.
 
-## Add Custom Resources
+## Add Additional Manifests
 
-Many components need additional resources beyond the upstream chart (ClusterIssuers, StorageClasses, etc.). Add these in the wrapper chart's `templates/` directory:
+Many components need additional manifests beyond the upstream chart (ClusterIssuers, StorageClasses, etc.). Add these in the wrapper chart's `templates/` directory:
 
 ```
 kubernetes/src/infrastructure/cert-manager/
@@ -216,7 +216,7 @@ For major version updates (e.g., `4.x` → `5.x`):
 1. **Read the changelog** for breaking changes
 2. **Test in staging first** before production
 3. **Update values** if configuration schema changed
-4. **Plan for downtime** if the component is critical
+4. **Have a rollback plan** if the component is critical
 
 <Warning>
 Major version upgrades may require CRD updates. Check the component's upgrade guide and apply CRD changes before upgrading the chart.
@@ -232,57 +232,6 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 ```
 
 Check the component's documentation for CRD upgrade procedures.
-
-## Troubleshooting
-
-### Helm dependency errors
-
-If `helm dependency update` fails:
-
-```bash
-# Clear the chart cache
-rm -rf kubernetes/src/infrastructure/*/charts/
-rm -f kubernetes/src/infrastructure/*/Chart.lock
-
-# Re-run dependency update
-cd kubernetes/src/infrastructure/ingress-nginx
-helm dependency update
-```
-
-### ArgoCD sync fails after upgrade
-
-1. Check the Application status:
-   ```bash
-   argocd app get ingress-nginx
-   ```
-
-2. View sync errors:
-   ```bash
-   argocd app sync ingress-nginx --dry-run
-   ```
-
-3. Common issues:
-   - CRD version mismatch (update CRDs first)
-   - Removed/renamed values (check changelog)
-   - Resource conflicts (prune may be needed)
-
-### Pods not starting after upgrade
-
-1. Check pod status:
-   ```bash
-   kubectl get pods -n ingress-nginx
-   kubectl describe pod -n ingress-nginx <pod-name>
-   ```
-
-2. Check logs:
-   ```bash
-   kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
-   ```
-
-3. Rollback if needed:
-   ```bash
-   argocd app rollback ingress-nginx
-   ```
 
 ## Best Practices
 

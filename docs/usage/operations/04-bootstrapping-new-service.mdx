@@ -8,12 +8,6 @@ icon: 'plus'
 
 This guide walks through adding a new service to the platform. You'll create the application code, Dockerfile, Kubernetes manifests, and CI/CD configuration.
 
-## Prerequisites
-
-Before starting, ensure you have:
-- A working [local development environment](/usage/getting-started/09-local-development-setup)
-- An ECR repository for the new service (created via Terraform)
-
 ## Create the Service
 
 <Steps>
@@ -98,23 +92,31 @@ Before starting, ensure you have:
 
 ## Create ECR Repository
 
-Add a Terraform resource for the ECR repository:
+Add the new repository to the ECR configuration:
 
 <Steps>
-  <Step title="Add ECR repository to Terraform">
-    Edit `terraform/live/shared/us-east-2/ecr-repositories/main.tf`:
+  <Step title="Add repository to the list">
+    Edit `terraform/live/shared/us-east-2/ecr-repositories/main.tf` and add your service to the `local.repos` list:
 
     ```hcl
-    module "ecr_my_new_service" {
-      source = "../../../../modules/ecr-repository"
-
-      name = "services/my-new-service"
-      # ... other settings
+    locals {
+      region = var.aws_region
+      repos = [
+        "services/container-only-dummy",
+        "services/go-backend",
+        "services/go-backend/migrations",
+        "services/go-backend-no-migrations",
+        "services/my-new-service"  # Add this
+      ]
     }
     ```
   </Step>
 
   <Step title="Apply the Terraform change">
+    Commit and open a PR. The Terramate workflow will run a preview, and once merged, the ECR repository will be created.
+
+    Alternatively, apply directly:
+
     ```bash
     cd terraform
     terramate run --tags ecr -- terraform apply
@@ -180,7 +182,7 @@ Choose your preferred templating approach. The kit demonstrates three options.
     ```
 
     Add additional templates for Service, Ingress, etc.
-  </Step>
+  </Tab>
 
   <Tab title="Kustomize">
     Create a Kustomize structure in `kubernetes/src/services/my-new-service/`:
@@ -259,7 +261,8 @@ Add the service to the ArgoCD services app-of-apps:
 
   <Step title="Render ArgoCD manifests">
     ```bash
-    mise run //kubernetes/src/services:render-all
+    mise run //kubernetes/src/argocd:render-all  # Adds the ArgoCD Application to the app-of-apps
+    mise run //kubernetes/src/services:render-all # Renders the service manifests
     ```
   </Step>
 </Steps>
@@ -339,22 +342,6 @@ Add the service to the ArgoCD services app-of-apps:
     3. Check ArgoCD for the new Application
   </Step>
 </Steps>
-
-## Checklist
-
-Before considering the service complete:
-
-- [ ] Application code with health endpoints
-- [ ] Dockerfile that builds successfully
-- [ ] ECR repository created via Terraform
-- [ ] Kubernetes manifests (Helm, Kustomize, or Timoni)
-- [ ] Values files for each environment
-- [ ] mise.toml with render tasks
-- [ ] Registered in ArgoCD services app-of-apps
-- [ ] Added to CI path filters
-- [ ] Added to workflow dispatch options
-- [ ] Local development working with Tilt
-- [ ] Successfully deployed to staging
 
 ## Next Steps
 

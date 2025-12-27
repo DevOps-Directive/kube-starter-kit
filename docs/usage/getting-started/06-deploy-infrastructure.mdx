@@ -157,7 +157,7 @@ After the initial deployment, use pull requests for all infrastructure changes. 
     The CI workflow will:
     1. Run `terraform plan` for each changed stack
     2. Post plan output to Terramate Cloud (if configured)
-    3. Show a summary in the PR checks
+    3. Post a plan summary as a PR comment (if using Terramate Cloud)
 
     Review the plan carefully before approving.
   </Step>
