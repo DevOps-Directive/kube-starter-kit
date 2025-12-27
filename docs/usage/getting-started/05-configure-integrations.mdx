@@ -6,32 +6,11 @@ icon: 'link'
 
 ## Overview
 
-After [bootstrapping your accounts](/usage/getting-started/03-bootstrap-accounts), you need to configure the external service integrations that enable CI/CD automation. This page covers:
+With [human access configured](/usage/getting-started/04-configure-access), you now need to configure the external service integrations that enable CI/CD automation. This page covers:
 
 - **AWS**: Account IDs and role ARNs for Terraform
 - **GitHub (octo-sts)**: Tokens for managing GitHub organization resources
 - **Terramate Cloud** (optional): Plan visualization and drift detection
-
-<Warning>
-Complete [Bootstrap Accounts](/usage/getting-started/03-bootstrap-accounts) before this step. You need the actual AWS account IDs and role ARNs that were created during bootstrapping.
-</Warning>
-
-## What You Need
-
-After bootstrapping, you should have these values from `terraform/config.tm.hcl`:
-
-| Value | Example | Config Key |
-|-------|---------|------------|
-| Namespace | `acme` | `globals.namespace` |
-| Infrastructure account ID | `123456789012` | (from `aws sts get-caller-identity`) |
-| Primary AWS region | `us-east-2` | `globals.backend_region` |
-| S3 state bucket name | `acme-gbl-infra-bootstrap-state` | `globals.backend_bucket` |
-| SSO admin role ARN | `arn:aws:iam::123456789012:role/aws-reserved/...` | `globals.sso_admin_assume_role_arn` |
-| GitHub OIDC role ARN | `arn:aws:iam::123456789012:role/acme-gbl-infra-bootstrap-github-oidc` | `globals.github_oidc_assume_role_arn` |
-
-<Tip>
-All these values were configured during [Bootstrap Accounts](/usage/getting-started/03-bootstrap-accounts). If you skipped ahead, go back and complete that step first.
-</Tip>
 
 ## Verify Terraform Configuration
 
@@ -49,30 +28,30 @@ globals {
 }
 ```
 
-## Configure GitHub Repository Secrets
+## Configure GitHub Repository Variables
 
-GitHub Actions needs the OIDC role ARN to authenticate. Add these secrets to your repository:
+GitHub Actions needs the OIDC role ARN to authenticate. Add these variables to your repository (Settings > Secrets and variables > Actions > Variables):
 
-| Secret | Value |
-|--------|-------|
-| `AWS_ROLE_ARN` | `arn:aws:iam::<INFRA_ACCOUNT_ID>:role/<NAMESPACE>-gbl-infra-bootstrap-github-oidc` |
-| `AWS_REGION` | Your primary AWS region |
+| Variable | Value |
+|----------|-------|
+| `TERRAFORM_AWS_ROLE_ARN` | `arn:aws:iam::<INFRA_ACCOUNT_ID>:role/<NAMESPACE>-gbl-infra-bootstrap-github-oidc` |
+| `TERRAFORM_AWS_REGION` | Your primary AWS region (e.g., `us-east-2`) |
 
 <Note>
-GitHub Actions only needs the Infrastructure account role. Cross-account access is handled by each Terraform stack's provider configuration.
+These are repository **variables**, not secrets, since the values are not sensitive. GitHub Actions only needs the Infrastructure account role. Cross-account access is handled by each Terraform stack's provider configuration.
 </Note>
 
 ## Update GitHub Workflows
 
-The workflows read credentials from GitHub secrets (configured later in this page). Verify the workflow files reference the secrets correctly:
+The workflows read credentials from GitHub repository variables. Verify the workflow files reference the variables correctly:
 
 ```yaml
-# In .github/workflows/terramate-preview.yml and terramate-deploy.yml
+# In .github/workflows/terramate-preview.yml, terramate-deploy.yml, and terramate-detect-drift.yml
 - name: "Configure AWS Credentials"
   uses: aws-actions/configure-aws-credentials@v4
   with:
-    aws-region: ${{ secrets.AWS_REGION }}
-    role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+    aws-region: ${{ vars.TERRAFORM_AWS_REGION }}
+    role-to-assume: ${{ vars.TERRAFORM_AWS_ROLE_ARN }}
 ```
 
 ## Configure octo-sts for GitHub Tokens
@@ -184,14 +163,14 @@ The two-step authentication means there are two places trust can fail:
 1. **GitHub → Infrastructure account**: Check the OIDC role trust policy
    ```bash
    # Run from Infrastructure account (replace <NAMESPACE> with your namespace)
-   aws iam get-role --role-name <NAMESPACE>-gbl-infra-bootstrap-github-oidc \
+   aws iam get-role --role-name "<NAMESPACE>-gbl-infra-bootstrap-github-oidc" \
      --query 'Role.AssumeRolePolicyDocument'
    ```
 
 2. **Infrastructure account → Target account**: Check the target role trust policy
    ```bash
-   # Run from target account (e.g., staging)
-   aws iam get-role --role-name <NAMESPACE>-gbl-staging-bootstrap-admin \
+   # Run from target account (e.g. staging)
+   aws iam get-role --role-name "<NAMESPACE>-gbl-staging-bootstrap-admin" \
      --query 'Role.AssumeRolePolicyDocument'
    ```
 
@@ -207,7 +186,7 @@ The target account's trust policy should include the Infrastructure account's Gi
 2. Check the GitHub OIDC role trust policy allows your repository:
    ```bash
    # Replace <NAMESPACE> with your namespace
-   aws iam get-role --role-name <NAMESPACE>-gbl-infra-bootstrap-github-oidc \
+   aws iam get-role --role-name "<NAMESPACE>-gbl-infra-bootstrap-github-oidc" \
      --query 'Role.AssumeRolePolicyDocument'
    ```
 

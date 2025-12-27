@@ -82,8 +82,7 @@ Each component uses a "wrapper chart" pattern—a local Helm chart that includes
 
   <Step title="Render and commit">
     ```bash
-    cd kubernetes
-    mise run render
+    mise run //kubernetes/src/infrastructure:render-all
 
     git add .
     git commit -m "chore: update ingress-nginx to 4.13.0"
@@ -114,8 +113,7 @@ To change component settings without upgrading versions:
 
   <Step title="Render manifests">
     ```bash
-    cd kubernetes
-    mise run render
+    mise run //kubernetes/src/infrastructure:render-all
     ```
   </Step>
 
@@ -195,7 +193,7 @@ applications:
 After changing, render and push:
 
 ```bash
-cd kubernetes && mise run render
+mise run //kubernetes/src/infrastructure:render-all
 git add . && git commit -m "chore: disable envoy-gateway"
 git push origin main
 ```

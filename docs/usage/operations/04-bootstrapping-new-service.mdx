@@ -259,8 +259,7 @@ Add the service to the ArgoCD services app-of-apps:
 
   <Step title="Render ArgoCD manifests">
     ```bash
-    cd kubernetes
-    mise run render
+    mise run //kubernetes/src/services:render-all
     ```
   </Step>
 </Steps>

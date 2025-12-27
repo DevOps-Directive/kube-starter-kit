@@ -6,7 +6,7 @@ icon: 'users'
 
 ## Overview
 
-After bootstrapping accounts, configure access for human administrators. This page covers:
+After bootstrapping accounts, configure access for team members. This page covers:
 - IAM Identity Center users and groups
 - GitHub organization membership
 
@@ -141,21 +141,6 @@ Before proceeding, verify that your existing users and groups are correctly conf
 3. Navigate to **Groups** and verify the expected groups exist (Admin, PowerUser, ReadOnly)
 4. Check group memberships by clicking on each group
 
-Use the CLI to list current users and groups:
-
-```bash
-# Get the Identity Store ID
-IDENTITY_STORE_ID=$(aws sso-admin list-instances --query 'Instances[0].IdentityStoreId' --output text)
-
-# List all users
-aws identitystore list-users --identity-store-id $IDENTITY_STORE_ID \
-  --query 'Users[].{UserName:UserName,UserId:UserId}'
-
-# List all groups
-aws identitystore list-groups --identity-store-id $IDENTITY_STORE_ID \
-  --query 'Groups[].{DisplayName:DisplayName,GroupId:GroupId}'
-```
-
 ### Review GitHub Organization
 
 1. Open your GitHub organization's **People** page: `https://github.com/orgs/<YOUR_ORG>/people`
@@ -165,16 +150,6 @@ aws identitystore list-groups --identity-store-id $IDENTITY_STORE_ID \
 <Warning>
 Users with pending invitations only appear under the **Invitations** tab, not in the main members list. Make sure to check both when verifying membership.
 </Warning>
-
-Use the CLI to list current members and pending invitations:
-
-```bash
-# List current members
-gh api orgs/<YOUR_ORG>/members --jq '.[] | "\(.login) (\(.role // "member"))"'
-
-# List pending invitations
-gh api orgs/<YOUR_ORG>/invitations --jq '.[] | "\(.login // .email) (invited)"'
-```
 
 ## Groups and Permission Sets
 

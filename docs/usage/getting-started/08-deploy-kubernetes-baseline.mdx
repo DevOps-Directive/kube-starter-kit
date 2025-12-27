@@ -1,0 +1,364 @@
+---
+title: 'Deploy Kubernetes Baseline'
+description: 'Bootstrap ArgoCD and deploy infrastructure components'
+icon: 'dharmachakra'
+---
+
+## Overview
+
+With EKS clusters deployed and [cluster access configured](/usage/getting-started/07-cluster-access), the next step is to bootstrap ArgoCD and deploy the Kubernetes baseline components. ArgoCD uses an app-of-apps pattern to manage all cluster resources declaratively.
+
+<Note>
+Before proceeding, ensure you have `kubectl` access to the cluster. See [Cluster Access](/usage/getting-started/07-cluster-access) for setup instructions.
+</Note>
+
+## Architecture
+
+The kit uses a three-tier app-of-apps pattern:
+
+```
+argocd-app-of-apps (root)
+├── argocd                    → Self-manages ArgoCD installation
+├── infrastructure-app-of-apps → Manages infrastructure components
+│   ├── cert-manager
+│   ├── ingress-nginx
+│   ├── external-secrets
+│   ├── external-dns
+│   ├── karpenter
+│   ├── cloudnative-pg
+│   ├── signoz-k8s-infra
+│   └── reloader
+└── services-app-of-apps      → Manages application deployments
+    ├── go-backend
+    └── go-backend-helm
+```
+
+Each ArgoCD Application points to rendered manifests in `kubernetes/rendered/{cluster}/`.
+
+## Update Repository URLs
+
+Before deploying, update the Git repository URLs to point to your fork:
+
+<Steps>
+  <Step title="Update ArgoCD application sources">
+    The Application manifests reference the Git repository. Update the `repoURL` in the source templates:
+
+    **`kubernetes/src/argocd/argocd/templates/Application.argocd-app-of-apps.yaml`:**
+
+    ```yaml
+    spec:
+      source:
+        repoURL: git@github.com:YOUR-ORG/kube-starter-kit.git  # Update this
+        targetRevision: main
+        path: kubernetes/rendered/{{ .Values.cluster }}/argocd/argocd
+    ```
+
+    Update this URL in all Application templates:
+    - `kubernetes/src/argocd/argocd/templates/Application.*.yaml`
+    - `kubernetes/src/argocd/infrastructure/templates/Application.GENERATOR.yaml`
+    - `kubernetes/src/argocd/services/templates/Application.GENERATOR.yaml`
+  </Step>
+
+  <Step title="Render updated manifests">
+    After updating the source files, render the manifests for your cluster:
+
+    ```bash
+    mise run //kubernetes/src/argocd:render-all
+    mise run //kubernetes/src/infrastructure:render-all
+    mise run //kubernetes/src/services:render-all
+    ```
+
+    This renders all charts for all environments (staging, production).
+  </Step>
+
+  <Step title="Commit the changes">
+    ```bash
+    git add .
+    git commit -m "chore: update ArgoCD repository URLs for fork"
+    git push
+    ```
+  </Step>
+</Steps>
+
+## Add GitHub Deploy Key
+
+ArgoCD needs SSH access to clone your private repository. The EKS Terraform module automatically generates a deploy key and stores the private key in AWS Secrets Manager. You just need to add the public key to GitHub.
+
+<Steps>
+  <Step title="Get the public key from Terraform output">
+    ```bash
+    terramate run --tags staging:us-east-2:eks -- terraform output deploy_key_public_key
+
+    terramate run --tags staging:us-east-2:eks -- terraform output deploy_key_setup
+    ```
+  </Step>
+
+  <Step title="Add the public key to GitHub">
+    1. Go to your repository **Settings → Deploy keys**
+    2. Click **Add deploy key**
+    3. Title: `ArgoCD Deploy Key (staging)`
+    4. Paste the public key from the Terraform output
+    5. Leave **Allow write access** unchecked (read-only is sufficient for GitOps)
+    6. Click **Add key**
+  </Step>
+</Steps>
+
+<Note>
+The private key is stored in AWS Secrets Manager at `{cluster-name}-deploy-key`. External Secrets syncs this into the cluster for ArgoCD to use.
+</Note>
+
+## Configure GitHub OAuth (Optional)
+
+If you want to enable GitHub OAuth for ArgoCD login (recommended for production), you need to store the OAuth app secret in AWS Secrets Manager.
+
+<Steps>
+  <Step title="Create a GitHub OAuth App">
+    1. Go to your GitHub organization **Settings → Developer settings → OAuth Apps**
+    2. Click **New OAuth App**
+    3. Fill in the details:
+       - **Application name**: `ArgoCD Staging`
+       - **Homepage URL**: `https://argocd.staging.yourdomain.com`
+       - **Authorization callback URL**: `https://argocd.staging.yourdomain.com/api/dex/callback`
+    4. Click **Register application**
+    5. Generate a new client secret and save both the Client ID and Client Secret
+  </Step>
+
+  <Step title="Store the secret in AWS Secrets Manager">
+    ```bash
+    aws secretsmanager create-secret \
+      --name "{cluster-name}-argocd-github-dex" \
+      --secret-string '{"clientId":"YOUR_CLIENT_ID","clientSecret":"YOUR_CLIENT_SECRET"}' \
+      --region us-east-2
+    ```
+  </Step>
+</Steps>
+
+<Note>
+See the [ArgoCD Dex documentation](https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#dex) for more details on SSO configuration.
+</Note>
+
+## Bootstrap Infrastructure Components
+
+These components must be deployed manually before ArgoCD can take over:
+
+| Component | Why Manual |
+|-----------|------------|
+| **cert-manager** | Issues TLS certificates for ingresses (including ArgoCD's) |
+| **external-secrets** | Syncs the deploy key from AWS Secrets Manager so ArgoCD can clone the repo |
+| **external-dns** | Creates DNS records for ingresses (including ArgoCD's) |
+| **ingress-nginx** | Routes external traffic to services (including ArgoCD UI) |
+| **argocd** | The GitOps controller itself - can't deploy itself initially |
+
+Once these are running, ArgoCD can sync with the Git repository and manage all components (including itself) going forward.
+
+<Warning>
+Some components will show errors on the first apply (e.g., "namespace not found" or "CRD not found"). This is expected - simply run the apply command again to create the remaining resources.
+</Warning>
+
+<Steps>
+  <Step title="Deploy cert-manager">
+    ```bash
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/cert-manager/
+    # Run again if needed for CRDs
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/cert-manager/
+    
+    kubectl wait --for=condition=available deployment --all -n cert-manager --timeout=300s
+    ```
+  </Step>
+
+  <Step title="Deploy external-secrets">
+    ```bash
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-secrets/
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-secrets/
+    
+    kubectl wait --for=condition=available deployment --all -n external-secrets --timeout=300s
+    ```
+  </Step>
+
+  <Step title="Deploy external-dns">
+    ```bash
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-dns/
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-dns/
+    
+    kubectl wait --for=condition=available deployment --all -n external-dns --timeout=300s
+    ```
+  </Step>
+
+  <Step title="Deploy ingress-nginx">
+    ```bash
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/ingress-nginx/
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/ingress-nginx/
+    
+    kubectl wait --for=condition=available deployment --all -n ingress-nginx --timeout=300s
+    ```
+  </Step>
+
+  <Step title="Deploy ArgoCD">
+    ```bash
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/argocd/
+    kubectl apply -f kubernetes/rendered/staging/infrastructure/argocd/
+    
+    kubectl wait --for=condition=available deployment --all -n argocd --timeout=300s
+    ```
+  </Step>
+
+  <Step title="Apply the app-of-apps">
+    ```bash
+    kubectl apply -f kubernetes/rendered/staging/argocd/argocd/
+    ```
+
+    This creates:
+    - Three AppProjects (argocd, infrastructure, services)
+    - ExternalSecrets for GitHub deploy keys
+    - The root `argocd-app-of-apps` Application
+  </Step>
+</Steps>
+
+## Verify Bootstrap
+
+<Steps>
+  <Step title="Wait for External Secrets to sync">
+    The ExternalSecrets need to fetch the deploy keys before ArgoCD can clone the repository:
+
+    ```bash
+    kubectl get externalsecrets -n argocd
+    kubectl get secrets -n argocd | grep repo-
+    ```
+
+    Wait until all ExternalSecrets show `SecretSynced` status.
+  </Step>
+
+  <Step title="Verify ArgoCD can sync">
+    Check the ArgoCD Applications:
+
+    ```bash
+    kubectl get applications -n argocd
+    ```
+
+    You should see:
+    - `argocd-app-of-apps` - Synced
+    - `infrastructure-app-of-apps` - Synced
+    - `services-app-of-apps` - Synced
+
+    From here, ArgoCD manages everything automatically:
+    - Remaining infrastructure components deploy via the `infrastructure-app-of-apps`
+    - Secrets are retrieved via external-secrets
+    - DNS records are created via external-dns
+  </Step>
+</Steps>
+
+## Access ArgoCD UI
+
+Once external-dns creates the DNS records, ArgoCD is accessible at `https://argocd.staging.yourdomain.com`.
+
+Alternatively, use port-forwarding for immediate access:
+
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+Open https://localhost:8080 in your browser.
+
+### Login
+
+If you configured GitHub OAuth, use the **Log in via GitHub** button.
+
+Otherwise, use the admin password:
+
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d
+```
+
+Login with username `admin` and the retrieved password.
+
+## Infrastructure Components
+
+The following components are included in the Kubernetes baseline:
+
+| Component | Bootstrap | Purpose |
+|-----------|-----------|---------|
+| **cert-manager** | Manual | TLS certificate automation with Let's Encrypt |
+| **external-secrets** | Manual | Syncs secrets from AWS Secrets Manager |
+| **external-dns** | Manual | Automatic DNS record management in Route53 |
+| **ingress-nginx** | Manual | Ingress controller for routing external traffic |
+| **argocd** | Manual | GitOps continuous delivery |
+| **karpenter** | ArgoCD | Dynamic node provisioning and autoscaling |
+| **cloudnative-pg** | ArgoCD | PostgreSQL operator for in-cluster databases |
+| **signoz-k8s-infra** | ArgoCD | OpenTelemetry collectors for observability |
+| **reloader** | ArgoCD | Restarts pods when ConfigMaps/Secrets change |
+| **ebs-csi-driver-resources** | ArgoCD | StorageClass for encrypted EBS volumes |
+
+Components marked **Manual** are deployed during bootstrap. Components marked **ArgoCD** are deployed automatically once ArgoCD syncs.
+
+## Verify Deployment
+
+<Steps>
+  <Step title="Check all Applications are synced">
+    ```bash
+    kubectl get applications -n argocd
+    ```
+
+    All applications should show `Synced` and `Healthy` status.
+  </Step>
+
+  <Step title="Verify infrastructure pods">
+    ```bash
+    kubectl get pods -n cert-manager
+    kubectl get pods -n ingress-nginx
+    kubectl get pods -n external-secrets
+    kubectl get pods -n karpenter
+    ```
+
+    All pods should be `Running`.
+  </Step>
+
+  <Step title="Check ingress is working">
+    ```bash
+    kubectl get ingress -A
+    ```
+
+    Ingresses should have an ADDRESS assigned (the load balancer DNS name).
+  </Step>
+
+  <Step title="Verify DNS records">
+    Once external-dns is running, check Route53 for new records:
+
+    ```bash
+    aws route53 list-resource-record-sets \
+      --hosted-zone-id <your-zone-id> \
+      --query "ResourceRecordSets[?Type=='A' || Type=='CNAME']"
+    ```
+  </Step>
+</Steps>
+
+## Enable/Disable Components
+
+To enable or disable infrastructure components, edit `kubernetes/src/argocd/infrastructure/values.yaml`:
+
+```yaml
+applications:
+  argocd:
+    enabled: true
+  cert-manager:
+    enabled: true
+  cloudnative-pg:
+    enabled: true
+  envoy-gateway:
+    enabled: false  # Disabled by default
+  # ... other components
+```
+
+After changing, render and push:
+
+```bash
+mise run //kubernetes/src/infrastructure:render-all
+git add . && git commit -m "chore: enable/disable components"
+git push
+```
+
+ArgoCD will automatically sync the changes.
+
+## Next Steps
+
+With the Kubernetes baseline deployed, proceed to [Local Development Setup](/usage/getting-started/09-local-development-setup) to set up KinD, Tilt, and mirrord for local development.

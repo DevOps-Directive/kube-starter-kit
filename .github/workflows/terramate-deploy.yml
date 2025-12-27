@@ -10,7 +10,6 @@ jobs:
     name: Deploy Terraform changes in changed Terramate stacks
     runs-on: ubuntu-24.04
     env:
-      AWS_REGION: us-east-2
       # GITHUB_TOKEN is used by Terramate Cloud for status reporting.
       # Terraform's GitHub provider uses TF_VAR_github_token (from octo-sts) instead,
       # because it requires admin:org scope which the default GHA token doesn't have.
@@ -56,8 +55,8 @@ jobs:
       - name: "Configure AWS Credentials"
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc
+          aws-region: ${{ vars.TERRAFORM_AWS_REGION }}
+          role-to-assume: ${{ vars.TERRAFORM_AWS_ROLE_ARN }}
       - name: Verify AWS credentials
         if: steps.list-changed.outputs.stdout
         run: aws sts get-caller-identity

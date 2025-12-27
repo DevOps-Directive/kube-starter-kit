@@ -56,8 +56,7 @@ For a permanent rollback, update the image tag in Git:
 
   <Step title="Render and push">
     ```bash
-    cd kubernetes
-    mise run render
+    mise run //kubernetes/src/services:render-all
     git add .
     git commit -m "fix: rollback go-backend to 0.2.1"
     git push origin main

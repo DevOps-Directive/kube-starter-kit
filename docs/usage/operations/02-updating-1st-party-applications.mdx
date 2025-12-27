@@ -197,8 +197,7 @@ To change Kubernetes configuration (replicas, resources, etc.) without changing 
 
   <Step title="Render manifests">
     ```bash
-    cd kubernetes
-    mise run render
+    mise run //kubernetes/src/services:render-all
     ```
   </Step>
 
@@ -240,7 +239,7 @@ To rollback to a previous version:
     #   version: 0.2.2-rc0028-g98b8c55
 
     # Render and push
-    cd kubernetes && mise run render
+    mise run //kubernetes/src/services:render-all
     git add . && git commit -m "fix: rollback go-backend to 0.2.2-rc0028"
     git push origin main
     ```

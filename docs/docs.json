@@ -51,8 +51,8 @@
               "usage/getting-started/04-configure-access",
               "usage/getting-started/05-configure-integrations",
               "usage/getting-started/06-deploy-infrastructure",
-              "usage/getting-started/07-deploy-kubernetes-baseline",
-              "usage/getting-started/08-cluster-access",
+              "usage/getting-started/07-cluster-access",
+              "usage/getting-started/08-deploy-kubernetes-baseline",
               "usage/getting-started/09-local-development-setup"
             ]
           },
