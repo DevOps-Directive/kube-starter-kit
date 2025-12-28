@@ -6,6 +6,16 @@ terramate {
       default_branch = "main"
     }
 
+    change_detection {
+      git {
+        untracked   = "off"
+        uncommitted = "off"
+      }
+      terraform {
+        enabled = true  # Detect module changes
+      }
+    }
+
     cloud {
       organization = "devops-directive"
       location     = "us"
