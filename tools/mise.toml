@@ -61,7 +61,11 @@ echo "${IMAGE_REPO}:${VERSION}"
 '''
 
 [tasks.generate-extended-version]
-description = "If commits since last tag: emit x.y.(z+1)-rcNNNN-g<sha>; else: x.y.z"
+# NOTE: Pre-release versions (e.g., 1.2.3-7-gabc123) sort BEFORE the base
+# version (1.2.3) in semver. If your tooling requires pre-release tags to sort
+# AFTER the base version, you'll need to modify this task to bump the patch
+# version (e.g., output 1.2.4-7-gabc123 instead).
+description = "If commits since last tag: emit x.y.z-NNNN-g<sha>; else: x.y.z"
 silent = true
 run = '''
 #!/usr/bin/env bash
@@ -93,11 +97,7 @@ fi
 
 IFS='-' read -r CORE COUNT GREF <<<"$BASE"
 
-IFS='.' read -r MA MI PA <<<"$CORE"
-NEXT_PATCH=$((PA+1))
-CORE_NEXT="${MA}.${MI}.${NEXT_PATCH}"
-
-printf "%s-rc%04d-%s\n" "$CORE_NEXT" "$COUNT" "$GREF"
+printf "%s-%04d-%s\n" "$CORE" "$COUNT" "$GREF"
 '''
 
 [tasks.generate-extended-version-tag]
@@ -169,7 +169,7 @@ usage:
   mise run //tools:update-image-tags <tag> '<comment>' [starting_path]
 
 where:
-  NEW_TAG             The new image tag to write (e.g., 1.2.3-rc0007-gabc123)
+  NEW_TAG             The new image tag to write (e.g., 1.2.3-0007-gabc123)
   IDENTIFIER_COMMENT  Comment to match in the YAML line (e.g., '# THIS_IS_MY_IMAGE_TAG')
   STARTING_PATH       Directory to start searching from (defaults to current dir if omitted)
   EXCLUDED_FILES      Optional newline-separated list of files to skip (override default via env)
@@ -230,7 +230,7 @@ usage:
   mise run //tools:update-image-tags-service <tag> <env> <service>
 
 where:
-  NEW_TAG             The new image tag to write (e.g., 1.2.3-rc0007-gabc123)
+  NEW_TAG             The new image tag to write (e.g., 1.2.3-0007-gabc123)
   ENVIRONMENT         Environment name (e.g., dev, staging, prod)
   SERVICE_RELEASE_TAG Service identifier used in the comment (e.g., services/go-backend)
 EOF

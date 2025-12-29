@@ -72,10 +72,10 @@ The workflow matrix builds only the services that match changed paths. Changes t
 Images are pushed to Amazon ECR with version tags derived from `git describe`:
 
 ```
-<account>.dkr.ecr.<region>.amazonaws.com/go-backend:1.2.3-rc0001-g4b5d2e7
+<account>.dkr.ecr.<region>.amazonaws.com/go-backend:1.2.3-0001-g4b5d2e7
 ```
 
-The tag format `<version>-rc<commits>-g<hash>` shows the next patch version, how many commits since the last release, and the commit hash. The patch version is bumped immediately after each release (via `chore:` commit), so pre-release tags always indicate the upcoming version. This provides traceability, immutability (tags are never overwritten), and easy rollback.
+The tag format `<version>-<commits>-g<hash>` shows the base version from the last release tag, how many commits since that release, and the commit hash. This provides traceability, immutability (tags are never overwritten), and easy rollback.
 
 ### Manifest Rendering
 
