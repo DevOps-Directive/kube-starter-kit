@@ -9,14 +9,14 @@ icon: 'database'
 The kit uses two components for database management:
 
 - **[CloudNativePG](https://cloudnative-pg.io/)** - PostgreSQL operator for running databases in Kubernetes
-- **[Atlas](https://atlasgo.io/)** - Schema migration tool that runs as an init container
+- **[Atlas](https://atlasgo.io/)** - Schema migration tool that runs as a Kubernetes Job with Argo CD sync wave ordering
 
 ## Architecture
 
 ```
 ┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
 │   Application     │     │   Migration Job   │     │   CloudNativePG   │
-│   Deployment      │     │   (init container)│     │   Cluster         │
+│   Deployment      │     │   (sync-wave: -1) │     │   Cluster         │
 └───────────────────┘     └───────────────────┘     └───────────────────┘
          │                         │                         │
          │                         ▼                         │
@@ -31,6 +31,8 @@ The kit uses two components for database management:
                     │  Replica  │ │  Replica  │
                     └───────────┘ └───────────┘
 ```
+
+Argo CD sync waves ensure the migration Job completes before the application Deployment starts. The migration Job uses `sync-wave: -1` (or lower) to run first.
 
 ## CloudNativePG Clusters
 
@@ -159,19 +161,23 @@ services/go-backend/
     git push origin main
     ```
 
-    The migration runs automatically as an init container when the pod starts.
+    The migration Job runs automatically before the application starts, ordered via Argo CD sync waves.
   </Step>
 </Steps>
 
-### Migration Init Container
+### Migration Job
 
-Migrations run as a Kubernetes Job before the application starts:
+Migrations run as a Kubernetes Job before the application starts. Argo CD sync waves ensure proper ordering:
 
 ```yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: myapp-migrations
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # Run before Deployment (wave 0)
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
 spec:
   template:
     spec:
