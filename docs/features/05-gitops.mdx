@@ -89,7 +89,7 @@ ArgoCD Projects provide logical separation:
     Update Kubernetes manifests or Helm values in the `src/` directory.
   </Step>
   <Step title="Render manifests locally">
-    Run `mise run render` to generate environment-specific manifests to `rendered/staging/` or `rendered/production/`.
+    Run `mise run render-cluster <cluster>` from the application directory to generate environment-specific manifests to `rendered/staging/` or `rendered/production/`.
   </Step>
   <Step title="Commit and push">
     CI validates that rendered manifests are up-to-date (no git diff after re-rendering).

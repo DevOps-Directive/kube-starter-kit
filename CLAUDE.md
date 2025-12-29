@@ -55,7 +55,7 @@ ArgoCD uses the app-of-apps pattern: a root app in `kubernetes/src/argocd/` mana
 
 1. **Local testing**: Use KinD + Tilt (run `mise tasks` in `local/`)
 2. **Make changes**: Edit source in `kubernetes/src/` or `services/`
-3. **Render manifests**: Run `mise run render` in `kubernetes/`
+3. **Render manifests**: Run `mise run render-cluster <cluster>` from each application directory in `kubernetes/src/`
 4. **Commit**: Include rendered manifests (CI validates they're current)
 5. **Merge**: ArgoCD syncs changes to staging automatically
 
