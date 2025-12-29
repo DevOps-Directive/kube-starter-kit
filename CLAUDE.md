@@ -63,6 +63,6 @@ ArgoCD uses the app-of-apps pattern: a root app in `kubernetes/src/argocd/` mana
 
 - External Secrets integrates with AWS Secrets Manager/SSM
 - OpenTelemetry is pre-configured in Go services
-- Database migrations use Atlas, run as init containers
+- Database migrations use Atlas, run as Kubernetes Jobs with Argo CD sync wave ordering
 - Pod identity (not IRSA) is used for AWS IAM
 - Terraform orchestration is managed by Terramate (see `terraform/` and `.github/workflows/terramate-*.yml`)
