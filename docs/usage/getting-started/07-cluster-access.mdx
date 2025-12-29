@@ -21,17 +21,17 @@ If you prefer simpler access, you can enable the public API endpoint by setting 
 
 ```
 Your Machine                 AWS VPC
-+-----------+               +---------------------------+
-|           |               |                           |
-| kubectl   |---SOCKS5----->| Bastion Host              |
-|           |   proxy       | (private subnet)          |
-+-----------+               |         |                 |
-      |                     |         v                 |
-      | SSM Session         |  +---------------+        |
-      +-------------------->|  | EKS API       |        |
-        (via AWS APIs)      |  | (private)     |        |
-                            |  +---------------+        |
-                            +---------------------------+
+┌───────────┐               ┌───────────────────────────┐
+│           │               │                           │
+│ kubectl   │───SOCKS5─────>│ Bastion Host              │
+│           │   proxy       │ (private subnet)          │
+└───────────┘               │         │                 │
+      │                     │         ▼                 │
+      │ SSM Session         │  ┌───────────────┐        │
+      └────────────────────>│  │ EKS API       │        │
+        (via AWS APIs)      │  │ (private)     │        │
+                            │  └───────────────┘        │
+                            └───────────────────────────┘
 ```
 
 The bastion host:

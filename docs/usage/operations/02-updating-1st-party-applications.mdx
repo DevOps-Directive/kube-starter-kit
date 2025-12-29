@@ -13,13 +13,13 @@ First-party applications are services you build and deploy, like the `go-backend
 Changes flow through staging first, then to production after verification:
 
 ```
-+------------+
-| STAGING    |  Merge to main -> Build -> Update manifests -> ArgoCD syncs -+
-+------------+                                                              |
-                +-------------------- Verify Changes -----------------------+
-+------------+  |
-| PRODUCTION |  +-> Merge Release PR -> Build -> Update manifests -> ArgoCD syncs
-+------------+
+┌────────────┐
+│ STAGING    │  Merge to main -> Build -> Update manifests -> ArgoCD syncs ─┐
+└────────────┘                                                              │
+                ┌──────────────────── Verify Changes ───────────────────────┘
+┌────────────┐  │
+│ PRODUCTION │  └─> Merge Release PR -> Build -> Update manifests -> ArgoCD syncs
+└────────────┘
 ```
 
 Each step is detailed in the sections below.

@@ -50,34 +50,34 @@ The **Infrastructure account** is the central hub for all Terraform operations. 
 
 ```
 GitHub Actions               Human Admin (You)
-       |                            |
-       | OIDC                       | IAM Identity Center (SSO)
-       v                            v
-+-----------------------------------------------------+
-|                Infrastructure Account               |
-|                                                     |
-|   +-----------------+     +--------------------+    |
-|   |  GitHub OIDC    |     |   SSO Admin Role   |    |
-|   |  Role           |     |   (via Leapp)      |    |
-|   +-----------------+     +--------------------+    |
-|             \                   /                   |
-|              v                 v                    |
-|          +----------------------+                   |
-|          |   Terraform State    |                   |
-|          |   Bucket (S3)        |                   |
-|          +----------------------+                   |
-+-----------------------------------------------------+
-          |                   |
-          | sts:AssumeRole (cross-account)
-          v                   v
-+--------------+  +--------------+  +--------------+  +--------------+
-|  Management  |  |     ECR      |  |   Staging    |  |  Production  |
-|   Account    |  |   Account    |  |   Account    |  |   Account    |
-|              |  |              |  |              |  |              |
-|   IAM Role   |  |   IAM Role   |  |   IAM Role   |  |   IAM Role   |
-|   (trusts    |  |   (trusts    |  |   (trusts    |  |   (trusts    |
-|    infra)    |  |    infra)    |  |    infra)    |  |    infra)    |
-+--------------+  +--------------+  +--------------+  +--------------+
+       │                            │
+       │ OIDC                       │ IAM Identity Center (SSO)
+       ▼                            ▼
+┌─────────────────────────────────────────────────────┐
+│                Infrastructure Account               │
+│                                                     │
+│   ┌─────────────────┐     ┌────────────────────┐    │
+│   │  GitHub OIDC    │     │   SSO Admin Role   │    │
+│   │  Role           │     │   (via Leapp)      │    │
+│   └─────────────────┘     └────────────────────┘    │
+│             \                   /                   │
+│              ▼                 ▼                    │
+│          ┌──────────────────────┐                   │
+│          │   Terraform State    │                   │
+│          │   Bucket (S3)        │                   │
+│          └──────────────────────┘                   │
+└─────────────────────────────────────────────────────┘
+          │                │               │          \
+          │ sts:AssumeRole (cross-account) │           \
+          ▼                ▼               ▼            ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│  Management  │  │     ECR      │  │   Staging    │  │  Production  │
+│   Account    │  │   Account    │  │   Account    │  │   Account    │
+│ ------------ │  │ ------------ │  │ ------------ │  │ ------------ │
+│   IAM Role   │  │   IAM Role   │  │   IAM Role   │  │   IAM Role   │
+│   (trusts    │  │   (trusts    │  │   (trusts    │  │   (trusts    │
+│    infra)    │  │    infra)    │  │    infra)    │  │    infra)    │
+└──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
 **For CI/CD (GitHub Actions):**

@@ -11,15 +11,15 @@ The kit uses [SigNoz](https://signoz.io/) for observability, with [OpenTelemetry
 ## Architecture
 
 ```
-+-------------------+     +-------------------+     +-------------------+
-|   Application     |     |   OTel Collector  |     |   SigNoz Cloud    |
-|   (instrumented)  |---->|   (DaemonSet)     |---->|                   |
-+-------------------+     +-------------------+     +-------------------+
-                                   ^
-+-------------------+              |
-|   Kubernetes      |              |
-|   Metrics/Logs    |--------------+
-+-------------------+
+┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
+│   Application     │     │   OTel Collector  │     │   SigNoz Cloud    │
+│   (instrumented)  │────>│   (DaemonSet)     │────>│                   │
+└───────────────────┘     └───────────────────┘     └───────────────────┘
+                                   ▲
+┌───────────────────┐              │
+│   Kubernetes      │              │
+│   Metrics/Logs    │──────────────┘
+└───────────────────┘
 ```
 
 ## SigNoz Setup

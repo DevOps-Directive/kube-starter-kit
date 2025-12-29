@@ -50,48 +50,48 @@ I've curated a set of infrastructure components that I've used across multiple p
 
 ```
 Internet
-    |
-    v
-+-------------------------------+
-|  AWS NLB                      |
-|  (created by ingress-nginx)   |
-+-------------------------------+
-    |
-    v
-+-------------------------------+
-|  ingress-nginx controller     |
-|  - TLS termination            |
-|  - Route by Ingress rules     |
-+-------------------------------+
-    |
-    v
-+-------------------------------+
-|  Your application pods        |
-+-------------------------------+
+    │
+    ▼
+┌───────────────────────────────┐
+│  AWS NLB                      │
+│  (created by ingress-nginx)   │
+└───────────────────────────────┘
+    │
+    ▼
+┌───────────────────────────────┐
+│  ingress-nginx controller     │
+│  - TLS termination            │
+│  - Route by Ingress rules     │
+└───────────────────────────────┘
+    │
+    ▼
+┌───────────────────────────────┐
+│  Your application pods        │
+└───────────────────────────────┘
 ```
 
 ### Secrets Flow
 
 ```
 AWS Secrets Manager
-    ^
-    | (polls)
-    |
-+-------------------------------+
-|  ClusterSecretStore           |
-+-------------------------------+
-    ^
-    | (references)
-    |
-+-------------------------------+
-|  ExternalSecret               |
-+-------------------------------+
-    |
-    | (creates/updates)
-    v
-+-------------------------------+
-|  Kubernetes Secret            |
-+-------------------------------+
+    ▲
+    │ (polls)
+    │
+┌───────────────────────────────┐
+│  ClusterSecretStore           │
+└───────────────────────────────┘
+    ▲
+    │ (references)
+    │
+┌───────────────────────────────┐
+│  ExternalSecret               │
+└───────────────────────────────┘
+    │
+    │ (creates/updates)
+    ▼
+┌───────────────────────────────┐
+│  Kubernetes Secret            │
+└───────────────────────────────┘
 ```
 
 ### Component Details
