@@ -61,10 +61,10 @@ echo "${IMAGE_REPO}:${VERSION}"
 '''
 
 [tasks.generate-extended-version]
-# NOTE: Pre-release versions (e.g., 1.2.3-7-gabc123) sort BEFORE the base
+# NOTE: Pre-release versions (e.g., 1.2.3-0007-gabc123) sort BEFORE the base
 # version (1.2.3) in semver. If your tooling requires pre-release tags to sort
 # AFTER the base version, you'll need to modify this task to bump the patch
-# version (e.g., output 1.2.4-7-gabc123 instead).
+# version (e.g., output 1.2.4-0007-gabc123 instead).
 description = "If commits since last tag: emit x.y.z-NNNN-g<sha>; else: x.y.z"
 silent = true
 run = '''
