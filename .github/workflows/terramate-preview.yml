@@ -58,6 +58,7 @@ jobs:
 
       ### Restore provider cache
       - name: Restore Terraform provider cache
+        if: steps.list-changed.outputs.stdout
         uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ${{ github.workspace }}/.tf_plugin_cache_dir
