@@ -1,0 +1,10 @@
+apiVersion: v2
+name: traefik-wrapper
+description: Umbrella chart that installs traefik
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: traefik
+    repository: "oci://ghcr.io/traefik/helm"
+    version: REPLACED_BY_CHARTVERSIONS

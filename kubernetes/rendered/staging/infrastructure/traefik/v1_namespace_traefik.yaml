@@ -1,0 +1,5 @@
+# Source: traefik-wrapper/templates/Namespace.traefik.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik

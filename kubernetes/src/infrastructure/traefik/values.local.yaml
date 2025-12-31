@@ -1,0 +1,4 @@
+traefik:
+  service:
+    spec:
+      loadBalancerIP: "172.20.0.101"

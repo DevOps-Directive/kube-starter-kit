@@ -5,3 +5,5 @@ image:
 ingress:
   nginx:
     hostname: go-backend-helm.172-20-0-100.sslip.io
+  traefik:
+    hostname: go-backend-helm.172-20-0-101.sslip.io

@@ -102,3 +102,21 @@ local_resource('ingress-nginx-wait',
   allow_parallel=True
 )
 ################ END INGRESS-NGINX #################
+
+################ TRAEFIK #################
+local('export CHART_DIR="$PWD/traefik" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
+k8s_yaml(
+  helm(
+    './traefik',
+    name='traefik',
+    namespace='traefik',
+    values=[
+      './traefik/values.yaml',
+      './traefik/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('traefik',
+  labels=['traefik']
+)
+################ END TRAEFIK #################

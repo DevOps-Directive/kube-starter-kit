@@ -4,3 +4,5 @@ applications:
     enabled: true
   go-backend-helm:
     enabled: true
+  go-backend-timoni:
+    enabled: true
