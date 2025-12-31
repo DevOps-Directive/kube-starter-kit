@@ -146,6 +146,10 @@ import (
 			enabled:  *true | bool
 			hostname: *"ingress-nginx-timoni.staging.kubestarterkit.com" | string
 		}
+		traefik: {
+			enabled:  *true | bool
+			hostname: *"ingress-traefik-timoni.staging.kubestarterkit.com" | string
+		}
 		istio: {
 			enabled:  *false | bool
 			hostname: *"minimal-istio-timoni.staging.kubestarterkit.com" | string
@@ -173,6 +177,9 @@ import (
 		deploy: #Deployment & {#config: config}
 		if config.ingress.enabled && config.ingress.nginx.enabled {
 			ingressNginx: #IngressNginx & {#config: config}
+		}
+		if config.ingress.enabled && config.ingress.traefik.enabled {
+			ingressTraefik: #IngressTraefik & {#config: config}
 		}
 		if config.ingress.enabled && config.ingress.istio.enabled {
 			ingressIstio: #IngressIstio & {#config: config}

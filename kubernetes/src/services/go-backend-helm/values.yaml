@@ -8,3 +8,5 @@ image:
 ingress:
   nginx:
     hostname: go-backend-helm.staging.kubestarterkit.com
+  traefik:
+    hostname: go-backend-helm-traefik.staging.kubestarterkit.com

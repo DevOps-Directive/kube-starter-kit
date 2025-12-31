@@ -5,3 +5,4 @@ patches:
   - path: Cluster.go-backend.yaml
   - path: Deployment.go-backend.yaml
   - path: Ingress.minimal-nginx.yaml
+  - path: Ingress.minimal-traefik.yaml
