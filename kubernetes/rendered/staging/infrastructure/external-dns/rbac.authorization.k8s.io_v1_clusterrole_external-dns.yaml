@@ -51,33 +51,12 @@ rules:
       - watch
       - list
   - apiGroups:
-      - gateway.networking.k8s.io
+      - traefik.containo.us
+      - traefik.io
     resources:
-      - gateways
-    verbs:
-      - get
-      - watch
-      - list
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
-      - get
-      - watch
-      - list
-  - apiGroups:
-      - gateway.networking.k8s.io
-    resources:
-      - httproutes
-    verbs:
-      - get
-      - watch
-      - list
-  - apiGroups:
-      - gateway.networking.k8s.io
-    resources:
-      - tcproutes
+      - ingressroutes
+      - ingressroutetcps
+      - ingressrouteudps
     verbs:
       - get
       - watch

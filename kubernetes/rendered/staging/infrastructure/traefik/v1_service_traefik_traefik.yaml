@@ -10,6 +10,7 @@ metadata:
     helm.sh/chart: traefik-38.0.1
     app.kubernetes.io/managed-by: Helm
   annotations:
+    external-dns.alpha.kubernetes.io/hostname: traefik.staging.kubestarterkit.com
 spec:
   type: LoadBalancer
   selector:

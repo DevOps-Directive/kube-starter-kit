@@ -11,8 +11,9 @@ external-dns:
   sources:
     - service
     - ingress
-    - gateway-httproute
-    - gateway-tcproute
+    - traefik-proxy # Traefik IngressRoute CRD support
+    # - gateway-httproute
+    # - gateway-tcproute
 
   # Use sync if you want to clean up records when they are removed (keeps things tidy, but potentially destructive if something goes awry)
   # You can omit (or use upsert-only) if you dont have dynamic records being added/removed frequently and want to be a bit safer
@@ -30,3 +31,4 @@ external-dns:
 
   extraArgs:
     - --aws-zone-type=public
+    - --traefik-disable-legacy # Only use traefik.io API group (not traefik.containo.us)

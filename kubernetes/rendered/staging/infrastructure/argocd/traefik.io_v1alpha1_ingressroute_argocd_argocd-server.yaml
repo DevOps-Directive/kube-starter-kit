@@ -1,0 +1,32 @@
+# Source: argocd-wrapper/templates/IngressRoute.argocd-server.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: argocd.staging.kubestarterkit.com
+    # Target the Traefik LB's DNS name (created by external-dns on the Traefik service)
+    external-dns.alpha.kubernetes.io/target: traefik.staging.kubestarterkit.com
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    # HTTP/HTTPS route (lower priority)
+    - kind: Rule
+      match: Host(`argocd.staging.kubestarterkit.com`)
+      priority: 10
+      services:
+        - name: argocd-server
+          port: 80
+    # gRPC route (higher priority, matches Content-Type header)
+    - kind: Rule
+      match: Host(`argocd.staging.kubestarterkit.com`) && Header(`Content-Type`, `application/grpc`)
+      priority: 11
+      services:
+        - name: argocd-server
+          port: 80
+          scheme: h2c
+  tls:
+    # Use the certificate provisioned by cert-manager
+    secretName: argocd-server-tls
