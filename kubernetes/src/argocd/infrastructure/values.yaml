@@ -6,6 +6,8 @@ applications:
     enabled: true
   cloudnative-pg:
     enabled: true
+  datadog-operator:
+    enabled: false
   ebs-csi-driver-resources:
     enabled: true
   envoy-gateway:
@@ -16,13 +18,13 @@ applications:
     enabled: true
   ingress-nginx:
     enabled: true
+  istio:
+    enabled: false
   karpenter:
-    enabled: true
-  signoz-k8s-infra:
     enabled: true
   reloader:
     enabled: true
-  datadog-operator:
-    enabled: false
-  istio:
-    enabled: false
+  signoz-k8s-infra:
+    enabled: true
+  traefik:
+    enabled: true
