@@ -137,62 +137,15 @@ If you want to enable GitHub OAuth for ArgoCD login (recommended for production)
 See the [ArgoCD Dex documentation](https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#dex) for more details on SSO configuration.
 </Note>
 
-## Bootstrap Infrastructure Components
+## Bootstrap ArgoCD
 
-These components must be deployed manually before ArgoCD can take over:
-
-| Component | Why Manual |
-|-----------|------------|
-| **cert-manager** | Issues TLS certificates for ingresses (including ArgoCD's) |
-| **external-secrets** | Syncs secrets from AWS Secrets Manager for other components |
-| **external-dns** | Creates DNS records for ingresses (including ArgoCD's) |
-| **ingress-nginx** | Routes external traffic to services (including ArgoCD UI) |
-| **argocd** | The GitOps controller itself - can't deploy itself initially |
-
-Once these are running, ArgoCD can sync with the Git repository and manage all components (including itself) going forward.
+Only ArgoCD itself needs to be manually deployed. Once running, ArgoCD will deploy and manage all other infrastructure components automatically.
 
 <Warning>
-Some components will show errors on the first apply (e.g., "namespace not found" or "CRD not found"). This is expected - simply run the apply command again to create the remaining resources.
+ArgoCD may show errors on the first apply (e.g., "namespace not found" or "CRD not found"). This is expected - simply run the apply command again to create the remaining resources.
 </Warning>
 
 <Steps>
-  <Step title="Deploy cert-manager">
-    ```bash
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/cert-manager/
-    # Run again if needed for CRDs
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/cert-manager/
-    
-    kubectl wait --for=condition=available deployment --all -n cert-manager --timeout=300s
-    ```
-  </Step>
-
-  <Step title="Deploy external-secrets">
-    ```bash
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-secrets/
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-secrets/
-    
-    kubectl wait --for=condition=available deployment --all -n external-secrets --timeout=300s
-    ```
-  </Step>
-
-  <Step title="Deploy external-dns">
-    ```bash
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-dns/
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/external-dns/
-    
-    kubectl wait --for=condition=available deployment --all -n external-dns --timeout=300s
-    ```
-  </Step>
-
-  <Step title="Deploy ingress-nginx">
-    ```bash
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/ingress-nginx/
-    kubectl apply -f kubernetes/rendered/staging/infrastructure/ingress-nginx/
-    
-    kubectl wait --for=condition=available deployment --all -n ingress-nginx --timeout=300s
-    ```
-  </Step>
-
   <Step title="Deploy ArgoCD">
     ```bash
     kubectl apply -f kubernetes/rendered/staging/infrastructure/argocd/
@@ -210,6 +163,8 @@ Some components will show errors on the first apply (e.g., "namespace not found"
     This creates:
     - Three AppProjects (argocd, infrastructure, services)
     - The root `argocd-app-of-apps` Application
+
+    ArgoCD will then automatically deploy all infrastructure components (cert-manager, external-secrets, external-dns, ingress-nginx, etc.) and services.
   </Step>
 </Steps>
 
@@ -237,7 +192,7 @@ Some components will show errors on the first apply (e.g., "namespace not found"
     - `services-app-of-apps` - Synced
 
     From here, ArgoCD manages everything automatically:
-    - Remaining infrastructure components deploy via the `infrastructure-app-of-apps`
+    - Infrastructure components deploy via the `infrastructure-app-of-apps`
     - Secrets are retrieved via external-secrets
     - DNS records are created via external-dns
   </Step>
@@ -274,18 +229,18 @@ The following components are included in the Kubernetes baseline:
 
 | Component | Bootstrap | Purpose |
 |-----------|-----------|---------|
-| **cert-manager** | Manual | TLS certificate automation with Let's Encrypt |
-| **external-secrets** | Manual | Syncs secrets from AWS Secrets Manager |
-| **external-dns** | Manual | Automatic DNS record management in Route53 |
-| **ingress-nginx** | Manual | Ingress controller for routing external traffic |
 | **argocd** | Manual | GitOps continuous delivery |
+| **cert-manager** | ArgoCD | TLS certificate automation with Let's Encrypt |
+| **external-secrets** | ArgoCD | Syncs secrets from AWS Secrets Manager |
+| **external-dns** | ArgoCD | Automatic DNS record management in Route53 |
+| **ingress-nginx** | ArgoCD | Ingress controller for routing external traffic |
 | **karpenter** | ArgoCD | Dynamic node provisioning and autoscaling |
 | **cloudnative-pg** | ArgoCD | PostgreSQL operator for in-cluster databases |
 | **signoz-k8s-infra** | ArgoCD | OpenTelemetry collectors for observability |
 | **reloader** | ArgoCD | Restarts pods when ConfigMaps/Secrets change |
 | **ebs-csi-driver-resources** | ArgoCD | StorageClass for encrypted EBS volumes |
 
-Components marked **Manual** are deployed during bootstrap. Components marked **ArgoCD** are deployed automatically once ArgoCD syncs.
+Only ArgoCD is deployed manually during bootstrap. All other components are deployed automatically by ArgoCD once it syncs with the repository.
 
 ## Verify Deployment
 
