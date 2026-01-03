@@ -29,7 +29,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.2-rc0028-g98b8c55
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.2.1-0065-geeb4990
           ports:
             - containerPort: 8080
               protocol: TCP
