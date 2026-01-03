@@ -69,7 +69,7 @@ local/
 ```
 
 Tilt deploys:
-- **Infrastructure:** cert-manager, cloudnative-pg, ingress-nginx
+- **Infrastructure:** cert-manager, cloudnative-pg, traefik
 - **Applications:** Three variants of go-backend (Kustomize, Helm, Timoni)
 
 Each application gets its own PostgreSQL database, runs migrations, and is accessible via ingress.
@@ -81,7 +81,7 @@ Each component has `values.local.yaml` or a `local/` overlay:
 ```
 kubernetes/src/
 ├── infrastructure/
-│   ├── ingress-nginx/values.local.yaml  # LoadBalancer IP
+│   ├── traefik/values.local.yaml        # LoadBalancer IP
 │   └── cloudnative-pg/values.local.yaml
 └── services/
     ├── go-backend/local/                 # Kustomize overlay

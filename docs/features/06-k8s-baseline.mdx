@@ -21,7 +21,7 @@ Every team ends up installing the same set of tools, making the same configurati
 
 I've curated a set of infrastructure components that I've used across multiple production clusters. They're pre-configured to work together, with sensible defaults and AWS integrations already wired up:
 
-**Ingress with automatic TLS:** Ingress-NGINX handles traffic routing; cert-manager automatically provisions and renews Let's Encrypt certificates.
+**Ingress with automatic TLS:** Traefik handles traffic routing; cert-manager automatically provisions and renews Let's Encrypt certificates.
 
 **DNS automation:** External-DNS watches your Ingress resources and creates Route53 records automatically. No more manually creating DNS entries.
 
@@ -37,7 +37,7 @@ I've curated a set of infrastructure components that I've used across multiple p
 
 | Component | Purpose | AWS Integration |
 |-----------|---------|-----------------|
-| **ingress-nginx** | HTTP(S) traffic routing | Creates NLB via AWS Load Balancer |
+| **traefik** | HTTP(S) traffic routing | Creates NLB via AWS Load Balancer |
 | **cert-manager** | Automatic TLS certificates | Uses Route53 for DNS-01 challenges |
 | **external-dns** | DNS record management | Creates Route53 records |
 | **external-secrets** | Secrets synchronization | Reads from AWS Secrets Manager |
@@ -54,12 +54,12 @@ Internet
     ▼
 ┌───────────────────────────────┐
 │  AWS NLB                      │
-│  (created by ingress-nginx)   │
+│  (created by traefik)         │
 └───────────────────────────────┘
     │
     ▼
 ┌───────────────────────────────┐
-│  ingress-nginx controller     │
+│  traefik controller           │
 │  - TLS termination            │
 │  - Route by Ingress rules     │
 └───────────────────────────────┘
@@ -97,11 +97,15 @@ AWS Secrets Manager
 ### Component Details
 
 <AccordionGroup>
-  <Accordion title="ingress-nginx">
-    The standard Kubernetes ingress controller. Deployed with:
+  <Accordion title="traefik">
+    A modern cloud-native ingress controller that supports both Kubernetes Ingress and Gateway API. Deployed with:
     - AWS NLB for external traffic (Layer 4)
-    - Proxy protocol support for client IP preservation
-    - Default backend for unmatched requests
+    - Automatic service discovery
+    - Native Kubernetes Ingress support
+    - Full Gateway API support (HTTPRoute, GRPCRoute, TCPRoute)
+    - IngressRoute CRDs for advanced routing
+
+    Using a single controller for both Ingress and Gateway API reduces operational complexity. Start with familiar Ingress resources today, migrate to Gateway API when ready, all without changing infrastructure.
 
     Create an Ingress resource, and traffic flows automatically.
   </Accordion>
@@ -183,7 +187,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   tls:
     - hosts:
         - app.example.com
@@ -204,13 +208,13 @@ spec:
 This single resource triggers:
 1. **external-dns** creates `app.example.com` → NLB in Route53
 2. **cert-manager** provisions a Let's Encrypt certificate
-3. **ingress-nginx** routes traffic to your service
+3. **traefik** routes traffic to your service
 
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **ingress-nginx over AWS ALB Ingress** | More portable, better feature support, familiar to most teams. NLB at L4 is simpler. |
+| **Traefik over AWS ALB Ingress** | More portable, cloud-native design, excellent Kubernetes integration. Supports both Ingress and Gateway API in a single controller, reducing operational overhead. NLB at L4 is simpler. |
 | **external-secrets over Sealed Secrets** | Secrets stay in a proper secrets manager. Better for rotation, auditing, and access control. |
 | **Karpenter over Cluster Autoscaler** | Faster provisioning, better bin-packing, simpler configuration for mixed instance types. |
 | **SigNoz over Datadog/New Relic** | Open source, self-hosted, no per-host pricing. Good enough for most teams starting out. |

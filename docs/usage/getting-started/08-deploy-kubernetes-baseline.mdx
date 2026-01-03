@@ -21,7 +21,7 @@ argocd-app-of-apps (root)
 ├── argocd                    → Self-manages ArgoCD installation
 ├── infrastructure-app-of-apps → Manages infrastructure components
 │   ├── cert-manager
-│   ├── ingress-nginx
+│   ├── traefik
 │   ├── external-secrets
 │   ├── external-dns
 │   ├── karpenter
@@ -152,7 +152,7 @@ This task:
 3. Applies AppProjects
 4. Applies Applications
 
-ArgoCD will then automatically deploy all infrastructure components (cert-manager, external-secrets, external-dns, ingress-nginx, etc.) and services.
+ArgoCD will then automatically deploy all infrastructure components (cert-manager, external-secrets, external-dns, traefik, etc.) and services.
 
 ## Verify Bootstrap
 
@@ -231,7 +231,7 @@ The following components are included in the Kubernetes baseline:
 | **cert-manager** | ArgoCD | TLS certificate automation with Let's Encrypt |
 | **external-secrets** | ArgoCD | Syncs secrets from AWS Secrets Manager |
 | **external-dns** | ArgoCD | Automatic DNS record management in Route53 |
-| **ingress-nginx** | ArgoCD | Ingress controller for routing external traffic |
+| **traefik** | ArgoCD | Ingress controller for routing external traffic |
 | **karpenter** | ArgoCD | Dynamic node provisioning and autoscaling |
 | **cloudnative-pg** | ArgoCD | PostgreSQL operator for in-cluster databases |
 | **signoz-k8s-infra** | ArgoCD | OpenTelemetry collectors for observability |
@@ -254,7 +254,7 @@ Only ArgoCD is deployed manually during bootstrap. All other components are depl
   <Step title="Verify infrastructure pods">
     ```bash
     kubectl get pods -n cert-manager
-    kubectl get pods -n ingress-nginx
+    kubectl get pods -n traefik
     kubectl get pods -n external-secrets
     kubectl get pods -n karpenter
     ```

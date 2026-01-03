@@ -1,12 +1,12 @@
 ---
 title: 'Updating 3rd Party Applications'
-description: 'Update infrastructure components like ingress-nginx, cert-manager, and more'
+description: 'Update infrastructure components like traefik, cert-manager, and more'
 icon: 'arrow-up-right-from-square'
 ---
 
 ## Overview
 
-Third-party applications are infrastructure components deployed via Helm charts, things like ingress-nginx, cert-manager, external-secrets, and ArgoCD itself. This page covers how to update their versions and configurations.
+Third-party applications are infrastructure components deployed via Helm charts, things like traefik, cert-manager, external-secrets, and ArgoCD itself. This page covers how to update their versions and configurations.
 
 ## Infrastructure Components
 
@@ -19,7 +19,7 @@ The kit includes these third-party components in `kubernetes/src/infrastructure/
 | cloudnative-pg | cloudnative-pg.github.io | PostgreSQL operator |
 | external-dns | kubernetes-sigs.github.io | DNS record management |
 | external-secrets | charts.external-secrets.io | Secret synchronization |
-| ingress-nginx | kubernetes.github.io | Ingress controller |
+| traefik | ghcr.io/traefik/helm | Ingress controller |
 | karpenter | public.ecr.aws/karpenter | Node autoscaling |
 | reloader | stakater.github.io | Pod restart on config changes |
 | signoz-k8s-infra | charts.signoz.io | Observability collectors |
@@ -33,13 +33,13 @@ Each component uses a "wrapper chart" pattern: a local Helm chart that includes 
     Check the current version in the component's `values.yaml`:
 
     ```bash
-    cat kubernetes/src/infrastructure/ingress-nginx/values.yaml
+    cat kubernetes/src/infrastructure/traefik/values.yaml
     ```
 
     Look for the `chartVersions` section:
     ```yaml
     chartVersions:
-      ingress-nginx: "4.12.2"
+      traefik: "38.0.1"
     ```
   </Step>
 
@@ -47,12 +47,8 @@ Each component uses a "wrapper chart" pattern: a local Helm chart that includes 
     Find the latest version from the chart repository:
 
     ```bash
-    # Add the repo if not already added
-    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-    helm repo update
-
-    # Search for versions
-    helm search repo ingress-nginx/ingress-nginx --versions | head -10
+    # Search for versions using OCI registry
+    helm search repo traefik/traefik --versions | head -10
     ```
   </Step>
 
@@ -60,12 +56,12 @@ Each component uses a "wrapper chart" pattern: a local Helm chart that includes 
     Edit the values file to update the version:
 
     ```bash
-    vim kubernetes/src/infrastructure/ingress-nginx/values.yaml
+    vim kubernetes/src/infrastructure/traefik/values.yaml
     ```
 
     ```yaml
     chartVersions:
-      ingress-nginx: "4.13.0"  # Updated version
+      traefik: "38.1.0"  # Updated version
     ```
 
     For environment-specific versions, edit `values.staging.yaml` or `values.production.yaml`. Setting these independently allows for testing upgrades in lower environments before rolling out to production.
@@ -75,7 +71,7 @@ Each component uses a "wrapper chart" pattern: a local Helm chart that includes 
     Regenerate the lock file with the new dependency:
 
     ```bash
-    cd kubernetes/src/infrastructure/ingress-nginx
+    cd kubernetes/src/infrastructure/traefik
     helm dependency update
     ```
   </Step>
@@ -85,7 +81,7 @@ Each component uses a "wrapper chart" pattern: a local Helm chart that includes 
     mise run //kubernetes/src/infrastructure:render-all
 
     git add .
-    git commit -m "chore: update ingress-nginx to 4.13.0"
+    git commit -m "chore: update traefik to 38.1.0"
     git push origin main
     ```
   </Step>
@@ -100,14 +96,14 @@ To change component settings without upgrading versions:
     Modify `values.yaml` for base configuration or `values.{environment}.yaml` for environment-specific settings:
 
     ```bash
-    vim kubernetes/src/infrastructure/ingress-nginx/values.yaml
+    vim kubernetes/src/infrastructure/traefik/values.yaml
     ```
 
     For example, increase controller replicas:
     ```yaml
-    ingress-nginx:
-      controller:
-        replicaCount: 3
+    traefik:
+      deployment:
+        replicas: 3
     ```
   </Step>
 
@@ -121,7 +117,7 @@ To change component settings without upgrading versions:
     ```bash
     git diff kubernetes/rendered/
     git add .
-    git commit -m "chore: increase ingress-nginx replicas to 3"
+    git commit -m "chore: increase traefik replicas to 3"
     git push origin main
     ```
   </Step>
@@ -153,19 +149,19 @@ Use values overlay files for environment differences:
 
 ```yaml
 # values.yaml (base)
-ingress-nginx:
-  controller:
-    replicaCount: 2
+traefik:
+  deployment:
+    replicas: 2
 
 # values.staging.yaml
-ingress-nginx:
-  controller:
-    replicaCount: 1  # Smaller for staging
+traefik:
+  deployment:
+    replicas: 1  # Smaller for staging
 
 # values.production.yaml
-ingress-nginx:
-  controller:
-    replicaCount: 3  # Larger for production
+traefik:
+  deployment:
+    replicas: 3  # Larger for production
 ```
 
 The render process merges base values with environment-specific overrides.

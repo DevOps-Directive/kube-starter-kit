@@ -42,7 +42,7 @@ kubernetes/
 │   ├── infrastructure/          # Infrastructure components
 │   │   ├── cert-manager/
 │   │   ├── external-dns/
-│   │   ├── ingress-nginx/
+│   │   ├── traefik/
 │   │   └── ...
 │   └── services/                # Your applications
 │       └── go-backend/
@@ -61,7 +61,7 @@ argocd-app-of-apps (root)
 ├── infrastructure-app-of-apps
 │   ├── cert-manager
 │   ├── external-dns
-│   ├── ingress-nginx
+│   ├── traefik
 │   ├── external-secrets
 │   ├── karpenter
 │   └── ...
@@ -116,7 +116,7 @@ applications:
     enabled: true
   external-dns:
     enabled: true
-  ingress-nginx:
+  traefik:
     enabled: true
   karpenter:
     enabled: true

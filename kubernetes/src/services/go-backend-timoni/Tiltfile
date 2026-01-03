@@ -30,7 +30,7 @@ k8s_resource(
   workload='go-backend:deployment:go-backend-timoni',
   new_name='go-backend-timoni',
   labels=['go-backend-timoni'],
-  resource_deps=['go-backend-timoni-db-wait', 'ingress-nginx-wait']
+  resource_deps=['go-backend-timoni-db-wait', 'traefik-wait']
 )
 k8s_resource(
   workload='go-backend-migrate:job:go-backend-timoni',

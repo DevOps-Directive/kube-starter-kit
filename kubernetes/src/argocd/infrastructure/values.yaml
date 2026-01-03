@@ -16,8 +16,6 @@ applications:
     enabled: true
   external-secrets:
     enabled: true
-  ingress-nginx:
-    enabled: true
   istio:
     enabled: false
   karpenter:

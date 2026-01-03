@@ -1,4 +1,4 @@
 values:
   ingress:
-    nginx:
-      hostname: "ingress-nginx-timoni.production.kubestarterkit.com"
+    traefik:
+      hostname: "ingress-traefik-timoni.production.kubestarterkit.com"
