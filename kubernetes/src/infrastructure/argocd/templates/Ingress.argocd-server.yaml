@@ -1,4 +1,3 @@
-# Source: argocd-wrapper/templates/Ingress.argocd-server.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,10 +9,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - argocd.staging.kubestarterkit.com
+        - {{ .Values.ingress.hostname }}
       secretName: argocd-server-tls
   rules:
-    - host: argocd.staging.kubestarterkit.com
+    - host: {{ .Values.ingress.hostname }}
       http:
         paths:
           - path: /
@@ -22,4 +21,4 @@ spec:
               service:
                 name: argocd-server
                 port:
-                  name: http # Use port 80 (http), not 443
+                  name: http  # Use port 80 (http), not 443

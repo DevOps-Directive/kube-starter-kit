@@ -2,26 +2,22 @@
 chartVersions:
   argo-cd: "7.7.16"
 
+# Custom ingress configuration (used by templates/Ingress.argocd-server.yaml)
+ingress:
+  hostname: ""  # Override per environment
+
 argocd:
   server:
+    # Run argocd-server with TLS disabled (Traefik handles TLS termination)
+    extraArgs:
+      - --insecure
+    # Disable helm-managed ingress - using custom Ingress template for Traefik compatibility
     ingress:
-      enabled: true
-      annotations:
-        cert-manager.io/cluster-issuer: letsencrypt-prod-dns
-
-        # This isnt actually necessary (and doesnt do anything unless nginx is running with --enable-ssl-passthrough)
-        # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-
-        # If you encounter a redirect loop or are getting a 307 response code
-        # then you need to force the nginx ingress to connect to the backend using HTTPS.
-        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-      ingressClassName: nginx
-      hostname: argocd.staging.kubestarterkit.com
-      tls: true
+      enabled: false
 
   configs:
     cm:
-      url: https://argocd.staging.kubestarterkit.com
+      # url is set per-environment in values.{env}.yaml
       admin.enabled: "false"
       # Webhook configuration
       # GitHub webhook URL: https://argocd.staging.kubestarterkit.com/api/webhook

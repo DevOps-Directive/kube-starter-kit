@@ -54,8 +54,6 @@ spec:
             - --interval=1m
             - --source=service
             - --source=ingress
-            - --source=gateway-httproute
-            - --source=gateway-tcproute
             - --policy=sync
             - --registry=txt
             - --txt-owner-id=external-dns
