@@ -77,14 +77,6 @@ generate_hcl "_outputs_info.tf" {
       value = tm_hcl_expression("module.eks.eks_cluster_endpoint")
     }
 
-    output "deploy_key_public_key" {
-      value = tm_hcl_expression("module.eks.deploy_key_public_key")
-    }
-
-    output "deploy_key_setup" {
-      value = tm_hcl_expression("module.eks.deploy_key_setup")
-    }
-
     output "karpenter_interruption_queue" {
       value = tm_hcl_expression("module.eks.karpenter_interruption_queue")
     }

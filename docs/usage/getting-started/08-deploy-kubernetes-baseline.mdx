@@ -80,31 +80,31 @@ Before deploying, update the Git repository URLs to point to your fork:
   </Step>
 </Steps>
 
-## Add GitHub Deploy Key
+## Create Deploy Key
 
-ArgoCD needs SSH access to clone your private repository. The EKS Terraform module automatically generates a deploy key and stores the private key in AWS Secrets Manager. You just need to add the public key to GitHub.
+ArgoCD needs SSH access to clone your private repository. Run the bootstrap task to generate a deploy key and create the Kubernetes secret:
 
 <Steps>
-  <Step title="Get the public key from Terraform output">
+  <Step title="Generate deploy key and create secret">
     ```bash
-    terramate run --tags staging:us-east-2:eks -- terraform output deploy_key_public_key
-
-    terramate run --tags staging:us-east-2:eks -- terraform output deploy_key_setup
+    cd kubernetes/bootstrap
+    mise run create-deploy-key git@github.com:YOUR-ORG/kube-starter-kit.git
     ```
   </Step>
 
   <Step title="Add the public key to GitHub">
+    The command outputs the public key. Add it to your repository:
     1. Go to your repository **Settings → Deploy keys**
     2. Click **Add deploy key**
-    3. Title: `ArgoCD Deploy Key (staging)`
-    4. Paste the public key from the Terraform output
+    3. Title: `ArgoCD Deploy Key`
+    4. Paste the public key from the command output
     5. Leave **Allow write access** unchecked (read-only is sufficient for GitOps)
     6. Click **Add key**
   </Step>
 </Steps>
 
 <Note>
-The private key is stored in AWS Secrets Manager at `{cluster-name}-deploy-key`. External Secrets syncs this into the cluster for ArgoCD to use.
+The private key is stored as a Kubernetes Secret (`repo-kube-starter-kit`) in the `argocd` namespace. ArgoCD automatically discovers it via the `argocd.argoproj.io/secret-type=repository` label.
 </Note>
 
 ## Configure GitHub OAuth (Optional)
@@ -144,7 +144,7 @@ These components must be deployed manually before ArgoCD can take over:
 | Component | Why Manual |
 |-----------|------------|
 | **cert-manager** | Issues TLS certificates for ingresses (including ArgoCD's) |
-| **external-secrets** | Syncs the deploy key from AWS Secrets Manager so ArgoCD can clone the repo |
+| **external-secrets** | Syncs secrets from AWS Secrets Manager for other components |
 | **external-dns** | Creates DNS records for ingresses (including ArgoCD's) |
 | **ingress-nginx** | Routes external traffic to services (including ArgoCD UI) |
 | **argocd** | The GitOps controller itself - can't deploy itself initially |
@@ -209,7 +209,6 @@ Some components will show errors on the first apply (e.g., "namespace not found"
 
     This creates:
     - Three AppProjects (argocd, infrastructure, services)
-    - ExternalSecrets for GitHub deploy keys
     - The root `argocd-app-of-apps` Application
   </Step>
 </Steps>
@@ -217,15 +216,12 @@ Some components will show errors on the first apply (e.g., "namespace not found"
 ## Verify Bootstrap
 
 <Steps>
-  <Step title="Wait for External Secrets to sync">
-    The ExternalSecrets need to fetch the deploy keys before ArgoCD can clone the repository:
+  <Step title="Verify deploy key secret exists">
+    The deploy key secret should have been created by the bootstrap task:
 
     ```bash
-    kubectl get externalsecrets -n argocd
-    kubectl get secrets -n argocd | grep repo-
+    kubectl get secrets -n argocd | grep repo-kube-starter-kit
     ```
-
-    Wait until all ExternalSecrets show `SecretSynced` status.
   </Step>
 
   <Step title="Verify ArgoCD can sync">

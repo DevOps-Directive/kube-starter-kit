@@ -1,0 +1,57 @@
+[tasks.create-deploy-key]
+description = "Generate SSH deploy key and create ArgoCD repository secret"
+usage = '''
+arg "<repo_url>" help="Git repository URL (e.g., git@github.com:org/repo.git)"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_URL="${usage_repo_url}"
+SECRET_NAME="repo-kube-starter-kit"
+
+# Check if secret already exists
+if kubectl get secret "${SECRET_NAME}" -n argocd &>/dev/null; then
+  echo "Warning: Secret '${SECRET_NAME}' already exists in namespace 'argocd'."
+  echo "To rotate the key, delete the secret first:"
+  echo "  kubectl delete secret ${SECRET_NAME} -n argocd"
+  exit 1
+fi
+
+KEY_FILE=$(mktemp)
+trap "rm -f ${KEY_FILE} ${KEY_FILE}.pub" EXIT
+
+# Generate ED25519 SSH key
+ssh-keygen -t ed25519 -f "${KEY_FILE}" -N "" -C "argocd-deploy-key" -q
+
+PRIVATE_KEY=$(cat "${KEY_FILE}")
+PUBLIC_KEY=$(cat "${KEY_FILE}.pub")
+
+# Create namespace if it doesn't exist
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+# Create the repository secret
+kubectl create secret generic "${SECRET_NAME}" \\
+  --namespace argocd \\
+  --from-literal=type=git \\
+  --from-literal=url="${REPO_URL}" \\
+  --from-literal=sshPrivateKey="${PRIVATE_KEY}" \\
+  --dry-run=client -o yaml | \\
+kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml | \\
+kubectl apply -f -
+
+echo ""
+echo "Created secret '${SECRET_NAME}' in namespace 'argocd'"
+echo ""
+echo "┌─────────────────────────────────────────────────────────────────────────────┐"
+echo "│ GitHub Deploy Key Setup                                                     │"
+echo "├─────────────────────────────────────────────────────────────────────────────┤"
+echo "│ 1. Go to your repository Settings -> Deploy keys -> Add deploy key         │"
+echo "│ 2. Title: ArgoCD Deploy Key                                                 │"
+echo "│ 3. Paste the public key below                                               │"
+echo "│ 4. Leave 'Allow write access' unchecked                                     │"
+echo "├─────────────────────────────────────────────────────────────────────────────┤"
+echo "│ Public Key:                                                                 │"
+echo "│   ${PUBLIC_KEY}"
+echo "└─────────────────────────────────────────────────────────────────────────────┘"
+"""

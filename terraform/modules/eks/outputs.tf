@@ -1,26 +1,3 @@
-output "deploy_key_public_key" {
-  value = tls_private_key.deploy_key.public_key_openssh
-}
-
-output "deploy_key_setup" {
-  description = "Instructions for setting up the GitHub deploy key"
-  value       = <<-EOT
-    ┌─────────────────────────────────────────────────────────────────────────────┐
-    │ GitHub Deploy Key Setup                                                     │
-    ├─────────────────────────────────────────────────────────────────────────────┤
-    │ Go to: https://github.com/<GH_ORG>/${var.github_repository}/settings/keys/new
-    │                                                                             │
-    │ Configuration:                                                              │
-    │   • Title:        ArgoCD Deploy Key (${module.this.id})                     │
-    │   • Key:          (see below)                                               │
-    │   • Allow write:  ☐ (read-only is sufficient for GitOps)                    │
-    │                                                                             │
-    │ Public key:                                                                 │
-    │   ${tls_private_key.deploy_key.public_key_openssh}
-    └─────────────────────────────────────────────────────────────────────────────┘
-  EOT
-}
-
 output "eks_cluster_name" {
   value = module.eks.cluster_name
 }
