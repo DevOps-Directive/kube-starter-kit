@@ -141,10 +141,6 @@ See the [ArgoCD Dex documentation](https://argo-cd.readthedocs.io/en/stable/oper
 
 Only ArgoCD itself needs to be manually deployed. Once running, ArgoCD will deploy and manage all other infrastructure components automatically.
 
-<Warning>
-ArgoCD may show errors on the first apply (e.g., "namespace not found" or "CRD not found"). This is expected - simply run the apply command again to create the remaining resources.
-</Warning>
-
 <Steps>
   <Step title="Deploy ArgoCD">
     ```bash
