@@ -632,9 +632,12 @@ aws eks update-kubeconfig \
   --region "$REGION" \
   --alias "$ALIAS"
 
+CURRENT_CLUSTER=$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')
+kubectl config set clusters.${CURRENT_CLUSTER}.proxy-url socks5://localhost:1080
+
 echo ""
 echo "If EKS cluster is using private-only endpoint, you will need to establish a proxy session via the bastion host:"
-echo "  mise run //tools:bastion:start-proxy <INSTANCE_ID>"
+echo "  mise run //tools:eks:connect <ENVIRONMENT>"
 '''
 
 [tasks."eks:connect"]

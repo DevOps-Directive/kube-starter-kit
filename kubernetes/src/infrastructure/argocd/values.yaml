@@ -2,19 +2,22 @@
 chartVersions:
   argo-cd: "7.7.16"
 
+# Custom ingress configuration (used by templates/Ingress.argocd-server.yaml)
+ingress:
+  hostname: ""  # Override per environment
+
 argocd:
   server:
-    # Disable built-in ingress - using Traefik IngressRoute CRD instead
-    ingress:
-      enabled: false
     # Run argocd-server with TLS disabled (Traefik handles TLS termination)
-    # This is required for Traefik IngressRoute to work properly
     extraArgs:
       - --insecure
+    # Disable helm-managed ingress - using custom Ingress template for Traefik compatibility
+    ingress:
+      enabled: false
 
   configs:
     cm:
-      url: https://argocd.staging.kubestarterkit.com
+      # url is set per-environment in values.{env}.yaml
       admin.enabled: "false"
       # Webhook configuration
       # GitHub webhook URL: https://argocd.staging.kubestarterkit.com/api/webhook

@@ -1,3 +1,14 @@
 # Chart dependency versions for production
 chartVersions:
   argo-cd: "7.7.16"
+
+ingress:
+  hostname: argocd.production.kubestarterkit.com
+
+argocd:
+  configs:
+    cm:
+      # NOTE: This duplicates the hostname above, but can't be derived from it
+      # because Helm doesn't support templating within values files and this
+      # value is passed to the ArgoCD sub-chart
+      url: https://argocd.production.kubestarterkit.com

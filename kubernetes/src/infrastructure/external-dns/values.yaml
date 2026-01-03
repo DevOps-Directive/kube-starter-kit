@@ -11,7 +11,7 @@ external-dns:
   sources:
     - service
     - ingress
-    - traefik-proxy # Traefik IngressRoute CRD support
+    # - traefik-proxy # Traefik IngressRoute CRD support (not needed if using standard Ingress)
     # - gateway-httproute
     # - gateway-tcproute
 
@@ -31,4 +31,3 @@ external-dns:
 
   extraArgs:
     - --aws-zone-type=public
-    - --traefik-disable-legacy # Only use traefik.io API group (not traefik.containo.us)

@@ -1,10 +1,3 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
   traefik: "38.0.1"
-
-traefik:
-  service:
-    annotations:
-      # Create a DNS record for the Traefik load balancer itself
-      # This hostname is then used as the target for IngressRoute DNS records
-      external-dns.alpha.kubernetes.io/hostname: traefik.staging.kubestarterkit.com

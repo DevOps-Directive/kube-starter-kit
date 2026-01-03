@@ -5,7 +5,7 @@ metadata:
   namespace: argocd
 spec:
   dnsNames:
-    - argocd.staging.kubestarterkit.com
+    - {{ .Values.ingress.hostname }}
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
