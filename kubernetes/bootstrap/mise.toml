@@ -55,3 +55,52 @@ echo "│ Public Key:                                                           
 echo "│   ${PUBLIC_KEY}"
 echo "└─────────────────────────────────────────────────────────────────────────────┘"
 """
+
+[tasks.install-argocd]
+description = "Install ArgoCD and apply the app-of-apps"
+usage = '''
+arg "<cluster>" help="Target cluster" {
+  choices "staging" "production"
+}
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLUSTER="${usage_cluster}"
+ARGOCD_DIR="../rendered/${CLUSTER}/infrastructure/argocd"
+APP_OF_APPS_DIR="../rendered/${CLUSTER}/argocd/argocd"
+
+echo "Installing ArgoCD for cluster: ${CLUSTER}"
+echo ""
+
+# Step 1: Apply ArgoCD infrastructure (may need two passes for CRDs)
+echo "Applying ArgoCD manifests..."
+kubectl apply -f "${ARGOCD_DIR}" 2>&1 | grep -v "no matches for kind" || true
+kubectl apply -f "${ARGOCD_DIR}"
+
+echo ""
+echo "Waiting for ArgoCD deployments to be available..."
+kubectl wait --for=condition=available deployment --all -n argocd --timeout=300s
+
+# Step 2: Apply AppProjects first
+echo ""
+echo "Applying AppProjects..."
+kubectl apply -f "${APP_OF_APPS_DIR}"/argoproj.io_v1alpha1_appproject_*.yaml
+
+# Step 3: Apply Applications
+echo ""
+echo "Applying Applications..."
+kubectl apply -f "${APP_OF_APPS_DIR}"/argoproj.io_v1alpha1_application_*.yaml
+
+echo ""
+echo "ArgoCD bootstrap complete!"
+echo ""
+echo "ArgoCD will now sync and deploy all infrastructure components automatically."
+echo ""
+echo "To access the ArgoCD UI:"
+echo "  kubectl port-forward svc/argocd-server -n argocd 8080:443"
+echo ""
+echo "To get the admin password:"
+echo "  kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d"
+"""
