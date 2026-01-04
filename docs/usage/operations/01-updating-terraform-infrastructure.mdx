@@ -121,12 +121,13 @@ Use tags to run commands on specific stacks:
 
 ```bash
 export REGION="us-east-2"  # Your AWS region
+export STAGE="staging"     # or "prod"
 
 # Single stack
-terramate run --tags staging:${REGION}:eks -- terraform plan
+terramate run --tags ${STAGE}:${REGION}:eks -- terraform plan
 
 # All stacks in an environment
-terramate run --tags staging -- terraform plan
+terramate run --tags ${STAGE} -- terraform plan
 
 # All networking stacks
 terramate run --tags networking -- terraform plan

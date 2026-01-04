@@ -138,6 +138,7 @@ If Terraform state is corrupted:
   <Step title="Set environment variables">
     ```bash
     export REGION="us-east-2"  # Your AWS region
+    export STAGE="staging"     # or "prod"
     # State bucket follows pattern: <namespace>-gbl-infra-bootstrap-state
     # e.g., "ksk-gbl-infra-bootstrap-state" if you used "ksk" as your namespace
     export STATE_BUCKET="<namespace>-gbl-infra-bootstrap-state"
@@ -150,7 +151,7 @@ If Terraform state is corrupted:
     ```bash
     aws s3api list-object-versions \
       --bucket ${STATE_BUCKET} \
-      --prefix terraform/staging/${REGION}/eks/
+      --prefix terraform/${STAGE}/${REGION}/eks/
     ```
   </Step>
 
@@ -158,16 +159,16 @@ If Terraform state is corrupted:
     ```bash
     aws s3api copy-object \
       --bucket ${STATE_BUCKET} \
-      --copy-source "${STATE_BUCKET}/terraform/staging/${REGION}/eks/terraform.tfstate?versionId=<version-id>" \
-      --key terraform/staging/${REGION}/eks/terraform.tfstate
+      --copy-source "${STATE_BUCKET}/terraform/${STAGE}/${REGION}/eks/terraform.tfstate?versionId=<version-id>" \
+      --key terraform/${STAGE}/${REGION}/eks/terraform.tfstate
     ```
   </Step>
 
   <Step title="Verify and plan">
     ```bash
     cd terraform
-    terramate run --tags staging:${REGION}:eks -- terraform init -reconfigure
-    terramate run --tags staging:${REGION}:eks -- terraform plan
+    terramate run --tags ${STAGE}:${REGION}:eks -- terraform init -reconfigure
+    terramate run --tags ${STAGE}:${REGION}:eks -- terraform plan
     ```
   </Step>
 </Steps>
