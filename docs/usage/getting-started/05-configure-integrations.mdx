@@ -72,9 +72,9 @@ The Terramate workflows use [octo-sts](https://github.com/octo-sts/app) to obtai
 
     ```yaml
     issuer: https://token.actions.githubusercontent.com
-    subject_pattern: ^repo:YOUR-ORG/kube-starter-kit:.*
+    subject_pattern: ^repo:<YOUR_ORG>/<your-repo>:.*
     claim_pattern:
-      workflow_ref: '^YOUR-ORG/kube-starter-kit/\.github/workflows/terramate.*@refs/.*$'
+      workflow_ref: '^<YOUR_ORG>/<your-repo>/\.github/workflows/terramate.*@refs/.*$'
 
     permissions:
       administration: write
@@ -87,14 +87,14 @@ The Terramate workflows use [octo-sts](https://github.com/octo-sts/app) to obtai
 
     ```yaml
     issuer: https://token.actions.githubusercontent.com
-    subject: repo:YOUR-ORG/kube-starter-kit:ref:refs/heads/main
+    subject: repo:<YOUR_ORG>/<your-repo>:ref:refs/heads/main
 
     permissions:
       contents: write
       pull_requests: write
     ```
 
-    Replace `YOUR-ORG` with your GitHub organization name. If you renamed the repository after forking, also replace `kube-starter-kit` with your repository name.
+    Replace `<YOUR_ORG>` with your GitHub organization name and `<your-repo>` with your repository name.
   </Step>
 </Steps>
 
@@ -120,12 +120,12 @@ Terramate Cloud is optional but recommended. It provides a unified view of Terra
 
 ## Search for Remaining References
 
-Search for any remaining references to the original organization or AWS accounts:
+Search for any remaining references to the original organization or placeholder values:
 
 ```bash
-# Find references to the original organization
-grep -r "DevOps-Directive" .github/
-grep -r "094905625236" .  # Original AWS account ID
+# Find any remaining placeholder references
+grep -r "YOUR_ORG\|<YOUR_ORG>\|YOUR-ORG" .
+grep -r "<ACCOUNT_ID>\|<REGION>\|<NAMESPACE>" .
 ```
 
 ## Verify Your Setup

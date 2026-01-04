@@ -79,19 +79,19 @@ Use GitHub branch protection rules to control who can deploy infrastructure chan
 
 1. Create directory under `terraform/live/{stage}/{region}/`:
    ```bash
-   mkdir -p terraform/live/staging/us-east-2/my-new-stack
+   mkdir -p terraform/live/staging/<REGION>/my-new-stack
    ```
 
 2. Create `stack.tm.hcl`:
    ```hcl
    stack {
-     id          = "staging-use2-my-new-stack"
+     id          = "staging-<region-abbrev>-my-new-stack"
      name        = "my-new-stack"
      description = "Description of what this stack does"
-     tags        = ["staging", "us-east-2", "my-new-stack"]
+     tags        = ["staging", "<REGION>", "my-new-stack"]
 
      # Declare dependencies if needed
-     after = ["tag:staging:us-east-2:eks"]
+     after = ["tag:staging:<REGION>:eks"]
    }
    ```
 
@@ -120,8 +120,10 @@ Use GitHub branch protection rules to control who can deploy infrastructure chan
 Use tags to run commands on specific stacks:
 
 ```bash
+export REGION="us-east-2"  # Your AWS region
+
 # Single stack
-terramate run --tags staging:us-east-2:eks -- terraform plan
+terramate run --tags staging:${REGION}:eks -- terraform plan
 
 # All stacks in an environment
 terramate run --tags staging -- terraform plan
@@ -166,11 +168,11 @@ The `terraform/config.tm.hcl` defines globals inherited by all stacks:
 
 ```hcl
 globals {
-  namespace                = "ksk"
+  namespace                = "<namespace>"  # e.g., "ksk"
   github_oidc_role_arn     = "arn:aws:iam::..."
   sso_admin_role_arn       = "arn:aws:iam::..."
-  terraform_state_bucket   = "ksk-gbl-infra-bootstrap-state"
-  terraform_state_region   = "us-east-2"
+  terraform_state_bucket   = "<namespace>-gbl-infra-bootstrap-state"
+  terraform_state_region   = "<REGION>"  # e.g., "us-east-2"
   terraform_version        = ">= 1.10"
   aws_provider_version     = "~> 6.27"
 }
@@ -204,15 +206,15 @@ terramate {
 Each stack requires a `stack.tm.hcl`:
 
 ```hcl
-# terraform/live/staging/us-east-2/networking/stack.tm.hcl
+# terraform/live/staging/<REGION>/networking/stack.tm.hcl
 stack {
-  id          = "staging-use2-networking"
+  id          = "staging-<region-abbrev>-networking"
   name        = "networking"
-  description = "VPC and networking for staging us-east-2"
-  tags        = ["staging", "us-east-2", "networking", "infrastructure"]
+  description = "VPC and networking for staging <REGION>"
+  tags        = ["staging", "<REGION>", "networking", "infrastructure"]
 
   # Declare dependencies if needed
-  after = ["tag:staging:us-east-2:eks"]
+  after = ["tag:staging:<REGION>:eks"]
 }
 ```
 
@@ -221,7 +223,7 @@ stack {
 Override globals in `config.tm.hcl` within each stack:
 
 ```hcl
-# terraform/live/staging/us-east-2/networking/config.tm.hcl
+# terraform/live/staging/<REGION>/networking/config.tm.hcl
 globals {
   vpc_cidr = "10.0.0.0/16"
   nat_mode = "fck_nat"  # Cost-effective NAT for non-prod

@@ -38,10 +38,12 @@ The kit uses [SigNoz](https://signoz.io/) for observability, with [OpenTelemetry
 
   <Step title="Store the key in AWS Secrets Manager">
     ```bash
+    export REGION="us-east-2"  # Your AWS region
+
     aws secretsmanager create-secret \
       --name "staging/signoz/ingestion-key" \
       --secret-string "your-ingestion-key" \
-      --region us-east-2
+      --region ${REGION}
     ```
   </Step>
 
