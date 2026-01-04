@@ -120,12 +120,12 @@ Terramate Cloud is optional but recommended. It provides a unified view of Terra
 
 ## Search for Remaining References
 
-Search for any remaining references to the original organization or placeholder values:
+Search for any remaining references to the original organization or AWS accounts:
 
 ```bash
-# Find any remaining placeholder references
-grep -r "YOUR_ORG\|<YOUR_ORG>\|YOUR-ORG" .
-grep -r "<ACCOUNT_ID>\|<REGION>\|<NAMESPACE>" .
+# Find references to the original organization
+grep -r "DevOps-Directive" .github/
+grep -r "094905625236" .  # Original AWS account ID
 ```
 
 ## Verify Your Setup
