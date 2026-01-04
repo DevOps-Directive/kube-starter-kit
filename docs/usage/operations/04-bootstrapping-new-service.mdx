@@ -70,7 +70,8 @@ This guide walks through adding a new service to the platform. You'll create the
 
     ```toml
     [env]
-    IMAGE_REPO = "YOUR_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/services/my-new-service"
+    # Replace with your AWS account ID and region
+    IMAGE_REPO = "<ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/services/my-new-service"
     SERVICE_RELEASE_TAG = "services/my-new-service"
 
     [tasks]
@@ -96,7 +97,7 @@ Add the new repository to the ECR configuration:
 
 <Steps>
   <Step title="Add repository to the list">
-    Edit `terraform/live/shared/us-east-2/ecr-repositories/main.tf` and add your service to the `local.repos` list:
+    Edit `terraform/live/shared/<REGION>/ecr-repositories/main.tf` and add your service to the `local.repos` list:
 
     ```hcl
     locals {
@@ -147,10 +148,11 @@ Choose your preferred templating approach. The kit demonstrates three options.
     ```yaml
     replicas: 1
     image:
-      repository: YOUR_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/services/my-new-service
+      # Replace with your AWS account ID and region
+      repository: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/services/my-new-service
       version: 0.1.0 # staging_services/my-new-service
     ingress:
-      hostname: my-new-service.staging.yourdomain.com
+      hostname: my-new-service.staging.<YOUR_DOMAIN>
     ```
 
     **templates/deployment.yaml:**
@@ -209,7 +211,8 @@ Choose your preferred templating approach. The kit demonstrates three options.
       - ../base
     images:
       - name: my-new-service
-        newName: YOUR_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/services/my-new-service
+        # Replace with your AWS account ID and region
+        newName: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/services/my-new-service
         newTag: "0.1.0"  # staging_services/my-new-service
     ```
   </Tab>

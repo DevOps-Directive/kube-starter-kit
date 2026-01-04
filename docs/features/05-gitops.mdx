@@ -128,25 +128,9 @@ To add a new infrastructure component, create its directory in `src/infrastructu
 
 ### Repository Access
 
-ArgoCD authenticates to your Git repository using deploy keys stored in AWS Secrets Manager and synced via External Secrets:
+ArgoCD authenticates to your Git repository using SSH deploy keys. During bootstrap, a mise task generates a key pair and creates a Kubernetes Secret with the private key. You add the public key to your GitHub repository as a deploy key.
 
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: repo-kube-starter-kit
-spec:
-  secretStoreRef:
-    name: aws-secrets-manager
-  target:
-    name: repo-kube-starter-kit
-    template:
-      metadata:
-        labels:
-          argocd.argoproj.io/secret-type: repository
-```
-
-No credentials in Git. No manual secret creation. ArgoCD gets repository access automatically.
+No credentials in Git. ArgoCD discovers the repository secret automatically via the `argocd.argoproj.io/secret-type=repository` label. See [cluster bootstrap](/usage/getting-started/08-deploy-kubernetes-baseline#create-deploy-key) for setup instructions.
 
 ## Key Design Decisions
 
@@ -155,6 +139,6 @@ No credentials in Git. No manual secret creation. ArgoCD gets repository access 
 | **ArgoCD over Flux** | Better UI for visibility, more mature ecosystem, easier onboarding for teams new to GitOps. |
 | **App of Apps over ApplicationSets** | More explicit control over the hierarchy. ApplicationSets are powerful but can be harder to reason about. |
 | **Rendered manifests in Git** | What's deployed is exactly what's in Git. No runtime templating surprises. Easier to audit and diff. |
-| **External Secrets for repo credentials** | Secrets stay in Secrets Manager, not in Git or manually created. Consistent with the rest of the secrets strategy. |
+| **Bootstrap-generated deploy keys** | Deploy keys are generated during bootstrap and stored as Kubernetes Secrets. Simple, no external dependencies. |
 | **Auto-sync enabled** | Reduces manual toil. If you commit it, it deploys. Rollback is just reverting a commit. |
 

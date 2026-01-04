@@ -48,7 +48,7 @@ Before deploying, update the Git repository URLs to point to your fork:
     ```yaml
     spec:
       source:
-        repoURL: git@github.com:YOUR-ORG/kube-starter-kit.git  # Update this
+        repoURL: git@github.com:<YOUR_ORG>/<your-repo>.git  # Update this
         targetRevision: main
         path: kubernetes/rendered/{{ .Values.cluster }}/argocd/argocd
     ```
@@ -88,7 +88,7 @@ ArgoCD needs SSH access to clone your private repository. Run the bootstrap task
   <Step title="Generate deploy key and create secret">
     ```bash
     cd kubernetes/bootstrap
-    mise run create-deploy-key git@github.com:YOUR-ORG/kube-starter-kit.git
+    mise run create-deploy-key git@github.com:<YOUR_ORG>/<your-repo>.git
     ```
   </Step>
 
@@ -117,18 +117,21 @@ If you want to enable GitHub OAuth for ArgoCD login (recommended for production)
     2. Click **New OAuth App**
     3. Fill in the details:
        - **Application name**: `ArgoCD Staging`
-       - **Homepage URL**: `https://argocd.staging.yourdomain.com`
-       - **Authorization callback URL**: `https://argocd.staging.yourdomain.com/api/dex/callback`
+       - **Homepage URL**: `https://argocd.staging.<YOUR_DOMAIN>`
+       - **Authorization callback URL**: `https://argocd.staging.<YOUR_DOMAIN>/api/dex/callback`
     4. Click **Register application**
     5. Generate a new client secret and save both the Client ID and Client Secret
   </Step>
 
   <Step title="Store the secret in AWS Secrets Manager">
     ```bash
+    export REGION="us-east-2"  # Your AWS region
+    export CLUSTER_NAME="<your-cluster-name>"
+
     aws secretsmanager create-secret \
-      --name "{cluster-name}-argocd-github-dex" \
+      --name "${CLUSTER_NAME}-argocd-github-dex" \
       --secret-string '{"clientId":"YOUR_CLIENT_ID","clientSecret":"YOUR_CLIENT_SECRET"}' \
-      --region us-east-2
+      --region ${REGION}
     ```
   </Step>
 </Steps>
@@ -194,7 +197,7 @@ You can monitor progress in the ArgoCD UI or by running `kubectl get application
 
 ## Access ArgoCD UI
 
-Once external-dns creates the DNS records, ArgoCD is accessible at `https://argocd.{environment}.yourdomain.com`.
+Once external-dns creates the DNS records, ArgoCD is accessible at `https://argocd.<environment>.<YOUR_DOMAIN>` (e.g., `https://argocd.staging.example.com`).
 
 Alternatively, use port-forwarding for immediate access:
 

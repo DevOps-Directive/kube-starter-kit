@@ -91,9 +91,11 @@ This allows SSH to instances via SSM using the instance ID as the hostname.
     Or manually:
 
     ```bash
+    export REGION="us-east-2"  # Your AWS region
+
     aws eks update-kubeconfig \
-      --name {cluster-name} \
-      --region us-east-2 \
+      --name ${CLUSTER_NAME} \
+      --region ${REGION} \
       --alias staging
     ```
   </Step>

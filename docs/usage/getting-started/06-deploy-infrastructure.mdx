@@ -81,15 +81,17 @@ Terramate can deploy all stacks at once with automatic dependency ordering (`ter
   <Step title="Initialize and deploy networking">
     ```bash
     cd terraform
+    export REGION="us-east-2"  # Your AWS region
+    export STAGE="staging"     # or "prod"
 
     # Initialize the networking stack
-    terramate run --tags staging:us-east-2:networking -- terraform init
+    terramate run --tags ${STAGE}:${REGION}:networking -- terraform init
 
     # Preview changes
-    terramate run --tags staging:us-east-2:networking -- terraform plan
+    terramate run --tags ${STAGE}:${REGION}:networking -- terraform plan
 
     # Apply
-    terramate run --tags staging:us-east-2:networking -- terraform apply
+    terramate run --tags ${STAGE}:${REGION}:networking -- terraform apply
     ```
   </Step>
 
@@ -98,11 +100,11 @@ Terramate can deploy all stacks at once with automatic dependency ordering (`ter
 
     ```bash
     # Initialize the EKS stack
-    terramate run --tags staging:us-east-2:eks -- terraform init
+    terramate run --tags ${STAGE}:${REGION}:eks -- terraform init
 
     # Preview and apply
-    terramate run --tags staging:us-east-2:eks -- terraform plan
-    terramate run --tags staging:us-east-2:eks -- terraform apply
+    terramate run --tags ${STAGE}:${REGION}:eks -- terraform plan
+    terramate run --tags ${STAGE}:${REGION}:eks -- terraform apply
     ```
 
     <Note>
@@ -114,8 +116,8 @@ Terramate can deploy all stacks at once with automatic dependency ordering (`ter
     If you have application-specific infrastructure:
 
     ```bash
-    terramate run --tags staging:us-east-2:services -- terraform init
-    terramate run --tags staging:us-east-2:services -- terraform apply
+    terramate run --tags ${STAGE}:${REGION}:services -- terraform init
+    terramate run --tags ${STAGE}:${REGION}:services -- terraform apply
     ```
   </Step>
 
@@ -211,7 +213,7 @@ The networking module supports three NAT modes via `nat_mode` variable:
 | `single_nat_gateway` | ~$45/month | Single point of failure | Cost-sensitive production |
 | `one_nat_gateway_per_az` | ~$135/month | Full HA | Production with strict availability requirements |
 
-Configure in `terraform/live/staging/us-east-2/networking/config.tm.hcl`:
+Configure in `terraform/live/staging/<REGION>/networking/config.tm.hcl`:
 
 ```hcl
 globals {
@@ -243,7 +245,7 @@ After deployment completes:
 <Steps>
   <Step title="Check Terraform outputs">
     ```bash
-    terramate run --tags staging:us-east-2:eks -- terraform output
+    terramate run --tags ${STAGE}:${REGION}:eks -- terraform output
     ```
 
     Note the `cluster_name` output; you'll need it for later steps.
@@ -269,9 +271,9 @@ Production deployment follows the same pattern with production-specific configur
 # List production stacks
 terramate list --tags prod:infrastructure
 
-# Deploy locally
-terramate run --tags prod:us-east-2:networking -- terraform apply
-terramate run --tags prod:us-east-2:eks -- terraform apply
+# Deploy locally (replace with your region)
+terramate run --tags prod:${REGION}:networking -- terraform apply
+terramate run --tags prod:${REGION}:eks -- terraform apply
 ```
 
 ## Next Steps
