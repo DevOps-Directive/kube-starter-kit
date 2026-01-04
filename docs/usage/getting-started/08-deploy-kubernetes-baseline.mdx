@@ -63,12 +63,12 @@ Before deploying, update the Git repository URLs to point to your fork:
     After updating the source files, render the manifests for your cluster:
 
     ```bash
-    mise run //kubernetes/src/argocd:render-all
-    mise run //kubernetes/src/infrastructure:render-all
-    mise run //kubernetes/src/services:render-all
+    mise run //kubernetes/src/argocd:render-all staging
+    mise run //kubernetes/src/infrastructure:render-all staging
+    mise run //kubernetes/src/services:render-all staging
     ```
 
-    This renders all charts for all environments (staging, production).
+    Replace `staging` with `production` for production clusters.
   </Step>
 
   <Step title="Commit the changes">
