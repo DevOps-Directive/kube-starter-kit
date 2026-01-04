@@ -149,7 +149,8 @@ mise run install-argocd staging
 This task:
 1. Applies ArgoCD manifests (handles CRD ordering automatically)
 2. Waits for ArgoCD deployments to be ready
-3. Applies AppProjects first, then Applications (correct ordering)
+3. Applies AppProjects
+4. Applies Applications
 
 ArgoCD will then automatically deploy all infrastructure components (cert-manager, external-secrets, external-dns, ingress-nginx, etc.) and services.
 
