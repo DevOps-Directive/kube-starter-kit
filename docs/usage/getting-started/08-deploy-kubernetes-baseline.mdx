@@ -184,6 +184,17 @@ ArgoCD will then automatically deploy all infrastructure components (cert-manage
   </Step>
 </Steps>
 
+<Note>
+It may take several minutes for all applications to become healthy as reconciliation loops complete. During this time:
+- Infrastructure components are deployed and start up
+- External Secrets syncs secrets from AWS Secrets Manager
+- Pods restart to pick up new secrets/configurations
+- External DNS creates DNS records
+- Cert Manager issues TLS certificates
+
+You can monitor progress in the ArgoCD UI or by running `kubectl get applications -n argocd`.
+</Note>
+
 ## Access ArgoCD UI
 
 Once external-dns creates the DNS records, ArgoCD is accessible at `https://argocd.{environment}.yourdomain.com`.
