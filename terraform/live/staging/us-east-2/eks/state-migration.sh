@@ -4,7 +4,7 @@
 #
 # Run with: ./state-migration.sh
 # Or dry-run: DRY_RUN=1 ./state-migration.sh
-
+#
 set -e
 
 DRY_RUN="${DRY_RUN:-0}"
