@@ -86,12 +86,16 @@ kubectl wait --for=condition=available deployment --all -n argocd --timeout=300s
 # Step 2: Apply AppProjects first
 echo ""
 echo "Applying AppProjects..."
-kubectl apply -f "${APP_OF_APPS_DIR}"/argoproj.io_v1alpha1_appproject_*.yaml
+for f in "${APP_OF_APPS_DIR}"/argoproj.io_v1alpha1_appproject_*.yaml; do
+  kubectl apply -f "$f"
+done
 
 # Step 3: Apply Applications
 echo ""
 echo "Applying Applications..."
-kubectl apply -f "${APP_OF_APPS_DIR}"/argoproj.io_v1alpha1_application_*.yaml
+for f in "${APP_OF_APPS_DIR}"/argoproj.io_v1alpha1_application_*.yaml; do
+  kubectl apply -f "$f"
+done
 
 echo ""
 echo "ArgoCD bootstrap complete!"
