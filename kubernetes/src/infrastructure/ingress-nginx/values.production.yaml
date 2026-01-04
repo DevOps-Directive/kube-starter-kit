@@ -1,3 +1,0 @@
-# Chart dependency versions for production
-chartVersions:
-  ingress-nginx: "4.13.3"

@@ -142,10 +142,6 @@ import (
 	// Ingress configuration.
 	ingress: {
 		enabled: *true | bool
-		nginx: {
-			enabled:  *true | bool
-			hostname: *"ingress-nginx-timoni.staging.kubestarterkit.com" | string
-		}
 		traefik: {
 			enabled:  *true | bool
 			hostname: *"ingress-traefik-timoni.staging.kubestarterkit.com" | string
@@ -175,9 +171,6 @@ import (
 		cluster: #CNPGCluster & {#config: config}
 		migrationJob: #MigrationJob & {#config: config}
 		deploy: #Deployment & {#config: config}
-		if config.ingress.enabled && config.ingress.nginx.enabled {
-			ingressNginx: #IngressNginx & {#config: config}
-		}
 		if config.ingress.enabled && config.ingress.traefik.enabled {
 			ingressTraefik: #IngressTraefik & {#config: config}
 		}

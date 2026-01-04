@@ -71,7 +71,7 @@ Tilt deploys a subset of infrastructure and all demo services:
 |-----------|---------|
 | **cert-manager** | TLS certificates (using self-signed ClusterIssuer locally) |
 | **cloudnative-pg** | PostgreSQL operator for in-cluster databases |
-| **ingress-nginx** | Ingress controller |
+| **traefik** | Ingress controller |
 
 ### Demo Services
 
@@ -137,7 +137,7 @@ Deploys cluster components in order:
 ```python
 # 1. cert-manager (no dependencies)
 # 2. cloudnative-pg (depends on cert-manager)
-# 3. ingress-nginx (no dependencies)
+# 3. traefik (no dependencies)
 ```
 
 Each component uses Helm with local values (`values.local.yaml`).

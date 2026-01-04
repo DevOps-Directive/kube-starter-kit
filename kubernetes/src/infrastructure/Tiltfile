@@ -76,33 +76,6 @@ local_resource('cloudnative-pg-wait',
 )
 ################ END CLOUDNATIVE-PG #################
 
-################ INGRESS-NGINX #################
-local('export CHART_DIR="$PWD/ingress-nginx" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
-k8s_yaml(
-  helm(
-    './ingress-nginx',
-    name='ingress-nginx',
-    namespace='ingress-nginx',
-    values=[
-      './ingress-nginx/values.yaml',
-      './ingress-nginx/values.local.yaml'
-    ]
-  )
-)
-k8s_resource('ingress-nginx-controller',
-  objects=[
-    'ingress-nginx-admission:validatingwebhookconfiguration',
-  ],
-  labels=['ingress-nginx']
-)
-local_resource('ingress-nginx-wait',
-  cmd='kubectl wait --namespace ingress-nginx --for=condition=ready pod -l app.kubernetes.io/component=controller --timeout=120s',
-  resource_deps=['ingress-nginx-controller'],
-  labels=['ingress-nginx'],
-  allow_parallel=True
-)
-################ END INGRESS-NGINX #################
-
 ################ TRAEFIK #################
 local('export CHART_DIR="$PWD/traefik" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
 k8s_yaml(
@@ -118,5 +91,11 @@ k8s_yaml(
 )
 k8s_resource('traefik',
   labels=['traefik']
+)
+local_resource('traefik-wait',
+  cmd='kubectl wait --namespace traefik --for=condition=ready pod -l app.kubernetes.io/name=traefik --timeout=120s',
+  resource_deps=['traefik'],
+  labels=['traefik'],
+  allow_parallel=True
 )
 ################ END TRAEFIK #################

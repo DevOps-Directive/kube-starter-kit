@@ -96,7 +96,7 @@ The Security category forms the foundation of SOC2 and is required for all audit
 
 | Control Requirement | Kube Starter Kit Feature | Implementation |
 |---------------------|--------------------------|----------------|
-| **Encryption in transit** | [Kubernetes Baseline](/features/06-k8s-baseline) | All external traffic terminates TLS at ingress-nginx. Internal cluster traffic uses Kubernetes network policies. |
+| **Encryption in transit** | [Kubernetes Baseline](/features/06-k8s-baseline) | All external traffic terminates TLS at traefik. Internal cluster traffic uses Kubernetes network policies. |
 | **Automated certificate management** | [Kubernetes Baseline](/features/06-k8s-baseline) | cert-manager handles certificate lifecycle. No manual certificate handling or risk of expiration. |
 
 **Evidence artifacts:**

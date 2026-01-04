@@ -6,7 +6,6 @@ resources:
   - Deployment.go-backend.yaml
   - Gateway.minimal-envoy.yaml
   - Ingress.minimal-istio.yaml
-  - Ingress.minimal-nginx.yaml
   - Ingress.minimal-traefik.yaml
   - Job.go-backend-migrator.yaml
   - Namespace.go-backend-kustomize.yaml

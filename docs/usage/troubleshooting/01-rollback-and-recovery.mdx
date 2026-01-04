@@ -89,10 +89,10 @@ kubectl rollback will be overwritten on the next ArgoCD sync. Use this only for 
 
 ```bash
 # View history
-argocd app history ingress-nginx
+argocd app history traefik
 
 # Rollback
-argocd app rollback ingress-nginx
+argocd app rollback traefik
 ```
 
 ### Via Git
@@ -101,7 +101,7 @@ Revert the chart version change:
 
 ```bash
 # Find the commit that updated the version
-git log --oneline -10 -- kubernetes/src/infrastructure/ingress-nginx/
+git log --oneline -10 -- kubernetes/src/infrastructure/traefik/
 
 # Revert the commit
 git revert <commit-hash>
@@ -112,7 +112,7 @@ Or manually update values.yaml to the previous version:
 
 ```yaml
 chartVersions:
-  ingress-nginx: "4.12.2"  # Previous version
+  traefik: "38.0.1"  # Previous version
 ```
 
 ## Terraform Rollback
