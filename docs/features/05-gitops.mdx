@@ -128,7 +128,7 @@ To add a new infrastructure component, create its directory in `src/infrastructu
 
 ### Repository Access
 
-ArgoCD authenticates to your Git repository using SSH deploy keys. During bootstrap, a mise task generates an ED25519 key pair and creates a Kubernetes Secret with the private key. You add the public key to your GitHub repository as a deploy key.
+ArgoCD authenticates to your Git repository using SSH deploy keys. During bootstrap, a mise task generates a key pair and creates a Kubernetes Secret with the private key. You add the public key to your GitHub repository as a deploy key.
 
 No credentials in Git. ArgoCD discovers the repository secret automatically via the `argocd.argoproj.io/secret-type=repository` label. See [cluster bootstrap](/usage/getting-started/08-deploy-kubernetes-baseline#create-deploy-key) for setup instructions.
 
