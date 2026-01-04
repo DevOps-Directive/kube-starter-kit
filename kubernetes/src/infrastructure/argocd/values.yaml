@@ -18,7 +18,9 @@ argocd:
   configs:
     cm:
       # url is set per-environment in values.{env}.yaml
-      admin.enabled: "false"
+      # Admin user enabled for initial bootstrap/debugging
+      # Consider disabling after configuring SSO: admin.enabled: "false"
+      admin.enabled: "true"
       # Webhook configuration
       # GitHub webhook URL: https://argocd.staging.kubestarterkit.com/api/webhook
       # The webhook secret is managed via ExternalSecret (github-webhook) which merges into argocd-secret
