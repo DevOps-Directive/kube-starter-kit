@@ -105,6 +105,23 @@ echo ""
 echo "To access the ArgoCD UI:"
 echo "  kubectl port-forward svc/argocd-server -n argocd 8080:443"
 echo ""
-echo "To get the admin password:"
+
+# Wait for initial admin secret to be created (ArgoCD server creates this on startup)
+echo "Waiting for initial admin secret..."
+for i in {1..30}; do
+  if kubectl get secret argocd-initial-admin-secret -n argocd &>/dev/null; then
+    ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d)
+    echo ""
+    echo "Admin credentials:"
+    echo "  Username: admin"
+    echo "  Password: ${ADMIN_PASSWORD}"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo ""
+echo "Note: Initial admin secret not yet available."
+echo "The ArgoCD server may still be initializing. To get the password later:"
 echo "  kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d"
 """
