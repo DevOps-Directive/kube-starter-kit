@@ -208,6 +208,10 @@ kubectl get secret argocd-initial-admin-secret -n argocd \
 
 Login with username `admin` and the retrieved password.
 
+<Warning>
+The admin user is enabled by default for initial bootstrap and debugging. Once you've configured SSO (GitHub OAuth), consider disabling the admin user by setting `admin.enabled: "false"` in `kubernetes/src/infrastructure/argocd/values.yaml`.
+</Warning>
+
 ## Infrastructure Components
 
 The following components are included in the Kubernetes baseline:

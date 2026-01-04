@@ -13,7 +13,7 @@ metadata:
     app.kubernetes.io/part-of: argocd
     app.kubernetes.io/version: v2.13.3
 data:
-  admin.enabled: "false"
+  admin.enabled: "true"
   application.instanceLabelKey: argocd.argoproj.io/instance
   dex.config: |
     connectors:
