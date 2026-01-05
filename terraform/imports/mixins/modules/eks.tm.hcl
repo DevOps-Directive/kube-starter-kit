@@ -7,7 +7,7 @@
 #   - global.environment
 #   - global.aws_region
 #   - global.terraform_iam_role_arn
-#   - global.sso_admin_role_arn
+#   - global.admin_sso_role_arn
 #   - global.eks.kubernetes_version
 #   - global.eks.base_node_group_kubernetes_version
 #   - global.eks.endpoint_public_access
@@ -36,7 +36,7 @@ generate_hcl "_main.tf" {
       # From globals
       aws_region             = global.aws_region
       terraform_iam_role_arn = global.terraform_iam_role_arn
-      admin_sso_role_arn     = global.sso_admin_role_arn
+      admin_sso_role_arn     = global.admin_sso_role_arn
 
       # From inputs (outputs sharing) - these become variables
       vpc_id           = tm_hcl_expression("var.vpc_id")

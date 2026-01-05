@@ -14,7 +14,7 @@ module "bootstrapping" {
   source                      = "../../../../../terraform/modules//account-bootstrapping"
   sso_admin_assume_role_arn   = "arn:aws:iam::094905625236:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AdministratorAccess_80ecc41059967962"
   stage                       = "prod"
-  terraform_iam_role_arn      = "arn:aws:iam::964263445142:role/ksk-gbl-prod-bootstrap-admin"
+  terraform_iam_role_arn      = "DUMMY"
   zone_external_dns_owner     = "external-dns"
   zone_name                   = "prod.kubestarterkit.com"
 }

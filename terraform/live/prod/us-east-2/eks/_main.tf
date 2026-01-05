@@ -15,7 +15,7 @@ module "eks" {
   route53_zone_arn                   = var.route53_zone_arn
   source                             = "../../../../../terraform/modules//eks"
   stage                              = "prod"
-  terraform_iam_role_arn             = "arn:aws:iam::964263445142:role/ksk-gbl-prod-bootstrap-admin"
+  terraform_iam_role_arn             = "DUMMY"
   vpc_cidr                           = var.vpc_cidr
   vpc_id                             = var.vpc_id
 }

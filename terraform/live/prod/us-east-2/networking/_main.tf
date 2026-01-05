@@ -11,6 +11,6 @@ module "networking" {
   planetscale_endpoint_service_name = "com.amazonaws.vpce.us-east-2.vpce-svc-069f88c102c1a7fba"
   source                            = "../../../../../terraform/modules//networking"
   stage                             = "prod"
-  terraform_iam_role_arn            = "arn:aws:iam::964263445142:role/ksk-gbl-prod-bootstrap-admin"
+  terraform_iam_role_arn            = "DUMMY"
   vpc_cidr                          = "10.2.0.0/16"
 }
