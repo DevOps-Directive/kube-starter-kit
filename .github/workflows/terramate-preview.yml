@@ -8,6 +8,8 @@ on:
 jobs:
   preview:
     name: Plan Terraform changes in changed stacks
+    # Skip release-please PRs - they only update CHANGELOGs and version files
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
