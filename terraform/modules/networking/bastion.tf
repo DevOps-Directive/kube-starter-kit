@@ -71,6 +71,9 @@ module "ssm_endpoints" {
 ###############################################################################
 
 # Latest Amazon Linux 2023 AMI for ARM64/Graviton (has SSM agent pre-installed)
+# Note: Using most_recent = true means the bastion will be replaced when AWS
+# releases new AL2023 AMIs. This is acceptable since the instance is stateless
+# and accessed dynamically via SSM (no hardcoded instance IDs).
 data "aws_ami" "amazon_linux_2023" {
   count = var.enable_bastion ? 1 : 0
 
