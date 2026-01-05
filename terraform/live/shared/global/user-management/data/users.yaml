@@ -13,14 +13,14 @@ users:
       group_membership: [Admin]
       given_name: Sid
       family_name: Palas
-  - github:
-      username: sidpala5
-      role: member
-      teams:
-        Admin: {} # default role = "member"
-    aws:
-      user_name: sid+test
-      email: sid+github@devopsdirective.com
-      group_membership: [ReadOnly]
-      given_name: Sid
-      family_name: Test
+  # - github:
+  #     username: sidpala5
+  #     role: member
+  #     teams:
+  #       Admin: {} # default role = "member"
+  #   aws:
+  #     user_name: sid+test
+  #     email: sid+github@devopsdirective.com
+  #     group_membership: [ReadOnly]
+  #     given_name: Sid
+  #     family_name: Test
