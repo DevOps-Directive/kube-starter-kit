@@ -87,6 +87,11 @@ jobs:
           identity: terramate # see .github/chainguard/terramate.sts.yaml for trust policy
 
       ### Run the Terraform preview via Terramate in each changed stack
+      - name: Configure git for private modules
+        if: steps.list-changed.outputs.stdout
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
 
       - name: Run Terraform init on changed stacks and direct dependencies
         if: steps.list-changed.outputs.stdout
