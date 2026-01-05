@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.2.1...services/go-backend@0.3.0) (2026-01-05)
+
+
+### Features
+
+* add mirrord and sslip.io for improved local development ([#81](https://github.com/DevOps-Directive/kube-starter-kit/issues/81)) ([4b5d2e7](https://github.com/DevOps-Directive/kube-starter-kit/commit/4b5d2e79fbe823c6d9f96c87d74905f67fe81ad2))
+
 ## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.2.0...services/go-backend@0.2.1) (2025-12-13)
 
 
