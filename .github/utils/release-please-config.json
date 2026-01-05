@@ -17,6 +17,22 @@
     },
     "services/go-backend-no-migrations": {
       "component": "services/go-backend-no-migrations"
+    },
+    "terraform/modules/account-bootstrapping": {
+      "component": "terraform/modules/account-bootstrapping",
+      "release-type": "terraform-module"
+    },
+    "terraform/modules/eks": {
+      "component": "terraform/modules/eks",
+      "release-type": "terraform-module"
+    },
+    "terraform/modules/networking": {
+      "component": "terraform/modules/networking",
+      "release-type": "terraform-module"
+    },
+    "terraform/modules/app-resources/go-backend": {
+      "component": "terraform/modules/app-resources/go-backend",
+      "release-type": "terraform-module"
     }
   },
   "plugins": [

@@ -11,13 +11,25 @@
 #   - global.networking.nat_mode
 #   - global.networking.enable_bastion
 #   - global.networking.planetscale_endpoint_service_name
+#
+# Module source configuration:
+#   - When global.modules.use_pinned_versions is true: uses git source with pinned tag
+#   - When false (default): uses local relative path for rapid iteration
 
 generate_hcl "_main.tf" {
   condition = tm_contains(terramate.stack.tags, "networking")
 
+  lets {
+    # Determine module source based on configuration
+    use_pinned    = tm_try(global.modules.use_pinned_versions, false)
+    local_source  = "${terramate.stack.path.to_root}/terraform/modules//networking"
+    pinned_source = "${tm_try(global.modules.git_base_url, "")}//terraform/modules/networking?ref=terraform/modules/networking@${tm_try(global.modules.versions.networking, "0.1.0")}"
+    module_source = let.use_pinned ? let.pinned_source : let.local_source
+  }
+
   content {
     module "networking" {
-      source = "${terramate.stack.path.to_root}/terraform/modules//networking"
+      source = let.module_source
 
       # CloudPosse context
       name        = "network"

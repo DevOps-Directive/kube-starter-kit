@@ -13,7 +13,7 @@ module "eks" {
   namespace                          = "ksk"
   private_subnets                    = var.private_subnets
   route53_zone_arn                   = var.route53_zone_arn
-  source                             = "../../../../../terraform/modules//eks"
+  source                             = "git::https://github.com/DevOps-Directive/kube-starter-kit.git//terraform/modules/eks?ref=terraform/modules/eks@0.1.0"
   stage                              = "prod"
   terraform_iam_role_arn             = "DUMMY"
   vpc_cidr                           = var.vpc_cidr

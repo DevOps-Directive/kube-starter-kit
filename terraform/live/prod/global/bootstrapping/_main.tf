@@ -11,7 +11,7 @@ module "bootstrapping" {
   github_oidc_assume_role_arn = "arn:aws:iam::094905625236:role/ksk-gbl-infra-bootstrap-github-oidc"
   name                        = "bootstrap"
   namespace                   = "ksk"
-  source                      = "../../../../../terraform/modules//account-bootstrapping"
+  source                      = "git::https://github.com/DevOps-Directive/kube-starter-kit.git//terraform/modules/account-bootstrapping?ref=terraform/modules/account-bootstrapping@0.1.0"
   sso_admin_assume_role_arn   = "arn:aws:iam::094905625236:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_AdministratorAccess_80ecc41059967962"
   stage                       = "prod"
   terraform_iam_role_arn      = "DUMMY"

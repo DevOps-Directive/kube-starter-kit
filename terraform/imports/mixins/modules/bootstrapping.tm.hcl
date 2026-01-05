@@ -15,6 +15,10 @@
 #   - global.bootstrapping.create_zone
 #   - global.bootstrapping.zone_name
 #   - global.bootstrapping.zone_external_dns_owner
+#
+# Module source configuration:
+#   - When global.modules.use_pinned_versions is true: uses git source with pinned tag
+#   - When false (default): uses local relative path for rapid iteration
 
 generate_hcl "_main.tf" {
   # Generate for all bootstrapping stacks except terraform-bootstrapping (infra account)
@@ -22,6 +26,14 @@ generate_hcl "_main.tf" {
     tm_contains(terramate.stack.tags, "bootstrapping"),
     !tm_contains(terramate.stack.tags, "infra"),
   ])
+
+  lets {
+    # Determine module source based on configuration
+    use_pinned    = tm_try(global.modules.use_pinned_versions, false)
+    local_source  = "${terramate.stack.path.to_root}/terraform/modules//account-bootstrapping"
+    pinned_source = "${tm_try(global.modules.git_base_url, "")}//terraform/modules/account-bootstrapping?ref=terraform/modules/account-bootstrapping@${tm_try(global.modules.versions.account_bootstrapping, "0.1.0")}"
+    module_source = let.use_pinned ? let.pinned_source : let.local_source
+  }
 
   content {
     # Import the IAM role that was manually created during bootstrap.
@@ -36,7 +48,7 @@ generate_hcl "_main.tf" {
     }
 
     module "bootstrapping" {
-      source = "${terramate.stack.path.to_root}/terraform/modules//account-bootstrapping"
+      source = let.module_source
 
       # CloudPosse context
       name        = "bootstrap"
