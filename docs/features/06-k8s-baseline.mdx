@@ -1,0 +1,221 @@
+---
+title: "Baseline Kubernetes Components"
+description: "Curated infrastructure components every production cluster needs"
+icon: "layer-group"
+---
+
+## The Problem
+
+A fresh Kubernetes cluster is surprisingly bare. Out of the box, you can't:
+
+- **Expose services to the internet:** No ingress/gateway api controller, no way to route external traffic to your pods.
+- **Provision TLS certificates:** No automated certificate management. Manual cert provisioning is tedious and error-prone.
+- **Manage DNS:** Creating an Ingress doesn't create public DNS records. That's a separate manual step.
+- **Handle secrets properly:** Kubernetes Secrets are base64-encoded, not encrypted. Storing them in Git is a security risk.
+- **Scale nodes automatically:** Pods can scale, but if there's no node capacity, they just sit Pending.
+- **Observe what's happening:** No metrics, no logs aggregation, no tracing out of the box.
+
+Every team ends up installing the same set of tools, making the same configuration decisions, and debugging the same integration issues.
+
+## How Kube Starter Kit Addresses This
+
+I've curated a set of infrastructure components that I've used across multiple production clusters. They're pre-configured to work together, with sensible defaults and AWS integrations already wired up:
+
+**Ingress with automatic TLS:** Traefik handles traffic routing; cert-manager automatically provisions and renews Let's Encrypt certificates.
+
+**DNS automation:** External-DNS watches your Ingress resources and creates Route53 records automatically. No more manually creating DNS entries.
+
+**Secrets from AWS:** External Secrets syncs secrets from AWS Secrets Manager into Kubernetes. Secrets stay in a proper secrets manager, not in Git.
+
+**Right-sized node provisioning:** Karpenter provisions exactly the nodes your workloads need, when they need them. No over-provisioning, no waiting for scale-up.
+
+**Observability ready:** SigNoz provides metrics, logs, and traces in a single platform. See what's happening across your entire stack.
+
+## What's Included
+
+### Component Overview
+
+| Component | Purpose | AWS Integration |
+|-----------|---------|-----------------|
+| **traefik** | HTTP(S) traffic routing | Creates NLB via AWS Load Balancer |
+| **cert-manager** | Automatic TLS certificates | Uses Route53 for DNS-01 challenges |
+| **external-dns** | DNS record management | Creates Route53 records |
+| **external-secrets** | Secrets synchronization | Reads from AWS Secrets Manager |
+| **karpenter** | Node auto-provisioning | Launches EC2 instances |
+| **cloudnative-pg** | PostgreSQL operator | Uses EBS for persistent storage |
+| **reloader** | Config/secret change detection | Restarts pods on updates |
+| **SigNoz** | Observability (metrics, logs, traces) | - |
+
+### Traffic Flow
+
+```
+Internet
+    │
+    ▼
+┌───────────────────────────────┐
+│  AWS NLB                      │
+│  (created by traefik)         │
+└───────────────────────────────┘
+    │
+    ▼
+┌───────────────────────────────┐
+│  traefik controller           │
+│  - TLS termination            │
+│  - Route by Ingress rules     │
+└───────────────────────────────┘
+    │
+    ▼
+┌───────────────────────────────┐
+│  Your application pods        │
+└───────────────────────────────┘
+```
+
+### Secrets Flow
+
+```
+AWS Secrets Manager
+    ▲
+    │ (polls)
+    │
+┌───────────────────────────────┐
+│  ClusterSecretStore           │
+└───────────────────────────────┘
+    ▲
+    │ (references)
+    │
+┌───────────────────────────────┐
+│  ExternalSecret               │
+└───────────────────────────────┘
+    │
+    │ (creates/updates)
+    ▼
+┌───────────────────────────────┐
+│  Kubernetes Secret            │
+└───────────────────────────────┘
+```
+
+### Component Details
+
+<AccordionGroup>
+  <Accordion title="traefik">
+    A modern cloud-native ingress controller that supports both Kubernetes Ingress and Gateway API. Deployed with:
+    - AWS NLB for external traffic (Layer 4)
+    - Automatic service discovery
+    - Native Kubernetes Ingress support
+    - Full Gateway API support (HTTPRoute, GRPCRoute, TCPRoute)
+    - IngressRoute CRDs for advanced routing
+
+    Using a single controller for both Ingress and Gateway API reduces operational complexity. Start with familiar Ingress resources today, migrate to Gateway API when ready, all without changing infrastructure.
+
+    Create an Ingress resource, and traffic flows automatically.
+  </Accordion>
+
+  <Accordion title="cert-manager">
+    Automated X.509 certificate management. Configured with:
+    - Let's Encrypt production and staging issuers
+    - DNS-01 challenge solver via Route53
+    - Self-signed issuer for internal certificates
+
+    Add a `tls` section to your Ingress; cert-manager handles the rest.
+  </Accordion>
+
+  <Accordion title="external-dns">
+    Synchronizes Kubernetes resources with DNS providers. Configured to:
+    - Watch Ingress and Service resources
+    - Create/update Route53 records
+    - Use txt-registry to track ownership
+
+    Create an Ingress with a hostname; DNS record appears automatically.
+  </Accordion>
+
+  <Accordion title="external-secrets">
+    Syncs external secrets into Kubernetes. Set up with:
+    - ClusterSecretStore pointing to AWS Secrets Manager
+    - IRSA authentication (no credentials in cluster)
+    - Automatic refresh on secret changes
+
+    Reference a secret in AWS; it appears as a Kubernetes Secret.
+  </Accordion>
+
+  <Accordion title="karpenter">
+    Just-in-time node provisioning. Configured with:
+    - NodePool defining instance requirements
+    - EC2NodeClass for AWS-specific settings
+    - Consolidation to remove underutilized nodes
+    - Support for spot instances
+
+    Deploy a pod that doesn't fit; Karpenter provisions a node.
+  </Accordion>
+
+  <Accordion title="cloudnative-pg">
+    PostgreSQL operator for Kubernetes. Provides:
+    - Declarative PostgreSQL clusters
+    - Automated backups to S3
+    - High availability with automatic failover
+    - Connection pooling via PgBouncer
+
+    Define a Cluster resource; get a production PostgreSQL.
+  </Accordion>
+
+  <Accordion title="reloader">
+    Watches ConfigMaps and Secrets, restarts dependent pods on changes. Handles:
+    - Automatic pod rollouts when configs change
+    - Annotation-based opt-in per Deployment
+
+    Update a ConfigMap; pods restart automatically.
+  </Accordion>
+
+  <Accordion title="SigNoz">
+    Open-source observability platform. Collects:
+    - Metrics from Kubernetes and applications
+    - Logs from all pods
+    - Distributed traces (OpenTelemetry)
+
+    Single pane of glass for your entire stack.
+  </Accordion>
+</AccordionGroup>
+
+### Example: Exposing an Application
+
+With all components working together, exposing an app is simple:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: my-app-tls
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-app
+                port:
+                  number: 80
+```
+
+This single resource triggers:
+1. **external-dns** creates `app.example.com` → NLB in Route53
+2. **cert-manager** provisions a Let's Encrypt certificate
+3. **traefik** routes traffic to your service
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Traefik over AWS ALB Ingress** | More portable, cloud-native design, excellent Kubernetes integration. Supports both Ingress and Gateway API in a single controller, reducing operational overhead. NLB at L4 is simpler. |
+| **external-secrets over Sealed Secrets** | Secrets stay in a proper secrets manager. Better for rotation, auditing, and access control. |
+| **Karpenter over Cluster Autoscaler** | Faster provisioning, better bin-packing, simpler configuration for mixed instance types. |
+| **SigNoz over Datadog/New Relic** | Open source, self-hosted, no per-host pricing. Good enough for most teams starting out. |
+| **CloudNativePG over RDS** | Runs in-cluster for lower latency and cost. Easy to move to RDS later if needed. |

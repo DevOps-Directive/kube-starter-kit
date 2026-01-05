@@ -1,0 +1,98 @@
+---
+title: "Local Development"
+description: "KinD, Tilt, and mirrord for fast local Kubernetes development"
+icon: "laptop-code"
+---
+
+## Overview
+
+The kit includes a complete local development environment using three complementary tools:
+
+- **[KinD](https://kind.sigs.k8s.io/) (Kubernetes in Docker):** A real multi-node Kubernetes cluster running locally
+- **[Tilt](https://tilt.dev/):** Continuous development that rebuilds and redeploys on file changes
+- **[mirrord](https://mirrord.dev/):** Run services directly on your host machine while connected to the KinD cluster
+
+## How It Works
+
+### KinD Cluster
+
+KinD creates a real Kubernetes cluster using Docker containers as nodes. The kit's configuration provides:
+
+**Multi-node cluster:** 1 control-plane + 2 worker nodes, matching a realistic production topology.
+
+**Local container registry:** Images built locally are pushed to `localhost:5001` and pulled by the cluster, avoiding the need for external registries during development.
+
+**Stable networking:** The cluster uses a dedicated Docker network (`172.20.0.0/16`) with [cloud-provider-kind](https://github.com/kubernetes-sigs/cloud-provider-kind) to assign real LoadBalancer IPs. Ingress gets `172.20.0.100`, making URLs predictable.
+
+**sslip.io for DNS:** Services are accessible via URLs like `go-backend.172-20-0-100.sslip.io` without `/etc/hosts` modifications.
+
+### Tilt
+
+Tilt watches your source code and Kubernetes manifests, automatically rebuilding containers and redeploying when files change.
+
+**Hierarchical Tiltfiles:** The main `Tiltfile` includes infrastructure and services, each with their own `Tiltfile`. This mirrors the ArgoCD app-of-apps structure.
+
+**Dependency ordering:** Resources declare dependencies (e.g., apps wait for cloudnative-pg operator), ensuring correct startup order.
+
+**Smart rebuilds:** Only affected resources rebuild. Change application code and only that container rebuilds. Change a Helm value and only that release updates.
+
+**Live UI:** Tilt's web UI shows resource status, logs, and build times. Click a resource to see its logs, trigger manual rebuilds, or debug failures.
+
+### mirrord
+
+While Tilt runs your services inside containers in the KinD cluster, mirrord lets you run a service directly on your host machine while staying connected to the cluster. This provides several advantages for debugging and profiling:
+
+**Native debugging:** Attach your IDE's debugger directly to the process without container layers. Set breakpoints, step through code, and inspect variables with full IDE integration.
+
+**Profiling tools:** Use host-native profilers (pprof, perf, Instruments) without containerization overhead or special configuration.
+
+**Faster iteration:** Skip container builds entirely; just recompile and restart. Your local binary intercepts traffic that would go to the in-cluster pod.
+
+**Steal traffic:** Redirect all traffic from a pod to your local process. Your local code handles real requests while you debug.
+
+**Access cluster resources:** Your local process can reach cluster-internal services (databases, APIs) as if it were running in the cluster.
+
+**Inherit environment:** Environment variables and secrets from the target pod are available locally.
+
+## Development Workflows
+
+### Local Kubernetes (Tilt)
+
+Best for: Testing complete deployments including Kubernetes resources, databases, and ingress.
+
+```
+local/
+├── kind/
+│   └── cluster-config.yaml    # Cluster definition
+└── tilt/
+    └── Tiltfile               # Main entry point
+```
+
+Tilt deploys:
+- **Infrastructure:** cert-manager, cloudnative-pg, traefik
+- **Applications:** Three variants of go-backend (Kustomize, Helm, Timoni)
+
+Each application gets its own PostgreSQL database, runs migrations, and is accessible via ingress.
+
+## Local Configuration
+
+Each component has `values.local.yaml` or a `local/` overlay:
+
+```
+kubernetes/src/
+├── infrastructure/
+│   ├── traefik/values.local.yaml        # LoadBalancer IP
+│   └── cloudnative-pg/values.local.yaml
+└── services/
+    ├── go-backend/local/                 # Kustomize overlay
+    ├── go-backend-helm/values.local.yaml
+    └── go-backend-timoni/values.local.yaml
+```
+
+These configure:
+- `storageClass: standard` for local PVCs (KinD's default)
+- Image tags pointing to `localhost:5001` registry
+- sslip.io hostnames for ingress
+
+The same templating tools (Kustomize, Helm, Timoni) are used locally and in CI, ensuring consistency.
+

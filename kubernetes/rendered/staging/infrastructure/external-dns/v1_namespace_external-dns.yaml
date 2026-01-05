@@ -1,0 +1,5 @@
+# Source: external-dns-wrapper/templates/Namespace.external-dns.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-dns

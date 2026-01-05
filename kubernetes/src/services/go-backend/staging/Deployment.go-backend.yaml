@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend
+spec:
+  template:
+    spec:
+      containers:
+        - name: go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.3.0-0000-gd08aef3 # staging_services/go-backend

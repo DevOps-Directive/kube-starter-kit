@@ -1,0 +1,682 @@
+# tools/mise.toml
+
+# NOTE: using environment variables here rather than mise task arguments (https://mise.jdx.dev/tasks/task-arguments.html)
+#       allows for monorepo tasks to be called from within a subdirectory and use 
+#       the env vars defined in the local mise.toml file
+
+[tasks.generate-version]
+description = "Use git describe to generate a tag based on the latest release tag"
+silent = true
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-version
+  mise run //tools:generate-version <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+TAG="$(git describe --tags --always --first-parent --match "${SVC}@[0-9]*.[0-9]*.[0-9]*")"
+PREFIX="${SVC}@"
+echo "${TAG#${PREFIX}}"
+'''
+
+[tasks.generate-version-tag]
+description = "Combine the image repo with the version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-version-tag
+  IMAGE_REPO=<repo>                            mise run //tools:generate-version-tag <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+  IMAGE_REPO           Target image repository (e.g., 8570....amazonaws.com/services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+: "${IMAGE_REPO:?Set IMAGE_REPO}"
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+VERSION="$(mise run --interleave :generate-version "$SVC")"
+echo "${IMAGE_REPO}:${VERSION}"
+'''
+
+[tasks.generate-extended-version]
+# NOTE: Pre-release versions (e.g., 1.2.3-0007-gabc123) sort BEFORE the base
+# version (1.2.3) in semver. If your tooling requires pre-release tags to sort
+# AFTER the base version, you'll need to modify this task to bump the patch
+# version (e.g., output 1.2.4-0007-gabc123 instead).
+description = "If commits since last tag: emit x.y.z-NNNN-g<sha>; else: x.y.z"
+silent = true
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-extended-version
+  mise run //tools:generate-extended-version <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+BASE="$(mise run --interleave :generate-version "$SVC")"  # e.g., 1.2.3 or 1.2.3-7-gabc123
+
+# Ensure we have -N-g<sha> suffix for counting commits
+if [[ ! "$BASE" =~ -g[0-9a-fA-F]+$ ]]; then
+  GIT_HASH="$(git rev-parse --short HEAD)"
+  BASE="${BASE}-0-g${GIT_HASH}"
+fi
+
+IFS='-' read -r CORE COUNT GREF <<<"$BASE"
+
+printf "%s-%04d-%s\n" "$CORE" "$COUNT" "$GREF"
+'''
+
+[tasks.generate-extended-version-tag]
+description = "Combine the image repo with the extended version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> SERVICE_RELEASE_TAG=<tag>  mise run //tools:generate-extended-version-tag
+  IMAGE_REPO=<repo>                            mise run //tools:generate-extended-version-tag <tag>
+
+where:
+  SERVICE_RELEASE_TAG  The tag used to release the service (e.g., services/go-backend)
+  IMAGE_REPO           Target image repository (e.g., 8570....amazonaws.com/services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+: "${IMAGE_REPO:?Set IMAGE_REPO}"
+SVC="${1:-${SERVICE_RELEASE_TAG:-}}"
+[[ -n "$SVC" ]] || { usage; exit 2; }
+
+VERSION="$(mise run --interleave :generate-extended-version "$SVC")"
+echo "${IMAGE_REPO}:${VERSION}"
+'''
+
+[tasks.manual-version-tag]
+description = "Combine the image repo with the input version tag"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  IMAGE_REPO=<repo> IMAGE_TAG=<image_tag> mise run //tools:manual-version-tag
+  IMAGE_REPO=<repo>                       mise run //tools:manual-version-tag <image_tag>
+
+where:
+  IMAGE_REPO           Target image repository (e.g., <account_id>.dkr.ecr.us-east-2.amazonaws.com/services/go-backend)
+  IMAGE_TAG            The version tag to apply to the image
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+unset IMAGE_TAG
+
+IMAGE_TAG="${1:-${IMAGE_TAG:-}}"
+[[ -n "$IMAGE_TAG" ]] || { usage; exit 2; }
+
+echo "${IMAGE_REPO}:${IMAGE_TAG}"
+'''
+
+[tasks.update-image-tags]
+description = "Recursively update image tags in files with the specified comment"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  NEW_TAG=<tag> IDENTIFIER_COMMENT='<comment>' STARTING_PATH=/path  mise run //tools:update-image-tags
+  mise run //tools:update-image-tags <tag> '<comment>' [starting_path]
+
+where:
+  NEW_TAG             The new image tag to write (e.g., 1.2.3-0007-gabc123)
+  IDENTIFIER_COMMENT  Comment to match in the YAML line (e.g., '# THIS_IS_MY_IMAGE_TAG')
+  STARTING_PATH       Directory to start searching from (defaults to current dir if omitted)
+  EXCLUDED_FILES      Optional newline-separated list of files to skip (override default via env)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+NEW_TAG="${1:-${NEW_TAG:-}}"
+IDENTIFIER_COMMENT="${2:-${IDENTIFIER_COMMENT:-}}"
+STARTING_PATH="${3:-${STARTING_PATH:-}}"
+
+# Default excluded files, override via EXCLUDED_FILES env if needed
+EXCLUDED_FILES="${EXCLUDED_FILES:-$(cat <<'EOF'
+./foo.yaml
+MORE_FILES_CAN_GO_HERE
+EOF
+)}"
+
+if [[ -z "$NEW_TAG" || -z "$IDENTIFIER_COMMENT" || -z "$STARTING_PATH" ]]; then
+  usage
+  exit 2
+fi
+
+echo "STARTING_PATH: ${STARTING_PATH}"
+echo "IDENTIFIER_COMMENT: ${IDENTIFIER_COMMENT}"
+echo "NEW_TAG: ${NEW_TAG}"
+
+# Find YAML/YML files containing the IDENTIFIER_COMMENT and update the tag
+# - Skip any directory named .helm-charts (and its subdirectories) via -prune (dont search over pulled charts)
+find "$STARTING_PATH" \
+  -type d -name '.helm-charts' -prune -o \
+  -type f \( -name "*.yaml" -o -name "*.yml" \) \
+  -exec grep -l -- "$IDENTIFIER_COMMENT" {} \; | while read -r file; do
+    # Skip excluded files
+    if printf '%s\n' "$EXCLUDED_FILES" | grep -qF "$file"; then
+      continue
+    fi
+
+    echo "Updating: $file"
+    # Replace "<anything>:" + existing value before comment with NEW_TAG, keeping the comment
+    # using -i.bak to make it compatible across MacOS sed and gnu-sed
+    sed -i.bak "s|\([[:space:]]*.*:[[:space:]]*\).* \(${IDENTIFIER_COMMENT}\)|\1${NEW_TAG} \2|" "$file"
+    rm -f "${file}.bak"
+  done
+'''
+
+[tasks.update-image-tags-service]
+description = "Update image tags for argocd config"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  NEW_TAG=<tag> ENVIRONMENT=<env> SERVICE_RELEASE_TAG=<service>  mise run //tools:update-image-tags-service
+  mise run //tools:update-image-tags-service <tag> <env> <service>
+
+where:
+  NEW_TAG             The new image tag to write (e.g., 1.2.3-0007-gabc123)
+  ENVIRONMENT         Environment name (e.g., dev, staging, prod)
+  SERVICE_RELEASE_TAG Service identifier used in the comment (e.g., services/go-backend)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+NEW_TAG="${1:-${NEW_TAG:-}}"
+ENVIRONMENT="${2:-${ENVIRONMENT:-}}"
+SERVICE_RELEASE_TAG="${3:-${SERVICE_RELEASE_TAG:-}}"
+
+if [[ -z "$NEW_TAG" || -z "$ENVIRONMENT" || -z "$SERVICE_RELEASE_TAG" ]]; then
+  usage
+  exit 2
+fi
+
+IDENTIFIER_COMMENT="# ${ENVIRONMENT}_${SERVICE_RELEASE_TAG}"
+STARTING_PATH="${STARTING_PATH:-$(git rev-parse --show-toplevel)}"
+
+export NEW_TAG IDENTIFIER_COMMENT STARTING_PATH
+
+mise run --interleave :update-image-tags "$NEW_TAG" "$IDENTIFIER_COMMENT" "$STARTING_PATH"
+'''
+
+[tasks.git-commit-push]
+description = "Commit & push changes to a branch with exponential backoff retries"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:git-commit-push [commit_msg] [branch]
+
+or via env:
+  COMMIT_MSG="chore: ..." BRANCH=main MAX_RETRIES=5 BASE_DELAY=2 JITTER_MAX=3 \
+    mise run //tools:git-commit-push
+
+where:
+  COMMIT_MSG   Commit message (default: "chore: automated update [skip ci]")
+  BRANCH       Branch to push to (default: main)
+  MAX_RETRIES  Max push attempts with backoff (default: 5)
+  BASE_DELAY   Base delay (seconds) for first backoff step (default: 2)
+  JITTER_MAX   Max random jitter (seconds) to add (default: 3)
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+DEFAULT_COMMIT_MSG="chore: automated update [skip ci]"
+
+COMMIT_MSG="${1:-${COMMIT_MSG:-$DEFAULT_COMMIT_MSG}}"
+BRANCH="${2:-${BRANCH:-main}}"
+MAX_RETRIES="${MAX_RETRIES:-5}"
+BASE_DELAY="${BASE_DELAY:-2}"
+JITTER_MAX="${JITTER_MAX:-3}"
+
+# Bail if nothing to commit
+if git diff --quiet; then
+  echo "No changes to commit."
+  exit 0
+fi
+
+# Configure identity (override via env if you want)
+: "${GIT_USER_NAME:=github-actions[bot]}"
+: "${GIT_USER_EMAIL:=${GITHUB_ACTOR_ID:-41898282}+${GITHUB_ACTOR:-github-actions[bot]}@users.noreply.github.com}"
+
+git config user.name  "$GIT_USER_NAME"
+git config user.email "$GIT_USER_EMAIL"
+
+git add -A
+git commit -m "$COMMIT_MSG"
+
+attempt=1
+while [ "$attempt" -le "$MAX_RETRIES" ]; do
+  git fetch origin "$BRANCH"
+
+  if ! git rebase "origin/$BRANCH"; then
+    echo "Rebase failed; aborting and retrying..."
+    git rebase --abort || true
+  fi
+
+  if git push origin "HEAD:$BRANCH"; then
+    echo "Push succeeded on attempt $attempt"
+    exit 0
+  fi
+
+  delay=$(( BASE_DELAY * 2**(attempt-1) ))
+  jitter=$(( RANDOM % JITTER_MAX ))
+  sleep_time=$(( delay + jitter ))
+  echo "Push failed (attempt $attempt). Retrying in ${sleep_time}s (base=${delay}s, jitter=${jitter}s)..."
+  sleep "$sleep_time"
+
+  attempt=$(( attempt + 1 ))
+done
+
+echo "Push failed after ${MAX_RETRIES} attempts" >&2
+exit 1
+'''
+
+###
+
+[tasks."render:prep-output-dir"]
+description = "Create + safely clean an output dir (never cleans /)"
+usage = '''
+arg "<output-dir>" help="Directory to create/clean"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+OUTPUT_DIR="${usage_output_dir:?}"
+mkdir -p "$OUTPUT_DIR"
+
+# clean safely (including dotfiles), but never touch /
+if [[ "$OUTPUT_DIR" != "/" ]]; then
+  rm -rf -- \
+    "$OUTPUT_DIR"/* \
+    "$OUTPUT_DIR"/.[!.]* \
+    "$OUTPUT_DIR"/..?* \
+    2>/dev/null || true
+fi
+"""
+
+[tasks."render:inject-chart-versions"]
+description = "Inject chart versions from values files into Chart.yaml template"
+usage = '''
+arg "[template]" help="Chart.yaml template file (default: $CHART_DIR/Chart.yaml.tmpl)"
+arg "[output]" help="Output Chart.yaml file (default: $CHART_DIR/Chart.yaml)"
+arg "[base-values]" help="Base values file with chartVersions (default: $CHART_DIR/values.yaml)"
+arg "[env-values]" help="Environment values file (default: $CHART_DIR/values.$VALUES_ENV.yaml)"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Support env vars with sensible defaults for simpler invocation
+# Can be called from chart directory with just: mise run //tools:render:inject-chart-versions
+# Or with env: VALUES_ENV=staging mise run //tools:render:inject-chart-versions
+# Or fully explicit: CHART_DIR=/path VALUES_ENV=local mise run //tools:render:inject-chart-versions
+
+CHART_DIR="${CHART_DIR:-$PWD}"
+VALUES_ENV="${VALUES_ENV:-local}"
+
+TEMPLATE="${usage_template:-${CHART_DIR}/Chart.yaml.tmpl}"
+OUTPUT="${usage_output:-${CHART_DIR}/Chart.yaml}"
+BASE_VALUES="${usage_base_values:-${CHART_DIR}/values.yaml}"
+ENV_VALUES="${usage_env_values:-${CHART_DIR}/values.${VALUES_ENV}.yaml}"
+
+cp "$TEMPLATE" "$OUTPUT"
+for chart in $(yq -r '.chartVersions | keys | .[]' "$BASE_VALUES"); do
+  export CHART_NAME="$chart"
+  export CHART_VERSION=$(yq '.chartVersions.[env(CHART_NAME)] // null' "$ENV_VALUES")
+  if [[ -z "$CHART_VERSION" || "$CHART_VERSION" == "null" ]]; then
+    export CHART_VERSION=$(yq '.chartVersions.[env(CHART_NAME)]' "$BASE_VALUES")
+  fi
+  yq -i '(.dependencies[] | select(.name == env(CHART_NAME))).version = env(CHART_VERSION)' "$OUTPUT"
+done
+"""
+
+[tasks."render:helm-dep-build"]
+description = "Build helm dependencies, skipping if Chart.lock unchanged"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+CHART_DIR="${CHART_DIR:-$PWD}"
+cd "$CHART_DIR"
+
+# Check if we need to rebuild: compare stored checksum with current Chart.lock
+if [ -f charts/.chart-lock-sum ] && [ "$(cat charts/.chart-lock-sum)" = "$(md5sum Chart.lock | cut -d' ' -f1)" ]; then
+  exit 0
+fi
+
+# For non-OCI repos (https://), we need to ensure the repo is added
+# Extract unique non-OCI repositories from Chart.lock and add them
+for repo in $(yq -r '.dependencies[].repository | select(. != null) | select(test("^https?://"))' Chart.lock | sort -u); do
+  # Generate a repo name from the URL (use last path segment or domain)
+  repo_name=$(echo "$repo" | sed 's|https\?://||; s|/$||' | tr '/.' '-')
+  # Add repo if not already added (ignore errors if it exists)
+  helm repo add "$repo_name" "$repo" 2>/dev/null || true
+done
+
+# Rebuild dependencies and store checksum
+helm dependency build --skip-refresh
+md5sum Chart.lock | cut -d' ' -f1 > charts/.chart-lock-sum
+'''
+
+[tasks."render:split-k8s-docs"]
+description = "Read multi-doc YAML on stdin and write Kustomize-style files into output dir"
+usage = '''
+arg "<output-dir>" help="Directory to write files into"
+arg "[ext]" help="File extension (default: yaml)"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+export OUTPUT_DIR="${usage_output_dir:?}"
+export OUTPUT_EXT="${usage_ext:-yaml}"
+
+yq -P --no-doc '
+    select(tag == "!!map") # drops the trailing empty doc (null) added by timoni
+  ' \
+  -s '
+    strenv(OUTPUT_DIR) + "/" +
+    ((.apiVersion // "v1") | sub("/"; "_")) + "_" +
+    ((.kind // "unknown") | downcase) + "_" +
+    (((.metadata.namespace // "") + "_") | sub("^_$"; "")) +
+    (.metadata.name // ("idx_" + $index)) +
+    "." + strenv(OUTPUT_EXT)
+  '
+"""
+
+###############################################################################
+# Bastion / SOCKS Proxy Tasks
+###############################################################################
+
+[tasks."bastion:start-proxy"]
+description = "Start a SOCKS5 proxy via SSM to the bastion host"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:bastion:start-proxy <instance_id> [port]
+
+where:
+  INSTANCE_ID    EC2 instance ID of the bastion host (e.g., i-0abc123def456)
+  SOCKS_PORT     Local port for SOCKS5 proxy (default: 1080)
+  SSH_PUBLIC_KEY Path to SSH public key (default: ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub)
+
+Requires an active Leapp session for the target account.
+Starts a SOCKS5 proxy on localhost:<port> via SSM Session Manager.
+Use with: HTTPS_PROXY=socks5://localhost:<port> kubectl ...
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+INSTANCE_ID="${1:-${INSTANCE_ID:-}}"
+SOCKS_PORT="${2:-${SOCKS_PORT:-1080}}"
+
+if [[ -z "$INSTANCE_ID" ]]; then
+  usage
+  exit 2
+fi
+
+# Find SSH public key
+if [[ -n "${SSH_PUBLIC_KEY:-}" ]]; then
+  PUB_KEY_FILE="$SSH_PUBLIC_KEY"
+elif [[ -f ~/.ssh/id_ed25519.pub ]]; then
+  PUB_KEY_FILE=~/.ssh/id_ed25519.pub
+elif [[ -f ~/.ssh/id_rsa.pub ]]; then
+  PUB_KEY_FILE=~/.ssh/id_rsa.pub
+else
+  echo "ERROR: No SSH public key found. Set SSH_PUBLIC_KEY or create ~/.ssh/id_ed25519.pub" >&2
+  exit 1
+fi
+
+# Get instance availability zone
+echo "Looking up instance availability zone..."
+AZ=$(aws ec2 describe-instances \
+  --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].Placement.AvailabilityZone' \
+  --output text)
+
+# Push SSH public key via EC2 Instance Connect (valid for 60 seconds)
+echo "Pushing SSH public key to instance via EC2 Instance Connect..."
+aws ec2-instance-connect send-ssh-public-key \
+  --instance-id "$INSTANCE_ID" \
+  --instance-os-user ec2-user \
+  --ssh-public-key "file://${PUB_KEY_FILE}" \
+  --availability-zone "$AZ" \
+  --no-cli-pager
+
+echo ""
+echo "Starting SOCKS5 proxy on localhost:${SOCKS_PORT} via bastion ${INSTANCE_ID}..."
+echo ""
+echo "To use with kubectl, run in another terminal:"
+echo "  HTTPS_PROXY=socks5://localhost:${SOCKS_PORT} kubectl get nodes"
+echo ""
+echo "Or update your kubeconfig with:"
+echo "  kubectl config set-cluster <cluster-name> --proxy-url=socks5://localhost:${SOCKS_PORT}"
+echo ""
+echo "Press Ctrl+C to stop the proxy."
+echo ""
+
+# Use SSH over SSM with dynamic port forwarding (-D creates SOCKS proxy)
+# This requires ~/.ssh/config to have the SSM ProxyCommand configured
+ssh -N -D "localhost:${SOCKS_PORT}" \
+  -o StrictHostKeyChecking=accept-new \
+  -o UserKnownHostsFile=/dev/null \
+  "ec2-user@${INSTANCE_ID}"
+'''
+
+[tasks."bastion:setup-ssh-config"]
+description = "Print SSH config needed for SSM-based SSH connections"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+cat <<'EOF'
+Add the following to your ~/.ssh/config file to enable SSH over SSM:
+
+# AWS SSM Session Manager SSH proxy
+Host i-* mi-*
+    User ec2-user
+    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
+
+After adding this config, you can:
+1. SSH directly: ssh ec2-user@<instance-id>
+2. Start SOCKS proxy: ssh -ND 1080 ec2-user@<instance-id>
+3. Use mise task: mise run //tools:bastion:start-proxy <instance-id>
+
+Requirements:
+- AWS CLI v2 installed
+- Session Manager plugin installed (mise installs this via aqua:aws/session-manager-plugin)
+- Valid AWS credentials with ssm:StartSession permission
+EOF
+'''
+
+[tasks."bastion:get-instance-id"]
+description = "Get the bastion instance ID for an environment"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:bastion:get-instance-id <environment>
+
+where:
+  environment   Environment name (e.g. staging, production)
+
+Requires an active Leapp session for the target account.
+Looks up the bastion instance ID by the Name tag pattern: *-<environment>-network-bastion
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+ENVIRONMENT="${1:-}"
+
+if [[ -z "$ENVIRONMENT" ]]; then
+  usage
+  exit 2
+fi
+
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=*-${ENVIRONMENT}-network-bastion" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[0].Instances[0].InstanceId' \
+  --output text
+'''
+
+###############################################################################
+# EKS Connection Tasks
+###############################################################################
+
+[tasks."eks:get-credentials"]
+description = "Update kubeconfig for an EKS cluster"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:eks:get-credentials <cluster-name> [region] [alias]
+
+where:
+  cluster-name  Name of the EKS cluster
+  region        AWS region (default: us-east-2)
+  alias         Kubeconfig context alias (default: cluster name)
+
+Updates kubeconfig with credentials for the specified EKS cluster.
+Requires an active Leapp session for the target account.
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+CLUSTER_NAME="${1:-}"
+REGION="${2:-us-east-2}"
+ALIAS="${3:-$CLUSTER_NAME}"
+
+if [[ -z "$CLUSTER_NAME" ]]; then
+  usage
+  exit 2
+fi
+
+aws eks update-kubeconfig \
+  --name "$CLUSTER_NAME" \
+  --region "$REGION" \
+  --alias "$ALIAS"
+
+CURRENT_CLUSTER=$(kubectl config view --minify -o jsonpath='{.clusters[0].name}')
+kubectl config set clusters.${CURRENT_CLUSTER}.proxy-url socks5://localhost:1080
+
+echo ""
+echo "If EKS cluster is using private-only endpoint, you will need to establish a proxy session via the bastion host:"
+echo "  mise run //tools:eks:connect <ENVIRONMENT>"
+'''
+
+[tasks."eks:connect"]
+description = "Start SOCKS proxy to access private EKS cluster"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  mise run //tools:eks:connect <environment>
+
+where:
+  environment   Environment name (e.g. staging, production)
+
+Looks up the bastion instance for the environment and starts a SOCKS5 proxy.
+Requires an active Leapp session for the target account.
+EOF
+}
+
+case "${1:-}" in -h|--help|help) usage; exit 0;; esac
+
+ENVIRONMENT="${1:-}"
+
+if [[ -z "$ENVIRONMENT" ]]; then
+  usage
+  exit 2
+fi
+
+echo "Looking up bastion instance for ${ENVIRONMENT}..."
+INSTANCE_ID=$(mise run //tools:bastion:get-instance-id "$ENVIRONMENT")
+
+if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
+  echo "ERROR: Could not find bastion instance for environment: $ENVIRONMENT" >&2
+  exit 1
+fi
+
+echo "Bastion instance: $INSTANCE_ID"
+echo "Starting SOCKS proxy on localhost:1080..."
+mise run //tools:bastion:start-proxy "$INSTANCE_ID"
+'''

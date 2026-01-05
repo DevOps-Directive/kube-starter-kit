@@ -1,0 +1,52 @@
+# go-backend (kustomize)
+docker_build(
+  '857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend',
+  '../../../../services/go-backend'
+)
+
+docker_build(
+  '857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend/migrations',
+  '../../../../services/go-backend/migrations'
+)
+
+k8s_yaml(
+  './base/Namespace.go-backend-kustomize.yaml'
+)
+
+k8s_yaml(
+  kustomize('./local'),
+  allow_duplicates=True
+)
+
+# NOTE: The -db-wait step could be skipped if relying on migrator job retries instead.
+# Waiting explicitly provides a cleaner Tilt UI and faster feedback.
+k8s_resource(
+  new_name='go-backend-kustomize-db',
+  objects=['go-backend-pg:cluster:go-backend-kustomize'],
+  resource_deps=['cloudnative-pg-wait'],
+  extra_pod_selectors=[{
+    'cnpg.io/cluster': 'go-backend-pg',
+    'cnpg.io/podRole': 'instance'
+  }],
+  labels=['go-backend-kustomize']
+)
+local_resource('go-backend-kustomize-db-wait',
+  cmd='kubectl wait --namespace go-backend-kustomize --for=condition=ready cluster go-backend-pg --timeout=120s',
+  resource_deps=['go-backend-kustomize-db'],
+  labels=['go-backend-kustomize']
+)
+k8s_resource(
+  workload='go-backend:deployment:go-backend-kustomize',
+  new_name='go-backend-kustomize',
+  objects=[
+    'minimal-traefik:ingress:go-backend-kustomize'
+  ],
+  labels=['go-backend-kustomize'],
+  resource_deps=['go-backend-kustomize-db-wait', 'traefik-wait']
+)
+k8s_resource(
+  workload='go-backend-migrate:job:go-backend-kustomize',
+  new_name='go-backend-kustomize-migrate',
+  labels=['go-backend-kustomize'],
+  resource_deps=['go-backend-kustomize-db-wait']
+)

@@ -1,0 +1,53 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  argo-cd: "7.7.16"
+
+# Custom ingress configuration (used by templates/Ingress.argocd-server.yaml)
+ingress:
+  hostname: ""  # Override per environment
+
+argocd:
+  server:
+    # Run argocd-server with TLS disabled (Traefik handles TLS termination)
+    extraArgs:
+      - --insecure
+    # Disable helm-managed ingress - using custom Ingress template for Traefik compatibility
+    ingress:
+      enabled: false
+
+  configs:
+    cm:
+      # url is set per-environment in values.{env}.yaml
+      # Admin user enabled for initial bootstrap/debugging
+      # Consider disabling after configuring SSO: admin.enabled: "false"
+      admin.enabled: "true"
+      # Webhook configuration
+      # GitHub webhook URL: https://argocd.staging.kubestarterkit.com/api/webhook
+      # The webhook secret is managed via ExternalSecret (github-webhook) which merges into argocd-secret
+      # Limit webhook payload size to prevent DDoS attacks (default is 50MB)
+      webhook.maxPayloadSizeMB: "25"
+      dex.config: |
+        connectors:
+          # OIDC
+          - type: github
+            id: github
+            name: GitHub
+            config:
+              clientID: Ov23liqNWlrNlqKGWtpU
+              clientSecret: $github-dex:clientSecret # References secret (which must have "app.kubernetes.io/part-of: argocd" label)
+              orgs: # Limit access to users in specific orgs; optional but recommended
+                - name: DevOps-Directive
+            # In github oauth app, the Authorization callback URL is set to: https://argocd.staging.kubestarterkit.com/api/dex/callback
+    rbac:
+      # See: https://argo-cd.readthedocs.io/en/stable/operator-manual/rbac/
+      policy.csv: |
+        #####################
+        # NOTE:
+        # p, is a policy mapping (e.g. assign permissions directly)
+        # g, is a group mapping (map github group to argo group)
+        #####################
+        g, DevOps-Directive:Admin, role:admin
+        g, DevOps-Directive:ReadOnly, role:readonly
+        g, role:admin, role:readonly # admin inherits readonly role permissions
+      policy.default: role:readonly
+      scopes: "[groups]"

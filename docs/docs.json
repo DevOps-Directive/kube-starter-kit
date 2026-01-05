@@ -1,0 +1,124 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Kube Starter Kit",
+  "colors": {
+    "primary": "#16A34A",
+    "light": "#07C983",
+    "dark": "#15803D"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "groups": [
+      {
+        "group": "About",
+        "pages": [
+          "index",
+          "about-me",
+          "architecture-decisions/index",
+          {
+            "group": "Features",
+            "icon": "stars",
+            "pages": [
+              "features/01-terraform",
+              "features/02-terramate",
+              "features/03-aws-architecture",
+              "features/04-user-management",
+              "features/05-gitops",
+              "features/06-k8s-baseline",
+              "features/07-ci-cd-pipeline",
+              "features/08-image-scanning",
+              "features/09-release-management",
+              "features/10-demo-applications",
+              "features/11-local-development",
+              "features/12-compliance-frameworks"
+            ]
+          },
+          "license-pricing"
+        ]
+      },
+      {
+        "group": "Usage",
+        "pages": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "usage/getting-started/00-overview",
+              "usage/getting-started/01-prerequisites",
+              "usage/getting-started/02-repository-setup",
+              "usage/getting-started/03-bootstrap-accounts",
+              "usage/getting-started/04-configure-access",
+              "usage/getting-started/05-configure-integrations",
+              "usage/getting-started/06-deploy-infrastructure",
+              "usage/getting-started/07-cluster-access",
+              "usage/getting-started/08-deploy-kubernetes-baseline",
+              "usage/getting-started/09-local-development-setup"
+            ]
+          },
+          {
+            "group": "Operations",
+            "icon": "gears",
+            "pages": [
+              "usage/operations/01-updating-terraform-infrastructure",
+              "usage/operations/02-updating-1st-party-applications",
+              "usage/operations/03-updating-3rd-party-applications",
+              "usage/operations/04-bootstrapping-new-service",
+              "usage/operations/05-adding-k8s-infrastructure",
+              "usage/operations/06-managing-secrets",
+              "usage/operations/07-database-operations",
+              "usage/operations/08-observability"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "icon": "wrench",
+            "pages": [
+              "usage/troubleshooting/01-rollback-and-recovery"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/DevOps-Directive/kube-starter-kit",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "Blog",
+          "href": "https://devopsdirective.com/",
+          "icon": "newspaper"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:hi@mintlify.com"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/DevOps-Directive/kube-starter-kit"
+    }
+  },
+  "contextual": {
+    "options": []
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/sidpalas",
+      "github": "https://github.com/DevOps-Directive/kube-starter-kit",
+      "linkedin": "https://www.linkedin.com/in/sid-palas/"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  gateway-helm: "1.6.0"
+  gateway-crds-helm: "1.6.0"
+
+gateway-helm:
+  topologyInjector:
+    annotations:
+      # Prevents noisy diffs for caBundle which gets updated frequently by certGen helm hook job
+      kluctl.io/ignore-diff-field: "webhooks[0].clientConfig.caBundle"
+
+gateway-crds-helm:
+  crds:
+    gatewayAPI:
+      enabled: true
+    # Do we want the envoy specific CRDs?
+    # envoyGateway:
+    #   enabled: true

@@ -1,0 +1,3 @@
+# Chart dependency versions for production
+chartVersions:
+  external-dns: "1.19.0"

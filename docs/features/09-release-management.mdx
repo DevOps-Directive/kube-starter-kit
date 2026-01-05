@@ -1,0 +1,147 @@
+---
+title: "Release Management"
+description: "Automated release PRs with release-please and controlled production deployments"
+icon: "tag"
+---
+
+## The Problem
+
+Production deployments need more ceremony than staging, but that doesn't mean they should be painful:
+
+- **Manual release processes:** Someone maintains a changelog, bumps versions, creates tags, and hopes they didn't miss anything.
+- **Changelog drift:** The changelog is always out of date because updating it is tedious and easy to forget.
+- **Version confusion:** What's actually in production? What commits are included in v1.2.3? Good luck piecing that together from Git history.
+- **Risky deployments:** Without a clear release boundary, production deployments become "let's deploy main and hope for the best."
+
+## How Kube Starter Kit Addresses This
+
+I've integrated [release-please](https://github.com/googleapis/release-please) to automate release management with a simple, controlled workflow:
+
+**Automatic release PRs:** As commits land on main, release-please maintains a PR that accumulates changes and auto-generates a changelog.
+
+**Conventional commits drive versioning:** Commit messages determine version bumps. `fix:` bumps patch, `feat:` bumps minor, `feat!:` or `BREAKING CHANGE` bumps major.
+
+**Merge to release:** When you're ready for production, merge the release PR. That's it.
+
+**Production deployment on release:** Merging the release PR triggers the production build and deployment pipeline, rendering manifests for production and letting ArgoCD sync.
+
+## What's Included
+
+### Release-Please Configuration
+
+```
+.github/
+├── workflows/
+│   └── release-please.yaml
+└── release-please-config.json
+```
+
+### How It Works
+
+<Steps>
+  <Step title="Commits land on main">
+    Developers merge PRs with conventional commit messages (`feat:`, `fix:`, `chore:`, etc.).
+  </Step>
+  <Step title="Release PR updates">
+    release-please automatically updates (or creates) a release PR that includes all pending changes with a generated changelog.
+  </Step>
+  <Step title="Review the release">
+    The release PR shows exactly what will be released: version bump, changelog entries, and all included commits.
+  </Step>
+  <Step title="Merge when ready">
+    Merging the release PR creates a Git tag and GitHub release.
+  </Step>
+  <Step title="Production pipeline triggers">
+    The release triggers the production build workflow, which renders manifests and deploys to production via ArgoCD.
+  </Step>
+</Steps>
+
+### Conventional Commits
+
+The versioning is driven by commit message prefixes:
+
+| Prefix | Version Bump | Example |
+|--------|--------------|---------|
+| `fix:` | Patch (1.0.0 → 1.0.1) | `fix: resolve null pointer in auth handler` |
+| `feat:` | Minor (1.0.0 → 1.1.0) | `feat: add user profile endpoint` |
+| `feat!:` or `BREAKING CHANGE:` | Major (1.0.0 → 2.0.0) | `feat!: redesign authentication API` |
+| `chore:`, `docs:`, `ci:` | Patch (1.0.0 → 1.0.1) | `chore: update dependencies` |
+
+Note: `chore:` commits bump the patch version to ensure pre-release image tags (e.g., `1.2.4-rc0001-g4b5d2e7`) always reflect the upcoming release version.
+
+### Release PR Example
+
+When commits accumulate, the release PR looks like:
+
+```markdown
+## [1.2.0](https://github.com/org/repo/compare/v1.1.0...v1.2.0)
+
+### Features
+
+* add user profile endpoint (#45)
+* support bulk operations in API (#42)
+
+### Bug Fixes
+
+* resolve null pointer in auth handler (#48)
+* fix pagination on large datasets (#44)
+```
+
+This becomes both the PR description and the GitHub release notes.
+
+### Production Deployment Flow
+
+```
+main branch
+    │
+    ├── commit: feat: new feature
+    ├── commit: fix: bug fix
+    │
+    ▼
+Release PR (auto-maintained)
+    │
+    │ [Merge when ready]
+    ▼
+Git Tag + GitHub Release
+    │
+    ▼
+Production Build Workflow
+    │
+    ├── Build changed containers
+    ├── Render production manifests
+    └── Commit to rendered/production/
+    │
+    ▼
+ArgoCD syncs production cluster
+```
+
+### Multi-Application Releases
+
+In a monorepo with multiple applications, each application has its own version and receives separate Git tags (e.g., `services/go-backend@1.2.3`). However, release-please groups all pending releases into a single PR.
+
+This gives you:
+- **Independent versioning:** Each application's version reflects its own changes
+- **Coordinated releases:** One PR to review and merge for all applications ready to release
+- **Simpler workflow:** No need to manage multiple release PRs
+
+The grouping behavior is configurable if you prefer separate release PRs per application.
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **release-please over manual releases** | Automated changelog generation and version bumping eliminates manual toil and human error. |
+| **Conventional commits** | Commit messages become meaningful. Version bumps are predictable and auditable. |
+| **PR-based releases** | The release PR provides a clear review point before production. You can see exactly what's included. |
+| **Separate staging and production pipelines** | Staging deploys on every merge for fast feedback. Production deploys only on release for controlled rollouts. |
+| **Same rendered manifests pattern** | Production uses the same pattern as staging: rendered manifests in Git. Consistency across environments. |
+
+## Workflow Summary
+
+| Event | Staging | Production |
+|-------|---------|------------|
+| PR merged to main | Builds and deploys automatically | No action |
+| Release PR merged | No action | Builds and deploys automatically |
+| Rollback needed | Revert commit, auto-redeploys | Revert release commit or deploy previous tag |
+
+This separation gives you fast iteration on staging while maintaining controlled, auditable production releases.

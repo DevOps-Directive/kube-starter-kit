@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: ingress-traefik-timoni.staging.kubestarterkit.com
+  labels:
+    app.kubernetes.io/managed-by: timoni
+    app.kubernetes.io/name: go-backend
+    app.kubernetes.io/version: 0.0.0-devel
+  name: minimal-traefik
+  namespace: go-backend-timoni
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ingress-traefik-timoni.staging.kubestarterkit.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: go-backend
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

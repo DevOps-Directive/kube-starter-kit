@@ -1,0 +1,36 @@
+users:
+  - github:
+      username: sidpalas
+      role: admin
+      teams:
+        Admin:
+          role: maintainer
+        ReadOnly:
+          role: maintainer
+    aws:
+      user_name: sid@devopsdirective.com
+      email: sid@devopsdirective.com
+      group_membership: [Admin]
+      given_name: Sid
+      family_name: Palas
+  - github:
+      username: sidpala5
+      role: member
+      teams:
+        Admin: {} # default role = "member"
+    aws:
+      user_name: sid+test
+      email: sid+github@devopsdirective.com
+      group_membership: [ReadOnly]
+      given_name: Sid
+      family_name: Test
+  - github:
+      username: jhoch-nmnl
+      role: member
+      teams:
+        ReadOnly: {}
+  - github:
+      username: troyastorino
+      role: member
+      teams:
+        ReadOnly: {}

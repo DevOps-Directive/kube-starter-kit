@@ -1,0 +1,85 @@
+---
+title: "Kube Starter Kit"
+sidebarTitle: "Overview"
+icon: "home"
+description: "From zero to production Kubernetes in days, not months."
+---
+
+# The Kubernetes platform you'd build if you had the time
+
+Getting Kubernetes right is hard. Not the “spin up a cluster” part, that’s easy. The hard part is everything else: infrastructure as code and automation, implementing GitOps and deployments, managing secrets securely, establishing observability, meeting compliance requirements, and making it all work across multiple environments without spending months on it.
+
+I've built and maintained Kubernetes platforms at multiple companies. Each time, I found myself solving the same problems, making the same architectural decisions, and wishing I had a solid starting point instead of building from scratch.
+
+**Kube Starter Kit is that starting point.**
+
+It's an opinionated, production-ready platform for **AWS and EKS** that gives you everything you need to run applications on Kubernetes: infrastructure, deployment pipelines, and baseline components, all wired together and ready to go.
+
+## What's Included
+
+<CardGroup cols={3}>
+  <Card title="Terraform Infrastructure" icon="cube" href="/features/01-terraform">
+    Modular, well-structured Terraform for AWS with multi-environment support via Terramate
+  </Card>
+  <Card title="Terraform Orchestration" icon="robot" href="/features/02-terramate">
+    Stack-based Terraform orchestration with Terramate; change detection, outputs sharing, and CI/CD
+  </Card>
+  <Card title="AWS Architecture" icon="cloud" href="/features/03-aws-architecture">
+    Multi-account setup with VPC, EKS, and secure account boundaries
+  </Card>
+  <Card title="User Management" icon="users" href="/features/04-user-management">
+    Terraform-managed GitHub and AWS IAM Identity Center users and permissions
+  </Card>
+  <Card title="GitOps Deployment" icon="code-branch" href="/features/05-gitops">
+    ArgoCD-based GitOps for declarative, auditable deployments
+  </Card>
+  <Card title="Kubernetes Baseline" icon="layer-group" href="/features/06-k8s-baseline">
+    Curated set of components: ingress, cert-manager, external-dns, secrets, observability, and more
+  </Card>
+  <Card title="CI/CD Pipelines" icon="arrows-spin" href="/features/07-ci-cd-pipeline">
+    Automated container builds and staging deployments on every merge to main
+  </Card>
+  <Card title="Image CVE Scanning" icon="shield-halved" href="/features/08-image-scanning">
+    Automated vulnerability scanning for container images with daily scheduled scans
+  </Card>
+  <Card title="Release Management" icon="tag" href="/features/09-release-management">
+    Automated release PRs with release-please and controlled production deployments
+  </Card>
+  <Card title="Demo Applications" icon="flask" href="/features/10-demo-applications">
+    Fully functional example applications demonstrating end-to-end patterns
+  </Card>
+  <Card title="Local Development" icon="laptop-code" href="/features/11-local-development">
+    KinD, Tilt, and mirrord for fast local Kubernetes development
+  </Card>
+  <Card title="SOC2 & Compliance" icon="shield-check" href="/features/12-compliance-frameworks">
+    How Kube Starter Kit features map to SOC2 controls and other compliance requirements
+  </Card>
+</CardGroup>
+
+## Who This Is For
+
+Kube Starter Kit is built for **engineering teams at early-stage companies** who:
+
+- Are confident Kubernetes is the right choice for their infrastructure
+- Want to get to production quickly without cutting corners
+- Value having an opinionated path from someone who's done this before
+- Would rather customize a working system than build one from scratch
+
+## What to Expect
+
+**You own the infrastructure.** This is your platform running in your AWS account. No managed service dependency, no third-party with access to your environment. Full control, full responsibility.
+
+**Standard tools, no abstraction layer.** Unlike OpenShift or Tanzu, there's no proprietary UI or vendor lock-in. It's standard Kubernetes with standard tools. Your team's existing knowledge transfers directly.
+
+**A starting point you make your own.** Fork the repo and customize it to fit your needs. All future updates to the kit are available to you, but you're also free to diverge. It's a foundation, not a constraint.
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Explore Features" icon="magnifying-glass" href="/features/01-terraform">
+    Learn about each component and the decisions behind them
+  </Card>
+  <Card title="Purchase a License" icon="key" href="/license-pricing">
+    Get access to the kit and optional consulting support
+  </Card>
+</CardGroup>

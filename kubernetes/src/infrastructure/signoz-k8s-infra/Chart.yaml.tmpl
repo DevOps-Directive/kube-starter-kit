@@ -1,0 +1,10 @@
+apiVersion: v2
+name: signoz-wrapper
+description: Umbrella chart that installs signoz k8s-infra (colletor / agent) plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: k8s-infra
+    repository: "https://charts.signoz.io"
+    version: REPLACED_BY_CHARTVERSIONS

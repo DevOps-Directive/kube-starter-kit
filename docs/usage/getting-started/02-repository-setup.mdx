@@ -1,0 +1,58 @@
+---
+title: 'Repository Setup'
+description: 'Fork and customize the repository for your organization'
+icon: 'code-fork'
+---
+
+## Overview
+
+Kube Starter Kit is designed to be forked and customized for your organization. This page walks you through the initial repository setup: forking, cloning, and installing development tools.
+
+## Fork and Clone
+
+<Steps>
+  <Step title="Create your fork">
+    Fork the repository to your GitHub organization:
+
+    1. Navigate to the [Kube Starter Kit repository](https://github.com/DevOps-Directive/kube-starter-kit)
+    2. Click **Fork** and select your organization as the owner
+    3. Keep the repository name or rename it to match your conventions
+  </Step>
+
+  <Step title="Clone your fork locally">
+    ```bash
+    git clone https://github.com/<YOUR_ORG>/<your-repo>.git
+    cd <your-repo>
+    ```
+  </Step>
+
+  <Step title="Install mise">
+    The repository uses [mise](https://mise.jdx.dev/) to manage tool versions. Install it first:
+
+    ```bash
+    curl https://mise.run | sh
+    ```
+
+    Then activate mise in your shell (add to your `.bashrc` or `.zshrc` for persistence):
+
+    ```bash
+    eval "$(~/.local/bin/mise activate bash)"  # or zsh/fish
+    ```
+
+    See the [mise installation docs](https://mise.jdx.dev/getting-started.html) for alternative installation methods.
+  </Step>
+
+  <Step title="Install development tools">
+    With mise installed, install the project's tool dependencies:
+
+    ```bash
+    mise install
+    ```
+
+    This installs Terramate, Terraform, kubectl, Helm, and other tools at the versions specified in `mise.toml`.
+  </Step>
+</Steps>
+
+## Next Steps
+
+You're now ready to proceed to [Bootstrap Accounts](/usage/getting-started/03-bootstrap-accounts) to set up AWS IAM roles and import GitHub organization members.

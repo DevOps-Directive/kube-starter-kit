@@ -1,0 +1,119 @@
+# Source: signoz-wrapper/charts/k8s-infra/templates/otel-deployment/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signoz-k8s-infra-otel-deployment
+  namespace: signoz
+  labels:
+    helm.sh/chart: k8s-infra-0.15.0
+    app.kubernetes.io/version: 0.139.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/component: otel-deployment
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: k8s-infra
+      app.kubernetes.io/instance: signoz
+      app.kubernetes.io/component: otel-deployment
+  minReadySeconds: 5
+  progressDeadlineSeconds: 120
+  replicas:
+  template:
+    metadata:
+      annotations:
+        checksum/config: e3e11c7e2b24f7e5827986e4937db7ba47514fcf3eef3983a1bdc508da05c111
+      labels:
+        app.kubernetes.io/name: k8s-infra
+        app.kubernetes.io/instance: signoz
+        app.kubernetes.io/component: otel-deployment
+    spec:
+      serviceAccountName: signoz-k8s-infra-otel-deployment
+      securityContext: {}
+      priorityClassName: ""
+      volumes:
+        - name: otel-deployment-config-vol
+          configMap:
+            name: signoz-k8s-infra-otel-deployment
+      containers:
+        - name: signoz-k8s-infra-otel-deployment
+          image: docker.io/otel/opentelemetry-collector-contrib:0.139.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: health-check
+              containerPort: 13133
+              protocol: TCP
+          command:
+            - /otelcol-contrib
+          args:
+            - --config=/conf/otel-deployment-config.yaml
+          securityContext: {}
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ingest.us.signoz.cloud:443
+            - name: SIGNOZ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: signoz-apikey
+                  key: signoz-apikey
+            - name: OTEL_SECRETS_PATH
+              value: /secrets
+            - name: K8S_CLUSTER_NAME
+              value: ksk-use2-staging-eks
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: staging
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: K8S_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: K8S_HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SIGNOZ_COMPONENT
+              value: otel-deployment
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: signoz.component=$(SIGNOZ_COMPONENT),k8s.cluster.name=$(K8S_CLUSTER_NAME)
+          volumeMounts:
+            - name: otel-deployment-config-vol
+              mountPath: /conf
+          livenessProbe:
+            httpGet:
+              port: 13133
+              path: /
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              port: 13133
+              path: /
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi

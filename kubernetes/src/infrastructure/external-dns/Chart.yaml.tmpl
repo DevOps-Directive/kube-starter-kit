@@ -1,0 +1,10 @@
+apiVersion: v2
+name: external-dns-wrapper
+description: Umbrella chart that installs external-dns plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: external-dns
+    repository: "https://kubernetes-sigs.github.io/external-dns"
+    version: REPLACED_BY_CHARTVERSIONS

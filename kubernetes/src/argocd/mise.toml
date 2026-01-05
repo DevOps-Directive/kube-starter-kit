@@ -1,0 +1,33 @@
+[tasks.render-all]
+description = "Render all infrastructure manifests for specified cluster"
+usage = '''
+arg "<cluster>" help="Target cluster" {
+  choices "staging" "production"
+}
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+JOBS="${MISE_JOBS:-4}"
+
+args=(run -j "$JOBS")
+first=1
+
+shopt -s nullglob
+for path in ./*/; do
+  dir="${path%/}"
+  dir="${dir##*/}"
+
+  # add separator between tasks (not at the end)
+  if [[ "$first" -eq 0 ]]; then
+    args+=(":::")
+  else
+    first=0
+  fi
+
+  args+=( "//kubernetes/src/argocd/${dir}:render-cluster" "${usage_cluster}" )
+done
+
+mise "${args[@]}"
+"""

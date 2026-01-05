@@ -1,0 +1,198 @@
+---
+title: 'Configure Integrations'
+description: 'Configure AWS, GitHub, and Terramate Cloud integrations'
+icon: 'link'
+---
+
+## Overview
+
+With [human access configured](/usage/getting-started/04-configure-access), you now need to configure the external service integrations that enable CI/CD automation. This page covers:
+
+- **AWS**: Account IDs and role ARNs for Terraform
+- **GitHub (octo-sts)**: Tokens for managing GitHub organization resources
+- **Terramate Cloud** (optional): Plan visualization and drift detection
+
+## Verify Terraform Configuration
+
+Your `terraform/config.tm.hcl` should already have the correct values from the [Bootstrap Accounts](/usage/getting-started/03-bootstrap-accounts) step. Verify they look like this:
+
+```hcl
+globals {
+  namespace = "<NAMESPACE>"
+
+  # These were set during bootstrap
+  github_oidc_assume_role_arn = "arn:aws:iam::<INFRA_ACCOUNT_ID>:role/<NAMESPACE>-gbl-infra-bootstrap-github-oidc"
+  sso_admin_assume_role_arn   = "arn:aws:iam::<INFRA_ACCOUNT_ID>:role/aws-reserved/sso.amazonaws.com/<AWS_REGION>/AWSReservedSSO_AdministratorAccess_XXXXX"
+  backend_bucket              = "<NAMESPACE>-gbl-infra-bootstrap-state"
+  backend_region              = "<AWS_REGION>"
+}
+```
+
+## Configure GitHub Repository Variables
+
+GitHub Actions needs the OIDC role ARN to authenticate. Add these variables to your repository (Settings > Secrets and variables > Actions > Variables):
+
+| Variable | Value |
+|----------|-------|
+| `TERRAFORM_AWS_ROLE_ARN` | `arn:aws:iam::<INFRA_ACCOUNT_ID>:role/<NAMESPACE>-gbl-infra-bootstrap-github-oidc` |
+| `TERRAFORM_AWS_REGION` | Your primary AWS region (e.g., `us-east-2`) |
+
+<Note>
+These are repository **variables**, not secrets, since the values are not sensitive. GitHub Actions only needs the Infrastructure account role. Cross-account access is handled by each Terraform stack's provider configuration.
+</Note>
+
+## Update GitHub Workflows
+
+The workflows read credentials from GitHub repository variables. Verify the workflow files reference the variables correctly:
+
+```yaml
+# In .github/workflows/terramate-preview.yml, terramate-deploy.yml, and terramate-detect-drift.yml
+- name: "Configure AWS Credentials"
+  uses: aws-actions/configure-aws-credentials@v4
+  with:
+    aws-region: ${{ vars.TERRAFORM_AWS_REGION }}
+    role-to-assume: ${{ vars.TERRAFORM_AWS_ROLE_ARN }}
+```
+
+## Configure octo-sts for GitHub Tokens
+
+The Terramate workflows use [octo-sts](https://github.com/octo-sts/app) to obtain GitHub tokens for managing GitHub organization resources (teams, members, repository settings). This is more secure than storing long-lived GitHub tokens as secrets.
+
+<Steps>
+  <Step title="Install the octo-sts GitHub App">
+    1. Navigate to the [octo-sts GitHub App](https://github.com/apps/octo-sts)
+    2. Click **Install** and select your organization
+    3. Grant access to your forked repository (or all repositories)
+  </Step>
+
+  <Step title="Update trust policy files">
+    Update each policy file in `.github/chainguard/` to reference your organization:
+
+    **`.github/chainguard/terramate.sts.yaml`**:
+
+    ```yaml
+    issuer: https://token.actions.githubusercontent.com
+    subject_pattern: ^repo:<YOUR_ORG>/<your-repo>:.*
+    claim_pattern:
+      workflow_ref: '^<YOUR_ORG>/<your-repo>/\.github/workflows/terramate.*@refs/.*$'
+
+    permissions:
+      administration: write
+      metadata: read
+      members: write
+      contents: read
+    ```
+
+    **`.github/chainguard/release-please.sts.yaml`**:
+
+    ```yaml
+    issuer: https://token.actions.githubusercontent.com
+    subject: repo:<YOUR_ORG>/<your-repo>:ref:refs/heads/main
+
+    permissions:
+      contents: write
+      pull_requests: write
+    ```
+
+    Replace `<YOUR_ORG>` with your GitHub organization name and `<your-repo>` with your repository name.
+  </Step>
+</Steps>
+
+## Configure Terramate Cloud (Optional)
+
+If you want to use [Terramate Cloud](https://cloud.terramate.io/) for plan visualization and drift detection:
+
+1. Create an account at [cloud.terramate.io (EU)](https://cloud.terramate.io/) OR [us.cloud.terramate.io (US)](https://us.cloud.terramate.io/)
+2. Install the GitHub App from your Terramate Cloud dashboard under **Integrations** to enable PR comments and status checks
+3. Update the `cloud_organization` in `.github/workflows/terramate-preview.yml` and other Terramate workflows:
+
+```yaml
+- name: Install Terramate
+  uses: terramate-io/terramate-action@0500f8a40b57a793a41edd2aea0a49e31c7204e8 # v3.2.0
+  with:
+    version: "0.15.1"
+    cloud_organization: your-terramate-org
+```
+
+<Tip>
+Terramate Cloud is optional but recommended. It provides a unified view of Terraform plans across all stacks and makes PR reviews much easier.
+</Tip>
+
+## Search for Remaining References
+
+Search for any remaining references to the original organization or AWS accounts:
+
+```bash
+# Find references to the original organization
+grep -r "DevOps-Directive" .github/
+grep -r "094905625236" .  # Original AWS account ID
+```
+
+## Verify Your Setup
+
+```bash
+cd terraform
+terramate fmt --check
+terramate generate
+```
+
+Review the generated files to ensure your configuration changes propagated correctly.
+
+## Commit Your Changes
+
+```bash
+git add .
+git commit -m "chore: configure AWS account IDs and role ARNs"
+git push
+```
+
+## Verify CI/CD
+
+Push a commit or open a pull request to verify that GitHub Actions can authenticate to AWS:
+
+1. Check the workflow run in the **Actions** tab
+2. The `Configure AWS Credentials` step should succeed
+3. Terraform plan output should appear (if using Terramate Cloud, check the PR comments)
+
+## Troubleshooting
+
+### "Access Denied" when assuming cross-account role
+
+The two-step authentication means there are two places trust can fail:
+
+1. **GitHub → Infrastructure account**: Check the OIDC role trust policy
+   ```bash
+   # Run from Infrastructure account (replace <NAMESPACE> with your namespace)
+   aws iam get-role --role-name "<NAMESPACE>-gbl-infra-bootstrap-github-oidc" \
+     --query 'Role.AssumeRolePolicyDocument'
+   ```
+
+2. **Infrastructure account → Target account**: Check the target role trust policy
+   ```bash
+   # Run from target account (e.g. staging)
+   aws iam get-role --role-name "<NAMESPACE>-gbl-staging-bootstrap-admin" \
+     --query 'Role.AssumeRolePolicyDocument'
+   ```
+
+The target account's trust policy should include the Infrastructure account's GitHub OIDC role ARN as a trusted principal.
+
+### GitHub Actions can't authenticate
+
+1. Verify the OIDC provider exists in the Infrastructure account:
+   ```bash
+   aws iam list-open-id-connect-providers
+   ```
+
+2. Check the GitHub OIDC role trust policy allows your repository:
+   ```bash
+   # Replace <NAMESPACE> with your namespace
+   aws iam get-role --role-name "<NAMESPACE>-gbl-infra-bootstrap-github-oidc" \
+     --query 'Role.AssumeRolePolicyDocument'
+   ```
+
+3. Ensure the repository name in the trust policy matches exactly (case-sensitive, including organization name).
+
+
+## Next Steps
+
+With AWS integration configured, you're ready to [Deploy Infrastructure](/usage/getting-started/06-deploy-infrastructure) to provision networking and EKS clusters.

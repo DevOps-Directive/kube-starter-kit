@@ -1,0 +1,77 @@
+name: Update GitOps Manifests
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Path to the service to deploy (go/api-golang)"
+        required: true
+        type: choice
+        options:
+          - services/go-backend
+          # TODO: handle the fact that migrations image shouldn't deploy independently (its coupled to application version)
+          #       currently, the migration image workflow ends up being a no-op
+          # Potential implementation: add mise target or ENV var which returns boolean for whether to run the gitops workflow
+          - services/go-backend/migrations
+          - services/go-backend-no-migrations
+      version:
+        description: "Version to deploy"
+        required: true
+        type: string
+      environment:
+        description: "Target environment to deploy to"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  # Serializes deploys for each (Environment, Service)
+  group: ${{ github.workflow }}-gitops-${{ inputs.environment }}-${{ inputs.service }}
+  cancel-in-progress: false
+
+jobs:
+  update-manifests:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          ref: main # Checking out the tip of main (vs the GITHUB_REF of the build workflow is more robust to merge conflicts since we merge back to main)
+      - uses: jdx/mise-action@be3be2260bc02bc3fbf94c5e2fed8b7964baf074 # v3.4.0
+        with:
+          version: 2025.10.21
+          install: false # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
+          experimental: true # [default: false] enable experimental features
+          github_token: ${{ secrets.GITHUB_TOKEN }} # [default: ${{ github.token }}] GitHub token for API authentication
+      - name: Generate Commit Message
+        id: generate-commit-message
+        run: |
+          commit_message="chore: update ${{ inputs.environment }}, ${{ inputs.service }}, ${{ inputs.version }} [skip ci]"
+          echo "commit_message=${commit_message}" >> "$GITHUB_OUTPUT"
+      - working-directory: ${{ inputs.service }}
+        run: |
+          # NOTE: We could (additionally) update staging for release tags
+          #       so production image tags end up there too
+          STARTING_PATH="$(git rev-parse --show-toplevel)" \
+          NEW_TAG="${{ inputs.version }}" \
+          ENVIRONMENT="${{ inputs.environment }}" \
+            mise run //tools:update-image-tags-service
+
+          # TODO: make this configurable
+          # Potential Implementation: add a mise task to the service directory that calls 0-N render-cluster tasks
+          mise run //kubernetes/src/${{ inputs.service }}:render-cluster ${{ inputs.environment }}
+      - run: |
+          git --no-pager diff
+      # First attempt, we used stefanzweifel/git-auto-commit-action but ran into issues with concurrent execution and the working branch being outdated
+      # Alternatively, we could use peter-evans/create-pull-request to generate a PR instead
+      - name: Commit & push (via Mise)
+        working-directory: ${{ inputs.service }}
+        run: |
+          COMMIT_MSG="${{ steps.generate-commit-message.outputs.commit_message }}" \
+          BRANCH=main \
+          mise run //tools:git-commit-push
