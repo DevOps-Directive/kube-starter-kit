@@ -43,11 +43,11 @@ generate_hcl "_main.tf" {
     #
     # Note: import blocks must be in root modules, not child modules.
     import {
-      to = tm_hcl_expression("module.bootstrapping.module.iam_role.aws_iam_role.this[0]")
+      to = tm_hcl_expression("module.account-bootstrapping.module.iam_role.aws_iam_role.this[0]")
       id = "${global.namespace}-${global.environment}-${global.stage}-bootstrap-admin"
     }
 
-    module "bootstrapping" {
+    module "account-bootstrapping" {
       source = let.module_source
 
       # CloudPosse context
@@ -83,7 +83,7 @@ generate_hcl "_outputs.tm.hcl" {
   content {
     output "terraform_iam_role_arn" {
       backend = "terraform"
-      value   = tm_hcl_expression("module.bootstrapping.terraform_iam_role_arn")
+      value   = tm_hcl_expression("module.account-bootstrapping.terraform_iam_role_arn")
     }
 
     # Only output zone_arn when a zone is created
@@ -92,7 +92,7 @@ generate_hcl "_outputs.tm.hcl" {
       condition = global.bootstrapping.create_zone
       attributes = {
         backend = "terraform"
-        value   = tm_hcl_expression("module.bootstrapping.zone_arn")
+        value   = tm_hcl_expression("module.account-bootstrapping.zone_arn")
       }
     }
   }
@@ -109,7 +109,7 @@ generate_hcl "_outputs_info.tf" {
 
   content {
     output "zone_name_servers" {
-      value = tm_hcl_expression("module.bootstrapping.zone_name_servers")
+      value = tm_hcl_expression("module.account-bootstrapping.zone_name_servers")
     }
   }
 }
