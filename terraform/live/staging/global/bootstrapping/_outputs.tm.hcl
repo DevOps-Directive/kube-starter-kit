@@ -2,9 +2,9 @@
 
 output "terraform_iam_role_arn" {
   backend = "terraform"
-  value   = module.bootstrapping.terraform_iam_role_arn
+  value   = module.account-bootstrapping.terraform_iam_role_arn
 }
 output "zone_arn" {
   backend = "terraform"
-  value   = module.bootstrapping.zone_arn
+  value   = module.account-bootstrapping.zone_arn
 }

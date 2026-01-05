@@ -2,9 +2,9 @@
 
 import {
   id = "ksk-gbl-staging-bootstrap-admin"
-  to = module.bootstrapping.module.iam_role.aws_iam_role.this[0]
+  to = module.account-bootstrapping.module.iam_role.aws_iam_role.this[0]
 }
-module "bootstrapping" {
+module "account-bootstrapping" {
   aws_region                  = "us-east-2"
   create_zone                 = true
   environment                 = "gbl"
