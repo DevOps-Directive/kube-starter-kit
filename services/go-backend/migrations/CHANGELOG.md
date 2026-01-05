@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.2.1...services/go-backend/migrations@0.3.0) (2026-01-05)
+
+
+### Chores
+
+* **services/go-backend/migrations:** Synchronize go-backend-and-migrations versions
+
 ## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend/migrations@0.2.0...services/go-backend/migrations@0.2.1) (2025-12-13)
 
 
