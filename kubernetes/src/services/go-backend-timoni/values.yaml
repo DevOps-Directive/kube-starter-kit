@@ -1,7 +1,7 @@
 values:
   db:
     # TODO: make cnpg optional
-    image: ghcr.io/cloudnative-pg/postgresql:17.5
+    image: dhi.io/postgres:17-alpine3.22
     storageClass: ebs-gp3-encrypted
   replicas: 1
   image:

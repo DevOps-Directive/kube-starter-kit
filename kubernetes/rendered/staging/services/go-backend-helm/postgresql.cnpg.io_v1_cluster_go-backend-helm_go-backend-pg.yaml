@@ -11,4 +11,4 @@ spec:
     storageClass: ebs-gp3-encrypted
   superuserSecret:
     name: go-backend-db-superuser
-  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  imageName: dhi.io/postgres:17-alpine3.22

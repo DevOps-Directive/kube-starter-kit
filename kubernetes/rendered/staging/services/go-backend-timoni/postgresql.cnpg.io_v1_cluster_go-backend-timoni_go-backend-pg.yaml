@@ -8,7 +8,7 @@ metadata:
   name: go-backend-pg
   namespace: go-backend-timoni
 spec:
-  imageName: ghcr.io/cloudnative-pg/postgresql:17.5
+  imageName: dhi.io/postgres:17-alpine3.22
   instances: 1
   storage:
     size: 1Gi
