@@ -393,7 +393,7 @@ done
 """
 
 [tasks."render:helm-dep-build"]
-description = "Build helm dependencies, skipping if Chart.lock unchanged"
+description = "Build helm dependencies, updating lockfile if Chart.yaml versions changed"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
@@ -401,19 +401,48 @@ set -euo pipefail
 CHART_DIR="${CHART_DIR:-$PWD}"
 cd "$CHART_DIR"
 
+# Helper: add non-OCI repos from a YAML file (Chart.yaml or Chart.lock)
+add_repos_from_file() {
+  local file="$1"
+  for repo in $(yq -r '.dependencies[].repository | select(. != null) | select(test("^https?://"))' "$file" | sort -u); do
+    repo_name=$(echo "$repo" | sed 's|https\?://||; s|/$||' | tr '/.' '-')
+    helm repo add "$repo_name" "$repo" 2>/dev/null || true
+  done
+}
+
+# Check if Chart.yaml dependency versions differ from Chart.lock
+# This detects when chart versions have been bumped and lockfile needs regeneration
+needs_lock_update() {
+  [[ ! -f Chart.lock ]] && return 0
+
+  # Compare each dependency version in Chart.yaml vs Chart.lock
+  for dep in $(yq -r '.dependencies[].name' Chart.yaml); do
+    yaml_ver=$(yq -r ".dependencies[] | select(.name == \"$dep\") | .version" Chart.yaml)
+    lock_ver=$(yq -r ".dependencies[] | select(.name == \"$dep\") | .version" Chart.lock)
+    if [[ "$yaml_ver" != "$lock_ver" ]]; then
+      echo "Version mismatch for $dep: Chart.yaml=$yaml_ver, Chart.lock=$lock_ver" >&2
+      return 0
+    fi
+  done
+  return 1
+}
+
+# If versions changed, update lockfile
+if needs_lock_update; then
+  echo "Chart.yaml versions differ from Chart.lock, running helm dependency update..." >&2
+  add_repos_from_file Chart.yaml
+  helm dependency update
+  md5sum Chart.lock | cut -d' ' -f1 > charts/.chart-lock-sum
+  exit 0
+fi
+
 # Check if we need to rebuild: compare stored checksum with current Chart.lock
 if [ -f charts/.chart-lock-sum ] && [ "$(cat charts/.chart-lock-sum)" = "$(md5sum Chart.lock | cut -d' ' -f1)" ]; then
   exit 0
 fi
 
 # For non-OCI repos (https://), we need to ensure the repo is added
-# Extract unique non-OCI repositories from Chart.lock and add them
-for repo in $(yq -r '.dependencies[].repository | select(. != null) | select(test("^https?://"))' Chart.lock | sort -u); do
-  # Generate a repo name from the URL (use last path segment or domain)
-  repo_name=$(echo "$repo" | sed 's|https\?://||; s|/$||' | tr '/.' '-')
-  # Add repo if not already added (ignore errors if it exists)
-  helm repo add "$repo_name" "$repo" 2>/dev/null || true
-done
+add_repos_from_file Chart.lock
 
 # Rebuild dependencies and store checksum
 helm dependency build --skip-refresh

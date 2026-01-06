@@ -1,17 +1,17 @@
-# Source: argocd-wrapper/charts/argocd/templates/argocd-application-controller/role.yaml
+# Source: argocd-wrapper/charts/argo-cd/templates/argocd-application-controller/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: argocd-application-controller
   namespace: argocd
   labels:
-    helm.sh/chart: argocd-7.7.16
+    helm.sh/chart: argo-cd-9.2.3
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/instance: argocd
     app.kubernetes.io/component: application-controller
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
-    app.kubernetes.io/version: v2.13.3
+    app.kubernetes.io/version: v3.2.3
 rules:
   - apiGroups:
       - ""
@@ -26,6 +26,7 @@ rules:
       - argoproj.io
     resources:
       - applications
+      - applicationsets
       - appprojects
     verbs:
       - create

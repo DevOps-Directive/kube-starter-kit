@@ -1,48 +1,35 @@
-# Source: argocd-wrapper/charts/argocd/templates/argocd-configs/argocd-cmd-params-cm.yaml
+# Source: argocd-wrapper/charts/argo-cd/templates/argocd-configs/argocd-cmd-params-cm.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: argocd-cmd-params-cm
   namespace: argocd
   labels:
-    helm.sh/chart: argocd-7.7.16
+    helm.sh/chart: argo-cd-9.2.3
     app.kubernetes.io/name: argocd-cmd-params-cm
     app.kubernetes.io/instance: argocd
     app.kubernetes.io/component: server
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
-    app.kubernetes.io/version: v2.13.3
+    app.kubernetes.io/version: v3.2.3
 data:
-  application.namespaces: ""
   applicationsetcontroller.enable.leader.election: "false"
-  applicationsetcontroller.enable.progressive.syncs: "false"
   applicationsetcontroller.log.format: text
   applicationsetcontroller.log.level: info
-  applicationsetcontroller.namespaces: ""
-  applicationsetcontroller.policy: sync
-  controller.ignore.normalizer.jq.timeout: 1s
+  commitserver.log.format: text
+  commitserver.log.level: info
   controller.log.format: text
   controller.log.level: info
-  controller.operation.processors: "10"
-  controller.repo.server.timeout.seconds: "60"
-  controller.self.heal.timeout.seconds: "5"
-  controller.status.processors: "20"
-  otlp.address: ""
+  dexserver.log.format: text
+  dexserver.log.level: info
+  notificationscontroller.log.format: text
+  notificationscontroller.log.level: info
   redis.server: argocd-redis:6379
   repo.server: argocd-repo-server:8081
   reposerver.log.format: text
   reposerver.log.level: info
-  reposerver.parallelism.limit: "0"
-  server.basehref: /
   server.dex.server: https://argocd-dex-server:5556
   server.dex.server.strict.tls: "false"
-  server.disable.auth: "false"
-  server.enable.gzip: "true"
-  server.enable.proxy.extension: "false"
-  server.insecure: "false"
   server.log.format: text
   server.log.level: info
   server.repo.server.strict.tls: "false"
-  server.rootpath: ""
-  server.staticassets: /shared/app
-  server.x.frame.options: sameorigin

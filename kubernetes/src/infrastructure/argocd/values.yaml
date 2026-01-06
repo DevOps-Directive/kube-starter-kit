@@ -1,10 +1,10 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
-  argo-cd: "7.7.16"
+  argo-cd: "9.2.3"
 
 # Custom ingress configuration (used by templates/Ingress.argocd-server.yaml)
 ingress:
-  hostname: ""  # Override per environment
+  hostname: "" # Override per environment
 
 argocd:
   server:
@@ -51,3 +51,8 @@ argocd:
         g, role:admin, role:readonly # admin inherits readonly role permissions
       policy.default: role:readonly
       scopes: "[groups]"
+
+  # redis:
+  #   image:
+  #     repository: dhi.io/redis
+  #     tag: "7.4"
