@@ -69,13 +69,6 @@
               "usage/operations/07-database-operations",
               "usage/operations/08-observability"
             ]
-          },
-          {
-            "group": "Troubleshooting",
-            "icon": "wrench",
-            "pages": [
-              "usage/troubleshooting/01-rollback-and-recovery"
-            ]
           }
         ]
       }
