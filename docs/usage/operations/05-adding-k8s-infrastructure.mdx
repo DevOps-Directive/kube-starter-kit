@@ -146,8 +146,8 @@ This guide covers adding new Kubernetes infrastructure components and managing c
 
   <Step title="Render all manifests">
     ```bash
-    mise run //kubernetes/src/argocd:render-all # Adds the ArgoCD Application to the app-of-apps
-    mise run //kubernetes/src/infrastructure:render-all # Renders the component manifests
+    mise run //kubernetes/src/argocd:render-all "<CLUSTER>" # Adds the ArgoCD Application to the app-of-apps
+    mise run //kubernetes/src/infrastructure:render-all "<CLUSTER>" # Renders the component manifests
     ```
   </Step>
 

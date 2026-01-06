@@ -264,8 +264,8 @@ Add the service to the ArgoCD services app-of-apps:
 
   <Step title="Render ArgoCD manifests">
     ```bash
-    mise run //kubernetes/src/argocd:render-all  # Adds the ArgoCD Application to the app-of-apps
-    mise run //kubernetes/src/services:render-all # Renders the service manifests
+    mise run //kubernetes/src/argocd:render-all "<CLUSTER>" # Adds the ArgoCD Application to the app-of-apps
+    mise run //kubernetes/src/services:render-all "<CLUSTER>" # Renders the service manifests
     ```
   </Step>
 </Steps>

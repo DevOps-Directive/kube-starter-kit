@@ -78,7 +78,7 @@ Each component uses a "wrapper chart" pattern: a local Helm chart that includes 
 
   <Step title="Render and commit">
     ```bash
-    mise run //kubernetes/src/infrastructure:render-all
+    mise run //kubernetes/src/infrastructure:render-all "<CLUSTER>"
 
     git add .
     git commit -m "chore: update traefik to 38.1.0"
@@ -109,7 +109,7 @@ To change component settings without upgrading versions:
 
   <Step title="Render manifests">
     ```bash
-    mise run //kubernetes/src/infrastructure:render-all
+    mise run //kubernetes/src/infrastructure:render-all "<CLUSTER>"
     ```
   </Step>
 
@@ -189,7 +189,7 @@ applications:
 After changing, render and push:
 
 ```bash
-mise run //kubernetes/src/infrastructure:render-all
+mise run //kubernetes/src/infrastructure:render-all "<CLUSTER>"
 git add . && git commit -m "chore: disable envoy-gateway"
 git push origin main
 ```

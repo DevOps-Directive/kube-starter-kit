@@ -304,7 +304,7 @@ applications:
 After changing, render and push:
 
 ```bash
-mise run //kubernetes/src/infrastructure:render-all
+mise run //kubernetes/src/infrastructure:render-all "<CLUSTER>"
 git add . && git commit -m "chore: enable/disable components"
 git push
 ```
