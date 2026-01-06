@@ -24,7 +24,7 @@ spec:
               value: grafana-k8s-monitoring-alloy-receiver.monitoring:4317
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: deployment.environment=staging
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:ceac01b-0000-gceac01b
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:addbaaa-0000-gaddbaaa
           livenessProbe:
             failureThreshold: 3
             httpGet:
