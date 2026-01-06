@@ -1,17 +1,17 @@
-# Source: argocd-wrapper/charts/argocd/templates/dex/role.yaml
+# Source: argocd-wrapper/charts/argo-cd/templates/dex/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: argocd-dex-server
   namespace: argocd
   labels:
-    helm.sh/chart: argocd-7.7.16
+    helm.sh/chart: argo-cd-9.2.3
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/instance: argocd
     app.kubernetes.io/component: dex-server
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
-    app.kubernetes.io/version: v2.13.3
+    app.kubernetes.io/version: v3.2.3
 rules:
   - apiGroups:
       - ""

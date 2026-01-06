@@ -1,6 +1,6 @@
 # Chart dependency versions for staging
-chartVersions:
-  argo-cd: "7.7.16"
+# chartVersions:
+#   argo-cd: ""
 
 ingress:
   hostname: argocd.staging.kubestarterkit.com

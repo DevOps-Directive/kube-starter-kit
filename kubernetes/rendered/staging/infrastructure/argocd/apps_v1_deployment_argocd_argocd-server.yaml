@@ -1,17 +1,17 @@
-# Source: argocd-wrapper/charts/argocd/templates/argocd-server/deployment.yaml
+# Source: argocd-wrapper/charts/argo-cd/templates/argocd-server/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argocd-server
   namespace: argocd
   labels:
-    helm.sh/chart: argocd-7.7.16
+    helm.sh/chart: argo-cd-9.2.3
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/instance: argocd
     app.kubernetes.io/component: server
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: argocd
-    app.kubernetes.io/version: v2.13.3
+    app.kubernetes.io/version: v3.2.3
 spec:
   replicas: 1
   revisionHistoryLimit: 3
@@ -22,29 +22,28 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/cmd-params: 62ab49d48dc6fb0edc5f44e8170a0f0a07164edee93c489a40d24455e04a6e41
-        checksum/cm: 5d4cf0eb4aa506af9c351586dffb6355d6ef0e7ed6420764cbdde419378cf758
+        checksum/cmd-params: cbd1ca3ab4f2122ec7aab52eba087e9f0b3b8813ea2c1b042c0eed6c961ea467
+        checksum/cm: 9a1cde51ee681b8f91d3ac2954c3088ca657fea9cfba29bf9d312ef4f4ac2a26
       labels:
-        helm.sh/chart: argocd-7.7.16
+        helm.sh/chart: argo-cd-9.2.3
         app.kubernetes.io/name: argocd-server
         app.kubernetes.io/instance: argocd
         app.kubernetes.io/component: server
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/part-of: argocd
-        app.kubernetes.io/version: v2.13.3
+        app.kubernetes.io/version: v3.2.3
     spec:
       terminationGracePeriodSeconds: 30
       serviceAccountName: argocd-server
       automountServiceAccountToken: true
       containers:
         - name: server
-          image: quay.io/argoproj/argocd:v2.13.3
+          image: quay.io/argoproj/argocd:v3.2.3
           imagePullPolicy: IfNotPresent
           args:
             - /usr/local/bin/argocd-server
             - --port=8080
             - --metrics-port=8083
-            - --insecure
           env:
             - name: ARGOCD_SERVER_NAME
               value: argocd-server
@@ -174,12 +173,6 @@ spec:
                   name: argocd-cmd-params-cm
                   key: server.oidc.cache.expiration
                   optional: true
-            - name: ARGOCD_SERVER_LOGIN_ATTEMPTS_EXPIRATION
-              valueFrom:
-                configMapKeyRef:
-                  name: argocd-cmd-params-cm
-                  key: server.login.attempts.expiration
-                  optional: true
             - name: ARGOCD_SERVER_STATIC_ASSETS
               valueFrom:
                 configMapKeyRef:
@@ -219,9 +212,9 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: argocd-redis
+                  name: argocd-redis # hard-coded in Job command and embedded Redis deployments (standalone and redis-ha)
                   key: auth
-                  optional: true
+                  optional: false # Secret is not optional in this case !
             - name: REDIS_SENTINEL_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -275,6 +268,12 @@ spec:
                 configMapKeyRef:
                   name: argocd-cmd-params-cm
                   key: otlp.headers
+                  optional: true
+            - name: ARGOCD_SERVER_OTLP_ATTRS
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: otlp.attrs
                   optional: true
             - name: ARGOCD_APPLICATION_NAMESPACES
               valueFrom:
@@ -335,6 +334,24 @@ spec:
                 configMapKeyRef:
                   name: argocd-cmd-params-cm
                   key: applicationsetcontroller.enable.scm.providers
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_ENABLE_GITHUB_API_METRICS
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: applicationsetcontroller.enable.github.api.metrics
+                  optional: true
+            - name: ARGOCD_HYDRATOR_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: hydrator.enabled
+                  optional: true
+            - name: ARGOCD_SYNC_WITH_REPLACE_ALLOWED
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: server.sync.replace.allowed
                   optional: true
           volumeMounts:
             - mountPath: /app/config/ssh
@@ -397,6 +414,8 @@ spec:
                   matchLabels:
                     app.kubernetes.io/name: argocd-server
                 topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        kubernetes.io/os: linux
       volumes:
         - name: plugins-home
           emptyDir: {}
