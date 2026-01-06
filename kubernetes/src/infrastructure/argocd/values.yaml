@@ -6,7 +6,7 @@ chartVersions:
 ingress:
   hostname: "" # Override per environment
 
-argocd:
+argo-cd:
   server:
     # Run argocd-server with TLS disabled (Traefik handles TLS termination)
     extraArgs:

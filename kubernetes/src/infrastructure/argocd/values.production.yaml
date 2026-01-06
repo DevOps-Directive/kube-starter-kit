@@ -5,7 +5,7 @@
 ingress:
   hostname: argocd.production.kubestarterkit.com
 
-argocd:
+argo-cd:
   configs:
     cm:
       # NOTE: This duplicates the hostname above, but can't be derived from it

@@ -16,6 +16,18 @@ data:
   admin.enabled: "true"
   application.instanceLabelKey: argocd.argoproj.io/instance
   application.sync.impersonation.enabled: "false"
+  dex.config: |
+    connectors:
+      # OIDC
+      - type: github
+        id: github
+        name: GitHub
+        config:
+          clientID: Ov23liqNWlrNlqKGWtpU
+          clientSecret: $github-dex:clientSecret # References secret (which must have "app.kubernetes.io/part-of: argocd" label)
+          orgs: # Limit access to users in specific orgs; optional but recommended
+            - name: DevOps-Directive
+        # In github oauth app, the Authorization callback URL is set to: https://argocd.staging.kubestarterkit.com/api/dex/callback
   exec.enabled: "false"
   resource.customizations.ignoreResourceUpdates.ConfigMap: |
     jqPathExpressions:
@@ -113,4 +125,5 @@ data:
   statusbadge.enabled: "false"
   timeout.hard.reconciliation: 0s
   timeout.reconciliation: 180s
-  url: https://argocd.example.com
+  url: https://argocd.staging.kubestarterkit.com
+  webhook.maxPayloadSizeMB: "25"
