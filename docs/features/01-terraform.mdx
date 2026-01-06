@@ -1,0 +1,116 @@
+---
+title: "Terraform for Base Infrastructure"
+description: "Modular, well-structured Terraform for AWS with isolated state and battle-tested modules"
+icon: "cube"
+---
+
+## The Problem
+
+Infrastructure as Code is table stakes for any serious engineering team, but getting it *right* is surprisingly hard:
+
+- **Sprawling, copy-pasted modules:** Teams often start with one environment and end up with duplicated Terraform code everywhere, each copy drifting slightly from the others.
+- **State management headaches:** Where do you store state? How do you handle locking? How do you structure state files so changes in one area don't require touching unrelated infrastructure?
+- **No clear patterns for multi-environment:** Development, staging, production... how do you manage the differences without maintaining three separate codebases?
+- **Reinventing the wheel:** Writing VPC, EKS, and IAM configurations from scratch means debugging problems that others have already solved.
+
+## How Kube Starter Kit Addresses This
+
+### Isolated State Per Stack
+
+Each deployable unit (networking, EKS cluster, app-resources) has its own state file. This means you can update your EKS cluster without Terraform needing to refresh your entire VPC state. A bad apply in one area doesn't risk corrupting unrelated infrastructure.
+
+### Battle-Tested Community Modules
+
+Rather than maintaining VPC and EKS code from scratch, I build on top of well-maintained modules from the [Terraform AWS Modules](https://github.com/terraform-aws-modules) project. These are used by thousands of teams and handle edge cases you'd otherwise discover the hard way. The kit adds the glue and opinions that make them work together.
+
+### Hierarchical Configuration
+
+Settings cascade from root to environment to region to stack. Common values like your namespace prefix, provider versions, and IAM roles are defined once and inherited everywhere. Each environment only defines what's unique: region, sizing, feature flags.
+
+### Application Resources Pattern
+
+Per-application AWS resources (IAM roles for Pod Identity, Secrets Manager entries, database credentials) are provisioned alongside infrastructure but in separate stacks. This keeps application concerns isolated while maintaining the same workflow for all Terraform changes.
+
+## What's Provisioned
+
+<AccordionGroup>
+  <Accordion title="Account Bootstrapping" icon="rocket">
+    One-time setup for new AWS accounts:
+    - S3 bucket for Terraform state with native locking (no DynamoDB needed)
+    - GitHub OIDC provider for keyless CI/CD authentication
+    - IAM roles for Terraform automation
+  </Accordion>
+
+  <Accordion title="Networking" icon="network-wired">
+    Production-ready VPC with:
+    - Public and private subnets across 3 availability zones
+    - Configurable NAT gateway options (single, per-AZ, or fck-nat for cost savings)
+    - Proper subnet tagging for Karpenter node discovery
+    - VPC endpoint support for private AWS service access
+  </Accordion>
+
+  <Accordion title="EKS Cluster" icon="dharmachakra">
+    Fully-configured EKS cluster with:
+    - Managed node group for baseline capacity (runs Karpenter itself)
+    - Essential add-ons pre-configured (CoreDNS, VPC CNI, EBS CSI driver, Pod Identity)
+    - IAM integration via AWS SSO for cluster access
+    - Security group rules for proper inter-node communication
+  </Accordion>
+
+  <Accordion title="Application Resources" icon="box">
+    Per-application resources provisioned via dedicated stacks:
+    - IAM roles for Pod Identity (AWS access from Kubernetes pods)
+    - Secrets Manager entries for application secrets
+    - Database credentials and connection strings
+    - Any other AWS or third-party resources specific to an application
+
+    These resources are referenced by Kubernetes deployments via External Secrets.
+  </Accordion>
+
+  <Accordion title="User Management" icon="users">
+    GitHub and AWS IAM Identity Center from a single source of truth:
+    - GitHub organization membership and team assignments
+    - AWS SSO users and group memberships
+    - Permission sets mapped to AWS accounts
+
+    See [User Management](/features/04-user-management) for details.
+  </Accordion>
+</AccordionGroup>
+
+## Directory Structure
+
+```
+terraform/
+├── bootstrap/          # One-time account setup (state bucket, OIDC)
+├── modules/            # Reusable Terraform modules
+│   ├── eks/
+│   ├── networking/
+│   └── app-resources/
+└── live/               # Stack definitions by environment
+    ├── shared/         # Cross-account resources
+    │   ├── global/     # IAM Identity Center, GitHub org management
+    │   └── {region}/   # ECR repositories
+    └── {stage}/        # staging, prod, etc.
+        ├── global/     # Account-level resources (bootstrapping, DNS)
+        └── {region}/   # us-east-1, us-east-2, etc.
+            ├── networking/
+            ├── eks/
+            └── app-resources/
+```
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Terraform over Pulumi/CDK** | Declarative HCL is easier to review and reason about than imperative code. Larger ecosystem of modules and community support. |
+| **Terraform over Crossplane** | Simpler operational model with no controller running in-cluster to manage. Better tooling for plan/preview workflows. Crossplane shines for self-service platforms, but adds complexity for smaller teams. |
+| **One state file per stack** | Blast radius containment. A networking change shouldn't require EKS state refresh. Failures are isolated. |
+| **Community modules as building blocks** | The terraform-aws-modules are battle-tested by thousands of users. Layer opinions on top rather than maintaining infrastructure code from scratch. |
+| **S3 native locking** | Simpler than DynamoDB locking, fewer moving parts (requires Terraform 1.10+ or OpenTofu 1.8+). |
+| **Hierarchical config over copy-paste** | Define common values once, override only what differs per environment. Changes propagate automatically. |
+
+<Note>
+For orchestration across stacks (change detection, dependency ordering, CI/CD integration), see [Terraform Orchestration with Terramate](/features/02-terramate).
+
+For making changes to infrastructure, see [Making Terraform Changes](/usage/operations/01-updating-terraform-infrastructure).
+</Note>

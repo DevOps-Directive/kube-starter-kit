@@ -1,0 +1,101 @@
+# Ignore generated chart files to prevent infinite reload loops
+watch_settings(ignore=[
+  '**/charts/**',
+  '**/tmpcharts-*',
+  '**/Chart.yaml',
+])
+
+################ CERT MANAGER #################
+local('export CHART_DIR="$PWD/cert-manager" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
+k8s_yaml(
+  helm(
+    './cert-manager',
+    name='cert-manager',
+    namespace='cert-manager',
+    values=[
+      './cert-manager/values.yaml',
+      './cert-manager/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('cert-manager', labels=['cert-manager'])
+k8s_resource('cert-manager-cainjector', labels=['cert-manager'])
+k8s_resource('cert-manager-webhook',
+  objects=[
+    'cert-manager-webhook:mutatingwebhookconfiguration',
+    'cert-manager-webhook:validatingwebhookconfiguration'
+  ],
+  resource_deps=['cert-manager'],
+  labels=['cert-manager']
+)
+local_resource('cert-manager-webhook-wait',
+  cmd='kubectl wait --namespace cert-manager --for=condition=ready pod -l app.kubernetes.io/component=webhook --timeout=120s',
+  resource_deps=['cert-manager-webhook'],
+  labels=['cert-manager'],
+  allow_parallel=True
+)
+k8s_resource(
+  new_name='cert-manager-issuers',
+  objects=[
+    'letsencrypt-prod-dns:clusterissuer',
+    'letsencrypt-staging-dns:clusterissuer',
+    'selfsigned:clusterissuer'
+  ],
+  resource_deps=['cert-manager-webhook-wait'],
+  labels=['cert-manager']
+)
+k8s_resource('cert-manager-startupapicheck', labels=['cert-manager'])
+################ END CERT MANAGER #################
+
+################ CLOUDNATIVE-PG #################
+local('export CHART_DIR="$PWD/cloudnative-pg" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
+k8s_yaml(
+  helm(
+    './cloudnative-pg',
+    name='cloudnative-pg',
+    namespace='cnpg-system',
+    values=[
+      './cloudnative-pg/values.yaml',
+      './cloudnative-pg/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('cloudnative-pg',
+  objects=[
+    'cnpg-mutating-webhook-configuration:mutatingwebhookconfiguration',
+    'cnpg-validating-webhook-configuration:validatingwebhookconfiguration',
+  ],
+  resource_deps=['cert-manager-webhook-wait'],
+  labels=['cloudnative-pg']
+)
+local_resource('cloudnative-pg-wait',
+  cmd='kubectl wait --namespace cnpg-system --for=condition=ready pod -l app.kubernetes.io/instance=cloudnative-pg --timeout=120s',
+  resource_deps=['cloudnative-pg'],
+  labels=['cloudnative-pg'],
+  allow_parallel=True
+)
+################ END CLOUDNATIVE-PG #################
+
+################ TRAEFIK #################
+local('export CHART_DIR="$PWD/traefik" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
+k8s_yaml(
+  helm(
+    './traefik',
+    name='traefik',
+    namespace='traefik',
+    values=[
+      './traefik/values.yaml',
+      './traefik/values.local.yaml'
+    ]
+  )
+)
+k8s_resource('traefik',
+  labels=['traefik']
+)
+local_resource('traefik-wait',
+  cmd='kubectl wait --namespace traefik --for=condition=ready pod -l app.kubernetes.io/name=traefik --timeout=120s',
+  resource_deps=['traefik'],
+  labels=['traefik'],
+  allow_parallel=True
+)
+################ END TRAEFIK #################

@@ -1,0 +1,226 @@
+---
+title: "Demo Applications"
+description: "Fully functional example applications demonstrating end-to-end patterns"
+icon: "flask"
+---
+
+## The Problem
+
+Infrastructure and deployment tooling is only half the story. Teams often struggle with:
+
+- **No reference implementations:** You have a Kubernetes cluster, but how should applications actually be structured to use it?
+- **Missing the full picture:** Tutorials show isolated pieces (a Dockerfile here, a Helm chart there) but not how everything connects.
+- **Infrastructure gaps:** How do you provision a database for your app? How do you manage credentials? How do you connect from a pod?
+- **Packaging questions:** What's the right way to structure Kubernetes manifests? How much should go in the Helm chart vs. external configuration?
+
+## How Kube Starter Kit Addresses This
+
+The kit includes fully functional demo applications that demonstrate the complete path from source code to running in production:
+
+**Complete wiring, minimal code:** The applications themselves are simple, but include full configuration and external resource integration: database connections, secrets management, health checks, and Terraform-provisioned AWS resources.
+
+**End-to-end patterns:** Each demo shows the full lifecycle: source code, Dockerfile, Helm chart, Terraform for cloud resources, and integration with the deployment pipeline.
+
+**Copy and adapt:** The demos are designed to be starting points. Fork them, rename them, and build your actual services on top of proven patterns.
+
+## What's Included
+
+### Application Structure
+
+```
+applications/
+└── go-backend/
+    ├── src/                    # Application source code
+    │   ├── main.go
+    │   ├── go.mod
+    │   └── ...
+    ├── Dockerfile              # Container build
+    └── README.md
+
+kubernetes/src/services/
+└── go-backend/
+    ├── Chart.yaml              # Helm chart definition
+    ├── values.yaml             # Default values
+    ├── values-staging.yaml     # Environment overrides
+    ├── values-production.yaml
+    └── templates/
+        ├── deployment.yaml
+        ├── service.yaml
+        ├── ingress.yaml
+        └── ...
+
+terraform/modules/
+└── app-resources/
+    └── go-backend/             # Cloud resources (S3, RDS, etc.)
+```
+
+### Go Backend
+
+A production-ready Go service demonstrating:
+
+<AccordionGroup>
+  <Accordion title="Application Code">
+    - HTTP server with health check endpoints (`/healthz`, `/readyz`)
+    - Structured logging
+    - Graceful shutdown handling
+    - Configuration via environment variables
+    - Database connectivity patterns
+  </Accordion>
+
+  <Accordion title="Container Packaging">
+    - Multi-stage Dockerfile for minimal image size
+    - Non-root user for security
+    - Proper signal handling
+    - Build-time metadata (version, commit SHA)
+  </Accordion>
+
+  <Accordion title="Kubernetes Manifests">
+    - Deployment with resource limits and requests
+    - Liveness and readiness probes
+    - Service and Ingress configuration
+    - ConfigMaps and Secrets integration
+    - Horizontal Pod Autoscaler setup
+  </Accordion>
+
+  <Accordion title="Cloud Resources">
+    - S3 bucket for object storage
+    - RDS PostgreSQL database (optional)
+    - IAM roles for pod-level AWS access via Pod Identity
+    - Secrets stored in AWS Secrets Manager
+  </Accordion>
+</AccordionGroup>
+
+### Infrastructure Integration
+
+Each demo application shows how to provision and connect to cloud resources:
+
+```hcl
+# terraform/modules/app-resources/go-backend/main.tf
+
+# S3 bucket for application data
+module "s3_bucket" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  bucket  = "${module.this.id}-data"
+}
+
+# IAM policy for S3 bucket access
+resource "aws_iam_policy" "s3_access" {
+  name = "${module.this.id}-s3-access"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "${module.s3_bucket.s3_bucket_arn}/*"
+      }
+    ]
+  })
+}
+
+# Pod Identity for AWS access
+module "pod_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  name    = "${var.eks_cluster_name}-go-backend"
+
+  additional_policy_arns = {
+    S3Access = aws_iam_policy.s3_access.arn
+  }
+
+  associations = {
+    this = {
+      cluster_name    = var.eks_cluster_name
+      namespace       = var.kubernetes_namespace
+      service_account = var.kubernetes_service_account
+    }
+  }
+}
+```
+
+Pod Identity associations are managed by Terraform. The application's ServiceAccount automatically receives AWS credentials without requiring annotations.
+
+### Secrets Management
+
+Demo applications use External Secrets to pull credentials from AWS Secrets Manager:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: go-backend-db
+spec:
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: go-backend-db-credentials
+  data:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: go-backend/database
+        property: url
+```
+
+No credentials in Git. No manual secret creation. Secrets sync automatically from AWS.
+
+### Environment Configuration
+
+Each application supports per-environment configuration:
+
+```yaml
+# values.yaml (defaults)
+replicaCount: 1
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+```
+
+```yaml
+# values.staging.yaml
+replicaCount: 2
+```
+
+```yaml
+# values.production.yaml
+replicaCount: 3
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+```
+
+The CI/CD pipeline renders the appropriate values for each environment.
+
+## Using Demo Apps as Templates
+
+<Steps>
+  <Step title="Copy the structure">
+    Duplicate an existing demo app directory and rename it for your new service.
+  </Step>
+  <Step title="Update the application code">
+    Replace the demo logic with your actual service implementation.
+  </Step>
+  <Step title="Modify Terraform resources">
+    Adjust the cloud resources to match your application's needs (different database, additional S3 buckets, etc.).
+  </Step>
+  <Step title="Update Helm values">
+    Configure resource limits, replica counts, and environment variables for your service.
+  </Step>
+  <Step title="Add to the pipeline">
+    Add your new service to the change detection filters in the CI/CD workflow.
+  </Step>
+  <Step title="Deploy">
+    Commit and push. The pipeline builds, renders manifests, and ArgoCD deploys.
+  </Step>
+</Steps>
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Full applications, not stubs** | Teams learn better from working examples than from documentation. Real code shows real patterns. |
+| **Terraform alongside Kubernetes** | Applications often need cloud resources. Showing both together demonstrates the complete workflow. |
+| **Pod Identity for AWS access** | Pod-level IAM roles are more secure than shared credentials. The demos show the proper pattern. |
+| **External Secrets integration** | Secrets management is often an afterthought. Including it in demos makes it the default pattern. |
+| **Per-environment configuration** | Demonstrates how to handle environment differences with Kustomize, Helm, or Timoni. |

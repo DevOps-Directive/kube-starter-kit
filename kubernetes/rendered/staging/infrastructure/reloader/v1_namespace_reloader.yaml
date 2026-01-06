@@ -1,0 +1,5 @@
+# Source: reloader-wrapper/templates/Namespace.reloader.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reloader

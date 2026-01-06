@@ -1,0 +1,41 @@
+# Connecting from KinD pod to host port
+#
+# Discovered here: https://github.com/kubernetes-sigs/kind/issues/1200
+####################
+# To test:
+# 1. apply this manifest
+#      kubectl apply -f .
+# 2. run webserver on host:
+#      python3 -m http.server 8000
+# 3. run pod which curls the webserver:
+#      kubectl run curl-oneoff \
+#        --rm -it \
+#        --restart=Never \
+#        --image=curlimages/curl:8.17.0 -- \
+#        curl -fsS http://dockerhost-mac.default:8000
+####################
+
+# MacOS (Docker Desktop)
+apiVersion: v1
+kind: Service
+metadata:
+  name: dockerhost-mac
+spec:
+  type: ExternalName
+  externalName: host.docker.internal
+# # Linux (Docker Engine)
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: dockerhost-linux
+subsets:
+  - addresses:
+      - ip: 172.17.0.1 # this is the gateway IP in the "bridge" docker network
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dockerhost-linux
+spec:
+  clusterIP: None

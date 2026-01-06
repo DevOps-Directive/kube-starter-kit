@@ -1,0 +1,20 @@
+# This is used by the action https://github.com/dorny/paths-filter
+
+# This is effectively serving as a naive target determinator (see: https://blog.swgillespie.me/posts/monorepo-ingredients/)
+
+# ---- services ---------------------------------------------------------------
+services/container-only-dummy:
+  - "services/container-only-dummy/**"
+  - ".github/workflows/build_push.yml"
+
+services/go-backend: &go_backend
+  - "services/go-backend/**"
+  - ".github/workflows/build_push.yml"
+  - "kubernetes/src/services/go-backend/**"
+
+services/go-backend/migrations:
+  - *go_backend # db migrations tied to service
+
+services/go-backend-no-migrations:
+  - "services/go-backend-no-migrations/**"
+  - ".github/workflows/build_push.yml"

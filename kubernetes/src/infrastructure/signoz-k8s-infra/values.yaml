@@ -1,0 +1,22 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  k8s-infra: "0.15.0"
+
+k8s-infra:
+  global:
+    cloud: aws
+  otelCollectorEndpoint: ingest.us.signoz.cloud:443
+  otelInsecure: false
+  apiKeyExistingSecretName: signoz-apikey
+  apiKeyExistingSecretKey: signoz-apikey
+  presets:
+    otlpExporter:
+      enabled: true
+    logsCollection:
+      enabled: true
+    resourceDetection:
+      detectors:
+        - eks
+        - system
+    kubeletMetrics:
+      collectionInterval: 60s

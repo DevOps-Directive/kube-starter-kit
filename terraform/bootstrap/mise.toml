@@ -1,0 +1,74 @@
+# mise.toml
+
+# mise.toml
+
+[tasks.create-state-bucket]
+description = "Create an S3 bucket for Terraform state"
+usage = '''
+flag "--bucket-name <name>" help="S3 bucket name for Terraform state" env="BUCKET_NAME"
+flag "--aws-region <region>" help="AWS region (e.g., us-east-2)"          env="AWS_REGION"
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUCKET="${usage_bucket_name?}"
+REGION="${usage_aws_region?}"
+
+echo "BUCKET_NAME: ${BUCKET}"
+echo "AWS_REGION: ${REGION}"
+
+if [ "${REGION}" = "us-east-1" ]; then
+  aws s3api create-bucket \
+    --bucket "${BUCKET}" \
+    --region "${REGION}"
+else
+  aws s3api create-bucket \
+    --bucket "${BUCKET}" \
+    --region "${REGION}" \
+    --create-bucket-configuration LocationConstraint="${REGION}"
+fi
+'''
+
+[tasks.get-sso-role-arn]
+description = "Print the ARN for the current AWS SSO role"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+ROLE_NAME="$(aws sts get-caller-identity --query 'Arn' --output text | awk -F'/' '{print $2}')"
+SSO_ROLE_ARN="$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text)"
+echo "${SSO_ROLE_ARN}"
+'''
+
+[tasks.create-terraform-iam-role-in-target-account]
+description = "Create an IAM role assumable by the infrastructure SSO role"
+usage = '''
+flag "--role-name <name>"           help="IAM role name to create in target account"
+flag "--infra-sso-role-arn <arn>"   help="Infra account SSO admin role ARN (principal for trust policy)"
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROLE_NAME="${usage_role_name?}"
+INFRA_SSO_ARN="${usage_infra_sso_role_arn?}"
+
+echo "ROLE_NAME: ${ROLE_NAME}"
+echo "INFRASTRUCTURE_SSO_ROLE_ARN: ${INFRA_SSO_ARN}"
+
+tmpfile="$(mktemp)"
+trap 'rm -f "$tmpfile"' EXIT
+
+# trust-policy.json.TEMPLATE must exist in the current dir
+jq --arg arn "${INFRA_SSO_ARN}" '
+  .Statement[0].Principal.AWS = [$arn]
+' trust-policy.json.TEMPLATE > "$tmpfile"
+
+aws iam create-role \
+  --role-name "${ROLE_NAME}" \
+  --assume-role-policy-document "file://${tmpfile}"
+
+aws iam attach-role-policy \
+  --role-name "${ROLE_NAME}" \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+'''

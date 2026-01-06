@@ -1,0 +1,34 @@
+[env]
+OUTPUT_PATH = "infrastructure/reloader"
+
+[tasks.render-cluster]
+description = "Render manifests for specified cluster"
+usage = '''
+arg "<cluster>" help="Target cluster" {
+  choices "staging" "production"
+}
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
+
+mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
+
+# Generate Chart.yaml from template with injected versions
+mise run //tools:render:inject-chart-versions \
+  "${PWD}/Chart.yaml.tmpl" \
+  "${PWD}/Chart.yaml" \
+  "${PWD}/values.yaml" \
+  "${PWD}/values.${usage_cluster}.yaml"
+
+CHART_DIR="$PWD" mise run //tools:render:helm-dep-build
+helm template --release-name reloader . \
+  --include-crds \
+  --skip-tests \
+  --namespace reloader \
+  --values values.yaml \
+  --values values.${usage_cluster}.yaml \
+  | mise run //tools:render:split-k8s-docs ${OUTPUT_DIR}
+"""

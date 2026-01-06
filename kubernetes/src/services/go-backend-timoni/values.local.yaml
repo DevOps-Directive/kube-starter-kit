@@ -1,0 +1,8 @@
+values:
+  db:
+    storageClass: standard
+  image:
+    tag: local-version
+  ingress:
+    traefik:
+      hostname: go-backend-timoni.172-20-0-101.sslip.io

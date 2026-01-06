@@ -1,0 +1,28 @@
+applications:
+  # Could specify path for each application here to make it more flexible
+  argocd:
+    enabled: true
+  cert-manager:
+    enabled: true
+  cloudnative-pg:
+    enabled: true
+  datadog-operator:
+    enabled: false
+  ebs-csi-driver-resources:
+    enabled: true
+  envoy-gateway:
+    enabled: false
+  external-dns:
+    enabled: true
+  external-secrets:
+    enabled: true
+  istio:
+    enabled: false
+  karpenter:
+    enabled: true
+  reloader:
+    enabled: true
+  signoz-k8s-infra:
+    enabled: true
+  traefik:
+    enabled: true

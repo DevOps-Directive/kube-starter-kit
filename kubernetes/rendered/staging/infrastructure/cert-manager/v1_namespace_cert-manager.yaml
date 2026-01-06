@@ -1,0 +1,5 @@
+# Source: cert-manager-wrapper/templates/Namespace.cert-manager.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager

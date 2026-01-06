@@ -1,0 +1,9 @@
+# Chart dependency versions for staging
+chartVersions:
+  k8s-infra: "0.15.0"
+
+signozApiKeyAwsSecret: ksk-use2-staging-eks-signoz-apikey
+k8s-infra:
+  global:
+    clusterName: ksk-use2-staging-eks
+    deploymentEnvironment: staging

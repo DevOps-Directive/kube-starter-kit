@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TrustRoleAndServiceToAssume",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "REPLACE_WITH_INFRASTRUCTURE_SSO_ROLE_ARN"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}

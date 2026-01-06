@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: ingress-traefik-kustomize.staging.kubestarterkit.com
+  name: minimal-traefik
+  namespace: go-backend-kustomize
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ingress-traefik-kustomize.staging.kubestarterkit.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: go-backend
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

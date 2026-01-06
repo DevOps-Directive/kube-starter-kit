@@ -1,0 +1,3 @@
+# Chart dependency versions for staging
+chartVersions:
+  reloader: "2.2.3"

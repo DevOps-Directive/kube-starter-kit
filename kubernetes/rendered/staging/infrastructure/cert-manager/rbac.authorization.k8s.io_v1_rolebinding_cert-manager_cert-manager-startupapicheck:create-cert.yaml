@@ -1,0 +1,26 @@
+# Source: cert-manager-wrapper/charts/cert-manager/templates/startupapicheck-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cert-manager-startupapicheck:create-cert
+  namespace: cert-manager
+  labels:
+    app: startupapicheck
+    app.kubernetes.io/name: startupapicheck
+    app.kubernetes.io/instance: cert-manager
+    app.kubernetes.io/component: startupapicheck
+    app.kubernetes.io/version: v1.19.1
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: cert-manager-v1.19.1
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: "-5"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cert-manager-startupapicheck:create-cert
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager-startupapicheck
+    namespace: cert-manager

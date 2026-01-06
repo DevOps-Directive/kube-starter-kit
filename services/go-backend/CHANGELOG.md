@@ -1,0 +1,39 @@
+# Changelog
+
+## [0.3.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.2.1...services/go-backend@0.3.0) (2026-01-05)
+
+
+### Features
+
+* add mirrord and sslip.io for improved local development ([#81](https://github.com/DevOps-Directive/kube-starter-kit/issues/81)) ([4b5d2e7](https://github.com/DevOps-Directive/kube-starter-kit/commit/4b5d2e79fbe823c6d9f96c87d74905f67fe81ad2))
+
+## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.2.0...services/go-backend@0.2.1) (2025-12-13)
+
+
+### Chores
+
+* force go-backend build ([55d88c6](https://github.com/DevOps-Directive/kube-starter-kit/commit/55d88c62d80f11a8ca109d922f35555c72f5b187))
+
+## [0.2.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.1.1...services/go-backend@0.2.0) (2025-11-10)
+
+### Features
+
+* empty commit ([844dd10](https://github.com/DevOps-Directive/kube-starter-kit/commit/844dd10b1eb0522253c53f4443ee73c4b8b1d525))
+
+## [0.1.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.1.0...services/go-backend@0.1.1) (2025-11-10)
+
+
+### Chores
+
+* no-op change to go-backend ([76ee9c0](https://github.com/DevOps-Directive/kube-starter-kit/commit/76ee9c08f0a4fe87608a63c56af1299b5b053744))
+
+## [0.1.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/services/go-backend@0.0.4...services/go-backend@0.1.0) (2025-11-07)
+
+### Features
+
+* empty commit ([c075c6c](https://github.com/DevOps-Directive/kube-starter-kit/commit/c075c6cd748ea5fe217ddd70f7610116fce18350))
+
+
+### Chores
+
+* test no-op change ([b84120f](https://github.com/DevOps-Directive/kube-starter-kit/commit/b84120f1c2c85a73bc7faf7acd1c8a1ca5deca41))

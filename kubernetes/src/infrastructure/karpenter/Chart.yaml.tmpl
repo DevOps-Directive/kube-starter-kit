@@ -1,0 +1,10 @@
+apiVersion: v2
+name: karpenter-wrapper
+description: Umbrella chart that installs karpenter plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: karpenter
+    repository: "oci://public.ecr.aws/karpenter"
+    version: REPLACED_BY_CHARTVERSIONS

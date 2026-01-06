@@ -1,0 +1,14 @@
+# Source: signoz-wrapper/charts/k8s-infra/templates/otel-deployment/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: signoz-k8s-infra-otel-deployment-signoz
+  namespace: signoz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: signoz-k8s-infra-otel-deployment-signoz
+subjects:
+  - name: signoz-k8s-infra-otel-deployment
+    kind: ServiceAccount
+    namespace: signoz

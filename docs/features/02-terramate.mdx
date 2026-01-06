@@ -1,0 +1,93 @@
+---
+title: "Terraform Orchestration with Terramate"
+description: "Change detection, dependency ordering, and CI/CD integration for multi-stack Terraform"
+icon: "robot"
+---
+
+## The Problem
+
+Running Terraform locally works fine when you're a team of one, but it quickly becomes a liability as you grow:
+
+- **"Who ran that apply?":** Without centralized execution, it's hard to track who changed what and when. Your state file says it changed, but good luck figuring out the context.
+- **No visibility before merge:** You want to review infrastructure changes before they happen, but `terraform plan` output buried in a CI log isn't exactly reviewer-friendly.
+- **Credential sprawl:** Every developer with Terraform access needs AWS credentials. That's a lot of long-lived secrets floating around laptops.
+- **Cross-stack dependencies are painful:** `terraform_remote_state` data sources are clunky and require knowing state bucket details everywhere.
+- **Running all stacks is slow:** Without change detection, every PR plans every stack, even unchanged ones.
+
+## How Kube Starter Kit Addresses This
+
+I've integrated [Terramate](https://terramate.io/) to orchestrate Terraform across environments. Here's what that gives you:
+
+### Change Detection
+
+Terramate detects which stacks are affected by your changes. On a PR, only modified stacks get planned, not your entire infrastructure. This makes CI faster, reduces noise, and lowers costs.
+
+### Dependency Ordering
+
+Stacks declare dependencies and Terramate runs them in the correct order. Networking before EKS, EKS before app-resources. No manual coordination required.
+
+### Outputs Sharing
+
+Stacks can consume outputs from other stacks without `terraform_remote_state`. Define an output in one stack, consume it as a variable in another. Terramate handles the wiring. Dependencies are explicit, type-safe, and support mocks for bootstrapping.
+
+### Code Generation
+
+Common patterns (backend config, provider setup, module invocations) are generated from templates called "mixins." Change a mixin once, regenerate everywhere. This eliminates copy-paste drift between stacks.
+
+### Terramate Cloud
+
+Previews, deployments, and drift detection sync to a dashboard. See the state of your infrastructure across all stacks in one place: who requested changes, who approved them, what actually changed.
+
+### Keyless Authentication
+
+GitHub OIDC assumes an AWS role. No long-lived credentials stored in GitHub secrets or on developer laptops. The trust is based on GitHub's identity, not shared secrets.
+
+## The Workflow
+
+<Steps>
+  <Step title="Open a PR">
+    Make changes to Terraform code: modules, stacks, or configuration.
+  </Step>
+  <Step title="Automatic Plan">
+    Terramate detects affected stacks and runs `terraform plan` for each. Results sync to Terramate Cloud and appear in the PR checks.
+  </Step>
+  <Step title="Review">
+    Reviewers see exactly what infrastructure changes will happen. Check the Terramate Cloud dashboard for a unified view across stacks.
+  </Step>
+  <Step title="Merge">
+    Merge the PR to main when approved.
+  </Step>
+  <Step title="Automatic Apply">
+    The deploy workflow applies changed stacks in dependency order. Results sync to Terramate Cloud.
+  </Step>
+  <Step title="Audit Trail">
+    Every change is tied to a PR and tracked in Terramate Cloud: who requested it, who approved it, what changed.
+  </Step>
+</Steps>
+
+## CI/CD Workflows
+
+Four GitHub Actions workflows handle different scenarios:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **Preview** | Pull request | Plans changed stacks, syncs previews to Terramate Cloud |
+| **Deploy** | Merge to main | Applies changed stacks in dependency order |
+| **Drift Detection** | Schedule/manual | Detects when infrastructure has drifted from state |
+| **Provider Cache** | Lock file changes | Pre-downloads providers to speed up other workflows |
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Terramate over Digger/Atlantis** | Terramate provides stack orchestration, code generation, and outputs sharing, not just CI/CD. The unified platform reduces tooling complexity. |
+| **Apply on merge (not before)** | Simpler workflow: merge triggers apply. Terramate Cloud provides visibility if rollback is needed. |
+| **Outputs sharing over remote_state** | No need to pass bucket names everywhere. Dependencies are explicit and type-safe. Mocks enable planning before dependencies exist. |
+| **OIDC over static credentials** | No secrets to rotate. Short-lived tokens exchanged at runtime. |
+| **Change detection by default** | Only plan/apply what changed. Faster CI, less noise, lower costs. |
+
+<Note>
+For the infrastructure that Terramate orchestrates, see [Terraform for Base Infrastructure](/features/01-terraform).
+
+For step-by-step instructions on making changes, see [Making Terraform Changes](/usage/operations/01-updating-terraform-infrastructure).
+</Note>

@@ -1,0 +1,4 @@
+values:
+  ingress:
+    traefik:
+      hostname: "ingress-traefik-timoni.production.kubestarterkit.com"

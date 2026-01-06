@@ -1,0 +1,14 @@
+# Source: cert-manager-wrapper/templates/ClusterIssuer.letsencrypt-staging.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging-dns
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: sid@devopsdirective.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-dns
+    solvers:
+      - dns01:
+          route53: {}

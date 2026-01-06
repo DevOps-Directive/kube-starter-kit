@@ -1,0 +1,2 @@
+# This file is intentionally minimal - CloudPosse context variables are in context.tf
+# Default values are provided via _defaults.auto.tfvars

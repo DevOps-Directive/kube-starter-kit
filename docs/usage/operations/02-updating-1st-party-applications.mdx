@@ -1,0 +1,271 @@
+---
+title: 'Updating 1st Party Applications'
+description: 'Deploy changes to your applications'
+icon: 'person-shelter'
+---
+
+## Overview
+
+First-party applications are services you build and deploy, like the `go-backend` example in the kit. This page covers how to make changes and deploy them through the GitOps pipeline.
+
+## Deployment Flow
+
+Changes flow through staging first, then to production after verification:
+
+```
+┌────────────┐
+│ STAGING    │  Merge to main -> Build -> Update manifests -> ArgoCD syncs ─┐
+└────────────┘                                                              │
+                ┌──────────────────── Verify Changes ───────────────────────┘
+┌────────────┐  │
+│ PRODUCTION │  └─> Merge Release PR -> Build -> Update manifests -> ArgoCD syncs
+└────────────┘
+```
+
+Each step is detailed in the sections below.
+
+## Make Code Changes
+
+<Steps>
+  <Step title="Edit your service code">
+    Make changes to your application in `services/`:
+
+    ```bash
+    # Example: modify the go-backend service
+    vim services/go-backend/cmd/main.go
+    ```
+  </Step>
+
+  <Step title="Test locally">
+    Use the [local development environment](/usage/getting-started/09-local-development-setup) to test:
+
+    ```bash
+    mise run //local:tilt-up
+    ```
+
+    Tilt automatically rebuilds and redeploys when you save changes.
+  </Step>
+
+  <Step title="Commit and push">
+    ```bash
+    git add services/go-backend/
+    git commit -m "feat: add new endpoint for health checks"
+    git push origin main
+    ```
+  </Step>
+</Steps>
+
+## What Happens After Push (Staging)
+
+### 1. CI Build Workflow
+
+The CI workflow (`.github/workflows/ci-build-push.yml`):
+
+1. Detects which services changed using path filters
+2. Generates a version tag (e.g., `0.2.2-rc0029-g1234567`)
+3. Builds the Docker image
+4. Pushes to ECR
+5. Triggers the GitOps workflow
+
+### 2. GitOps Update Workflow
+
+The GitOps workflow (`.github/workflows/gitops-update-manifests.yml`):
+
+1. Updates the image tag in values files (e.g., `kubernetes/src/services/go-backend-helm/values.yaml`)
+2. Renders the Kubernetes manifests
+3. Commits and pushes to `main`
+
+The image tag is identified by a comment marker:
+
+```yaml
+image:
+  version: 0.2.2-rc0029-g1234567 # staging_services/go-backend
+```
+
+### 3. ArgoCD Sync
+
+ArgoCD watches the repository and automatically syncs when manifests change. You can monitor the sync in the ArgoCD UI or CLI:
+
+```bash
+argocd app get go-backend-helm
+argocd app sync go-backend-helm
+```
+
+## Version Tagging Strategy
+
+| Trigger | Tag Format | Example | Environment |
+|---------|------------|---------|-------------|
+| Push to `main` | `X.Y.Z-rcNNNN-gSHA` | `0.2.2-rc0029-g1234567` | Staging |
+| Release tag | `X.Y.Z` | `0.2.3` | Production |
+| Manual workflow | User-specified | `hotfix-123` | User-specified |
+
+### Pre-release Versions (Staging)
+
+When you push to `main`, the version is generated as:
+- Base: last release tag + 1 patch (e.g., `0.2.2` → `0.2.3`)
+- Suffix: `-rcNNNN-gSHA` where NNNN is commits since last tag
+
+This ensures every commit has a unique, sortable version.
+
+### Release Versions (Production)
+
+To deploy to production, create a release tag:
+
+```bash
+git tag "services/go-backend@0.2.3"
+git push origin "services/go-backend@0.2.3"
+```
+
+This triggers the same build workflow but:
+- Uses the exact version from the tag (`0.2.3`)
+- Sets environment to `production`
+
+## Deploy to Production
+
+<Steps>
+  <Step title="Verify staging deployment">
+    Ensure the change works correctly in staging before promoting to production.
+  </Step>
+
+  <Step title="Merge the Release Please PR">
+    The Release Please workflow (`.github/workflows/release-please.yml`) automatically creates a release PR when changes are pushed to `main`. The PR:
+    - Bumps the version based on conventional commit messages
+    - Updates the CHANGELOG
+    - Shows all changes since the last release
+
+    When you merge the release PR:
+    1. A GitHub release is created with the new version tag
+    2. The CI workflow (`.github/workflows/ci-build-push.yml`) builds and pushes the production image
+    3. The GitOps workflow (`.github/workflows/gitops-update-manifests.yml`) updates production manifests
+    4. ArgoCD syncs to the production cluster
+
+    <Note>
+    You can also create a release manually by pushing a tag:
+    ```bash
+    git tag "services/go-backend@0.2.3"
+    git push origin "services/go-backend@0.2.3"
+    ```
+    </Note>
+  </Step>
+
+  <Step title="Monitor the deployment">
+    Watch the CI workflow and ArgoCD sync:
+
+    ```bash
+    # Check workflow status
+    gh run list --workflow=ci-build-push.yml
+
+    # Check ArgoCD
+    argocd app get go-backend-helm --grpc-web
+    ```
+  </Step>
+</Steps>
+
+## Manual Deployment
+
+For debugging or hotfixes, you can trigger deployments manually:
+
+<Tabs>
+  <Tab title="Build only">
+    Build and push an image without deploying:
+
+    ```bash
+    gh workflow run ci-build-push.yml \
+      -f service=services/go-backend \
+      -f version=hotfix-123
+    ```
+  </Tab>
+
+  <Tab title="Deploy existing image">
+    Deploy an already-built image to an environment:
+
+    ```bash
+    gh workflow run gitops-update-manifests.yml \
+      -f service=services/go-backend \
+      -f version=0.2.2-rc0029-g1234567 \
+      -f environment=staging
+    ```
+  </Tab>
+</Tabs>
+
+## Update Kubernetes Configuration
+
+To change Kubernetes configuration (replicas, resources, etc.) without changing application code:
+
+<Steps>
+  <Step title="Edit the configuration">
+    For Helm-based services, edit the values file:
+    ```bash
+    vim kubernetes/src/services/go-backend-helm/values.yaml
+    ```
+
+    For Kustomize-based services, edit the overlay:
+    ```bash
+    vim kubernetes/src/services/go-backend/staging/kustomization.yaml
+    ```
+
+    Example changes:
+    ```yaml
+    replicas: 3  # Increase replicas
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+    ```
+  </Step>
+
+  <Step title="Render manifests">
+    ```bash
+    mise run //kubernetes/src/services:render-all
+    ```
+  </Step>
+
+  <Step title="Commit and push">
+    ```bash
+    git add kubernetes/
+    git commit -m "chore: increase go-backend replicas to 3"
+    git push origin main
+    ```
+  </Step>
+</Steps>
+
+ArgoCD syncs the new configuration without rebuilding the image.
+
+## Rollback
+
+To rollback to a previous version:
+
+<Tabs>
+  <Tab title="Via ArgoCD">
+    ```bash
+    # View history
+    argocd app history go-backend-helm
+
+    # Rollback to previous revision
+    argocd app rollback go-backend-helm <revision>
+    ```
+  </Tab>
+
+  <Tab title="Via GitOps">
+    Update the image tag to a previous version:
+
+    ```bash
+    # Edit values.yaml
+    vim kubernetes/src/services/go-backend-helm/values.yaml
+
+    # Change image version to previous tag
+    # image:
+    #   version: 0.2.2-rc0028-g98b8c55
+
+    # Render and push
+    mise run //kubernetes/src/services:render-all
+    git add . && git commit -m "fix: rollback go-backend to 0.2.2-rc0028"
+    git push origin main
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+- [Updating 3rd Party Applications](/usage/operations/03-updating-3rd-party-applications) - Update infrastructure components
+- [Bootstrapping a New Service](/usage/operations/04-bootstrapping-new-service) - Add a new application

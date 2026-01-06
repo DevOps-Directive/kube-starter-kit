@@ -1,0 +1,10 @@
+{
+  "services/container-only-dummy": "0.2.2",
+  "services/go-backend": "0.3.0",
+  "services/go-backend/migrations": "0.3.0",
+  "services/go-backend-no-migrations": "0.3.0",
+  "terraform/modules/account-bootstrapping": "0.2.0",
+  "terraform/modules/eks": "0.2.0",
+  "terraform/modules/networking": "0.2.0",
+  "terraform/modules/app-resources/go-backend": "0.1.0"
+}
