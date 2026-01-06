@@ -1,0 +1,79 @@
+---
+title: "Architecture Decisions"
+description: "Why I chose this technology stack"
+icon: "map"
+---
+
+This page summarizes the key architectural decisions behind Kube Starter Kit. Each feature page includes detailed rationale in its "Key Design Decisions" section, this is the high-level overview of the philosophy and cross-cutting choices.
+
+## Guiding Principles
+
+**Opinionated but escapable:** I've made choices so you don't have to, but nothing locks you in. Every component can be swapped out as your needs evolve.
+
+**Production-ready from day one:** This isn't a learning exercise or demo. It's infrastructure I'd run in production, with proper security, observability, and operational patterns.
+
+**Balanced approach to managed services:** Kubernetes-native solutions where they add flexibility (ingress, observability, GitOps), managed services where the operational burden justifies it (object storage, databases, identity). The goal is portability without reinventing the wheel.
+
+**GitOps everything:** Infrastructure, configuration, and application deployments all flow through Git. One source of truth, full audit trail.
+
+## Technology Choices
+
+| Category | Choice | Alternatives Considered |
+|----------|--------|------------------------|
+| **Cloud Provider** | AWS | GCP, Azure |
+| **Infrastructure as Code** | Terraform + Terramate | Pulumi, CDK, CloudFormation, Terragrunt |
+| **Terraform Orchestration** | Terramate | Digger, Atlantis, Spacelift, Terraform Cloud |
+| **Kubernetes** | EKS | Self-managed, GKE, AKS |
+| **Node Provisioning** | Karpenter | Cluster Autoscaler |
+| **GitOps** | ArgoCD | Flux, Kluctl |
+| **Ingress** | Traefik | AWS ALB Ingress, ingress-nginx, Envoy Gateway |
+| **Secrets** | External Secrets + AWS Secrets Manager | Sealed Secrets, Vault |
+| **Observability** | SigNoz | Datadog, Grafana Stack |
+| **Database** | PlanetScale | RDS, CloudNativePG |
+| **Local Development** | KinD + Tilt + mirrord | Docker Compose, Skaffold, Telepresence |
+
+## Why These Choices?
+
+### Cloud: AWS
+
+AWS has the largest market share and the best ecosystem of supporting services (S3, RDS, SQS, etc.). Most third-party infrastructure tooling runs on AWS, so co-locating your workloads enables reduced latency and the potential for private networking (more secure and more affordable). Most engineers have AWS experience. For early-stage companies, AWS is the safe choice.
+
+### Infrastructure as Code: Terraform
+
+Terraform has the largest community, most modules, and best tooling ecosystem. Pulumi and CDK are interesting but add complexity and have smaller ecosystems.
+
+### Orchestration: Terramate
+
+Terramate provides a unified solution for Terraform orchestration: stack management, code generation, outputs sharing, and CI/CD integration with Terramate Cloud. Unlike Terragrunt, it uses native HCL syntax without a wrapper. Unlike Digger or Atlantis, it includes change detection and cross-stack dependency management. Terramate Cloud provides visibility into previews, deployments, and drift, without requiring external services to access your AWS credentials.
+
+### GitOps: ArgoCD
+
+ArgoCD, Flux, and Kluctl are all solid choices. ArgoCD has the best UI for understanding deployment state, which helps teams new to GitOps. The app-of-apps pattern provides clear hierarchical organization. Flux is lighter-weight but less visual. Kluctl offers a more imperative approach with better diffing and templating flexibility, worth considering if you prefer CLI-driven workflows.
+
+### Ingress: Traefik
+
+Traefik is one of the most popular ingress solutions (3B+ downloads, 57K GitHub stars). It supports both traditional Ingress and Gateway API, letting you start simple and adopt advanced routing as needs evolve. Single binary, automatic discovery, sensible defaults, built-in dashboard.
+
+<Note>Initially I used ingress-nginx as the default ingress controller for the kit, but it is being retired in 2026, with no updates/maintenance.</Note>
+
+### Secrets: External Secrets
+
+Secrets belong in a secrets manager, not encrypted in Git. External Secrets keeps secrets in AWS Secrets Manager where they can be rotated, audited, and access-controlled properly. Vault is powerful but adds significant operational complexity (self-hosted) or cost (HCP Vault). For most teams, AWS Secrets Manager with External Secrets hits the sweet spot.
+
+### Observability: SigNoz
+
+For early-stage companies, Datadog's per-host pricing gets expensive fast. SigNoz gives you metrics, logs, and traces with clear and affordable pricing with the option to self-host down the line as needed.
+
+### Local Development: KinD + Tilt + mirrord
+
+KinD provides a real multi-node Kubernetes cluster locally. Tilt handles continuous rebuilds and deploys with smart dependency ordering. mirrord enables debugging local code against remote cluster traffic without deploying. Together they cover the full development lifecycle: local iteration, integration testing, and production debugging.
+
+## What's Not Included (Yet)
+
+Some things are intentionally omitted from the initial kit:
+
+- **Service mesh:** Most teams don't need Istio/Linkerd on day one. Add it when you have specific requirements.
+- **Multi-region:** Single region is simpler to operate. The patterns here extend to multi-region when you need it.
+- **Advanced networking:** No VPC peering, Transit Gateway, or PrivateLink beyond basics. Add as needed.
+
+These are candidates for potential extensions as the kit evolves.

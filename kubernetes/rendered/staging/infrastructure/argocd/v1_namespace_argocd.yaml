@@ -1,0 +1,5 @@
+# Source: argocd-wrapper/templates/Namespace.argocd.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd

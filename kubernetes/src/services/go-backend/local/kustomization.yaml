@@ -1,0 +1,7 @@
+namespace: go-backend-kustomize
+resources:
+  - ../base
+patches:
+  - path: Cluster.go-backend.yaml
+  - path: Deployment.go-backend.yaml
+  - path: Ingress.minimal-traefik.yaml

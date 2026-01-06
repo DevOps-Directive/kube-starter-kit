@@ -1,0 +1,299 @@
+---
+title: 'Making Terraform Changes'
+description: 'How to make updates to infrastructure via Terraform'
+icon: "excavator"
+---
+
+## Overview
+
+Infrastructure changes flow through Terramate and GitHub. Whether you're modifying an existing stack, adding a new resource, or creating entirely new infrastructure, the workflow is the same: make changes locally, open a PR, review the plan, and merge to apply.
+
+## Workflow
+
+<Steps>
+  <Step title="Make your changes">
+    Edit the relevant files in `terraform/`. This might be:
+    - Stack configuration (`config.tm.hcl`, `inputs.tm.hcl`)
+    - Module code in `terraform/modules/`
+    - New stack definitions (`stack.tm.hcl`)
+  </Step>
+
+  <Step title="Generate files (if needed)">
+    If you changed any Terramate configuration (`.tm.hcl` files), regenerate the Terraform files:
+    ```bash
+    cd terraform
+    terramate generate
+    ```
+    This updates generated files like `_backend.tf`, `_provider.tf`, and `_main.tf`.
+  </Step>
+
+  <Step title="Validate locally (optional)">
+    Test your changes before pushing:
+    ```bash
+    # List affected stacks
+    terramate list --changed
+
+    # Run validation
+    terramate run --changed -- terraform validate
+
+    # Preview plan (requires AWS credentials)
+    terramate script run --changed -- plan
+    ```
+  </Step>
+
+  <Step title="Open a pull request">
+    Push your branch and open a PR. The CI workflow will:
+    1. Check Terramate formatting
+    2. Detect changed stacks
+    3. Run `terraform plan` for each affected stack
+    4. Sync preview results to Terramate Cloud
+  </Step>
+
+  <Step title="Review the plan">
+    Check the plan output in:
+    - GitHub Actions logs
+    - PR comment with plan summary (if using Terramate Cloud)
+    - Terramate Cloud dashboard (for a unified view across stacks)
+
+    Look for:
+    - Expected resource changes (create, update, destroy)
+    - No unintended side effects
+    - Correct dependency ordering
+  </Step>
+
+  <Step title="Merge to apply">
+    Once approved, merge the PR. The deploy workflow will:
+    1. Detect changed stacks
+    2. Apply changes in dependency order
+    3. Sync deployment results to Terramate Cloud
+  </Step>
+</Steps>
+
+<Tip>
+Use GitHub branch protection rules to control who can deploy infrastructure changes. Consider requiring PR approvals, setting up CODEOWNERS for the `terraform/` directory, and requiring status checks to pass before merging.
+</Tip>
+
+## Common Tasks
+
+### Adding a New Stack
+
+1. Create directory under `terraform/live/{stage}/{region}/`:
+   ```bash
+   mkdir -p "terraform/live/<STAGE>/<REGION>/my-new-stack"
+   ```
+
+2. Create `stack.tm.hcl`:
+   ```hcl
+   stack {
+     id          = "<STAGE>-<region-abbrev>-my-new-stack"
+     name        = "my-new-stack"
+     description = "Description of what this stack does"
+     tags        = ["<STAGE>", "<REGION>", "my-new-stack"]
+
+     # Declare dependencies if needed
+     after = ["tag:<STAGE>:<REGION>:eks"]
+   }
+   ```
+   Replace `<region-abbrev>` (e.g., `use2`) and `<REGION>` (e.g., `us-east-2`) with your values.
+
+3. Create `config.tm.hcl` with stack-specific globals
+
+4. Create `main.tf` or use module mixins
+
+5. Generate files:
+   ```bash
+   terramate generate
+   ```
+
+   <Note>
+   You may need to run `terramate generate` twice. The first pass generates `_outputs.tm.hcl` for some stacks (e.g., EKS), which is then used by dependent stacks in the second pass.
+   </Note>
+
+### Modifying a Module
+
+1. Edit the module in `terraform/modules/{module-name}/`
+2. Open a PR - Terramate will plan all stacks that use the module
+3. Review plans across all affected environments
+4. Merge to apply changes everywhere
+
+### Targeting Specific Stacks
+
+Use tags to run commands on specific stacks:
+
+```bash
+export REGION="us-east-2"  # Your AWS region
+export STAGE="staging"     # or "prod"
+
+# Single stack
+terramate run --tags ${STAGE}:${REGION}:eks -- terraform plan
+
+# All stacks in an environment
+terramate run --tags ${STAGE} -- terraform plan
+
+# All networking stacks
+terramate run --tags networking -- terraform plan
+```
+
+## Troubleshooting
+
+### "Repository has untracked files"
+
+Terramate requires a clean git state. Either stage your changes or use:
+```bash
+terramate run --disable-safeguards=git-untracked -- terraform plan
+```
+
+### Missing dependency outputs
+
+When a dependency stack hasn't been applied yet, Terramate uses mock values. This is expected during initial bootstrap. Apply stacks in dependency order:
+```bash
+# Check the order
+terramate list --run-order
+
+# Apply in order
+terramate script run -- deploy
+```
+
+### Regenerate after config changes
+
+If you see drift between generated files and configuration:
+```bash
+terramate generate
+git diff  # Review changes
+```
+
+## Configuration Reference
+
+### Root Configuration
+
+The `terraform/config.tm.hcl` defines globals inherited by all stacks:
+
+```hcl
+globals {
+  namespace                = "<namespace>"  # e.g., "ksk"
+  github_oidc_role_arn     = "arn:aws:iam::..."
+  sso_admin_role_arn       = "arn:aws:iam::..."
+  terraform_state_bucket   = "<namespace>-gbl-infra-bootstrap-state"
+  terraform_state_region   = "<REGION>"  # e.g., "us-east-2"
+  terraform_version        = ">= 1.10"
+  aws_provider_version     = "~> 6.27"
+}
+```
+
+### Terramate Project Configuration
+
+The `terramate.tm.hcl` at the repository root configures Terramate features:
+
+```hcl
+terramate {
+  required_version = ">= 0.10.0"
+
+  config {
+    cloud {
+      organization = "your-org"
+      location     = "us"
+    }
+
+    experiments = [
+      "outputs-sharing",
+      "scripts",
+      "tmgen"
+    ]
+  }
+}
+```
+
+### Stack Definition
+
+Each stack requires a `stack.tm.hcl`:
+
+```hcl
+# terraform/live/staging/<REGION>/networking/stack.tm.hcl
+stack {
+  id          = "staging-<region-abbrev>-networking"
+  name        = "networking"
+  description = "VPC and networking for staging <REGION>"
+  tags        = ["staging", "<REGION>", "networking", "infrastructure"]
+
+  # Declare dependencies if needed
+  after = ["tag:staging:<REGION>:eks"]
+}
+```
+
+### Stack-Specific Configuration
+
+Override globals in `config.tm.hcl` within each stack:
+
+```hcl
+# terraform/live/staging/<REGION>/networking/config.tm.hcl
+globals {
+  vpc_cidr = "10.0.0.0/16"
+  nat_mode = "fck_nat"  # Cost-effective NAT for non-prod
+}
+```
+
+### Outputs Sharing
+
+Cross-stack dependencies without `terraform_remote_state`:
+
+```hcl
+# In networking stack: outputs.tm.hcl
+output "vpc_id" {
+  backend = "terraform"
+  value   = module.networking.vpc_id
+}
+
+# In EKS stack: inputs.tm.hcl
+input "vpc_id" {
+  backend       = "terraform"
+  from_stack_id = "staging-use2-networking"
+  value         = outputs.vpc_id.value
+  mock          = "vpc-mock12345"  # Used during initial bootstrap
+}
+```
+
+The input becomes a regular Terraform variable, usable in your module:
+
+```hcl
+module "eks" {
+  source = "../../../modules/eks"
+  vpc_id = var.vpc_id
+  # ...
+}
+```
+
+### Terramate Scripts
+
+The `terraform/scripts.tm.hcl` file defines reusable commands used by CI:
+
+```hcl
+script "preview" {
+  description = "Plan with outputs sharing"
+  job {
+    commands = [
+      ["terraform", "validate"],
+      ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
+        sync_preview        = true
+        terraform_plan_file = "out.tfplan"
+        enable_sharing      = true
+      }],
+    ]
+  }
+}
+
+script "deploy" {
+  description = "Apply with outputs sharing"
+  job {
+    commands = [
+      ["terraform", "apply", "-auto-approve", "-lock-timeout=5m", {
+        enable_sharing = true
+      }],
+    ]
+  }
+}
+```
+
+### Mixins
+
+Code generation templates live in `terraform/imports/mixins/`. These generate common files (`_backend.tf`, `_provider.tf`, `_main.tf`) from templates, eliminating copy-paste between stacks.
+

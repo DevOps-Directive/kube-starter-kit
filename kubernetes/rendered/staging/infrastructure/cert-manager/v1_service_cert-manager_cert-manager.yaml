@@ -1,0 +1,25 @@
+# Source: cert-manager-wrapper/charts/cert-manager/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+  labels:
+    app: cert-manager
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/instance: cert-manager
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.19.1
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: cert-manager-v1.19.1
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 9402
+      name: tcp-prometheus-servicemonitor
+      targetPort: http-metrics
+  selector:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/instance: cert-manager
+    app.kubernetes.io/component: controller

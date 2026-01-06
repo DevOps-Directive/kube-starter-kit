@@ -1,0 +1,13 @@
+/* Custom styles for Kube Starter Kit documentation */
+
+/* Import JetBrains Mono font */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+/* Apply JetBrains Mono to code blocks */
+code,
+pre,
+pre code,
+.code-block,
+[class*="language-"] {
+  font-family: 'JetBrains Mono', monospace !important;
+}

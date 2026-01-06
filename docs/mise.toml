@@ -1,0 +1,7 @@
+[tools]
+"npm:mint" = "4"
+
+[tasks.dev]
+run = """
+mint dev
+"""

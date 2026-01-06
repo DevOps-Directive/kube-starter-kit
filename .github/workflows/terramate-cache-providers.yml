@@ -1,0 +1,66 @@
+name: Cache Terraform Providers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/live/**/.terraform.lock.hcl"
+  pull_request:
+    paths:
+      - "terraform/live/**/.terraform.lock.hcl"
+  workflow_dispatch:
+
+jobs:
+  cache-providers:
+    name: Populate Terraform provider cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      ### Check if cache already exists
+      - name: Check for existing cache
+        id: cache-check
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
+          key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}
+          lookup-only: true
+
+      ### Install tooling (only if cache miss)
+      - name: Install Terramate
+        if: steps.cache-check.outputs.cache-hit != 'true'
+        uses: terramate-io/terramate-action@0500f8a40b57a793a41edd2aea0a49e31c7204e8 # v3.2.0
+        with:
+          version: "0.15.1"
+      - name: HashiCorp - Setup Terraform
+        if: steps.cache-check.outputs.cache-hit != 'true'
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.14.3"
+          terraform_wrapper: false
+
+      ### Initialize all stacks to download providers (TF_PLUGIN_CACHE_DIR set by Terramate)
+      - name: Initialize all Terraform stacks (providers only)
+        if: steps.cache-check.outputs.cache-hit != 'true'
+        run: |
+          terramate script run \
+            -C terraform/live \
+            --parallel 1 \
+            init-providers
+
+      ### Save the provider cache
+      - name: Save Terraform provider cache
+        if: steps.cache-check.outputs.cache-hit != 'true'
+        uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ github.workspace }}/.tf_plugin_cache_dir
+          key: terraform-providers-${{ hashFiles('terraform/live/**/.terraform.lock.hcl') }}

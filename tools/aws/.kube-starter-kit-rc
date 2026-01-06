@@ -1,0 +1,18 @@
+# Optional shell helpers for Kube Starter Kit
+# Source this file in your .bashrc or .zshrc for convenience aliases
+#
+# Most functionality is available via mise tasks:
+#   mise run //tools:eks:get-credentials {cluster-name}
+#   mise run //tools:eks:connect staging
+#   mise run //tools:bastion:start-proxy {instance-id}
+
+# Leapp session shortcuts
+aws_sso_infrastructure () { leapp session start "Infrastructure"; }
+aws_sso_staging () { leapp session start "Staging"; }
+aws_sso_production () { leapp session start "Production"; }
+aws_sso_repositories () { leapp session start "ECR Repositories"; }
+
+# Unset environment variables (useful when switching between profiles)
+unset_aws_env_vars () {
+  unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+}

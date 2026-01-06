@@ -1,0 +1,163 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - kubernetes/**
+      - services/**
+    tags:
+      - "services/**@[0-9]*.[0-9]*.[0-9]*" # services/foo/bar@X.Y.Z
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build"
+        type: choice
+        required: true
+        options:
+          - services/go-backend
+          - services/go-backend-no-migrations
+      version:
+        description: "Version/tag to use (optional; defaults generating with git describe)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  filter:
+    runs-on: ubuntu-24.04
+    outputs:
+      environment: ${{ steps.set-output.outputs.environment }}
+      services: ${{ steps.set-output.outputs.services }}
+      tagType: ${{ steps.set-output.outputs.tagType }}
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+      - name: Paths Changes Filter
+        if: ${{ github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'main' }}
+        id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: .github/utils/file-filters.yaml
+      - name: Set Output
+        id: set-output
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo 'services=["${{ inputs.service }}"]' >> "$GITHUB_OUTPUT"
+            echo 'tagType=manual' >> "$GITHUB_OUTPUT"
+            echo 'environment=none' >> "$GITHUB_OUTPUT"
+
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"        # e.g. service-a@1.2.3
+            svc="${tag%%@*}"
+            echo "services=[\"$svc\"]" >> "$GITHUB_OUTPUT"
+            echo 'tagType=release' >> "$GITHUB_OUTPUT"
+            echo 'environment=production' >> "$GITHUB_OUTPUT"
+
+          else # push to main
+            echo 'services=${{ steps.filter.outputs.changes }}' >> "$GITHUB_OUTPUT"
+            echo 'tagType=pre-release' >> "$GITHUB_OUTPUT"
+            echo 'environment=staging' >> "$GITHUB_OUTPUT"
+          fi
+
+  build-push-container-images:
+    runs-on: ubuntu-24.04
+    needs: filter
+    if: ${{ needs.filter.outputs.services != '[]' && needs.filter.outputs.services != '' }}
+    permissions:
+      actions: write # used to trigger deploy workflow
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.filter.outputs.services) }}
+      fail-fast: false # don't fail all container builds due to a one build failure
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          # Setting fetch-depth: 0 ensure tags are fetched (so git describe works properly)
+          fetch-depth: 0
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::857059614049:role/ksk-gbl-ecr-bootstrap-github-oidc
+      - uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
+        id: login-ecr
+        with:
+          mask-password: true
+      # Reenable if building non-native architectures
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@05340d1c670183e7caabdb33ae9f1c80fae3b0c2 # v3.6.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@1583c0f09d26c58c59d25b0eef29792b7ce99d9a # v3.11.1
+      - uses: jdx/mise-action@be3be2260bc02bc3fbf94c5e2fed8b7964baf074 # v3.4.0
+        with:
+          version: 2025.10.21
+          install: false # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
+          experimental: true # [default: false] enable experimental features
+          github_token: ${{ secrets.GITHUB_TOKEN }} # [default: ${{ github.token }}] GitHub token for API authentication
+      - name: Compute image tag
+        id: image-tag
+        working-directory: ${{ matrix.service }}
+        env:
+          INPUT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
+          SERVICE: ${{ matrix.service }}
+          TAG_TYPE: ${{ needs.filter.outputs.tagType }}
+        shell: bash
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            version=$INPUT_VERSION
+            image_tag=$(mise run //tools:manual-version-tag "$INPUT_VERSION")
+          elif [[ "$TAG_TYPE" == "release" ]]; then
+            version=$(mise run //tools:generate-version -- "$SERVICE")
+            image_tag=$(mise run //tools:generate-version-tag -- "$SERVICE")
+          else
+            version=$(mise run //tools:generate-extended-version -- "$SERVICE")
+            image_tag=$(mise run //tools:generate-extended-version-tag -- "$SERVICE")
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+      - name: Build and push Docker images
+        uses: docker/build-push-action@ccc2b40e9ea6518f9252a22a990f8e868370f62e # v6.18.0
+        with:
+          context: ${{ matrix.service }}
+          push: true
+          tags: ${{ steps.image-tag.outputs.image_tag }}
+          platforms: "linux/amd64" # linux/arm64
+          provenance: false # this prevents extra manifest image in ECR
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Trigger deploy as a separate workflow to:
+      #   1. enable running it manually via workflow_dispatch
+      #   2. keep workflows smaller and more focused
+      # We could use reuseable workflow (with workflow_call trigger... but being able to trigger manually is nice)
+      - name: Trigger Deploy
+        working-directory: ${{ matrix.service }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ENVIRONMENT: ${{ needs.filter.outputs.environment }}
+        run: |
+          # Load env vars from mise.toml in this directory
+          eval "$(mise env --shell bash)"
+          RUN_DEPLOY_WORKFLOW="${RUN_DEPLOY_WORKFLOW:-true}"
+
+          if [ "$RUN_DEPLOY_WORKFLOW" != "true" ]; then
+            echo "skipping gitops-update-manifests workflow because service has RUN_DEPLOY_WORKFLOW=$RUN_DEPLOY_WORKFLOW"
+            exit 0
+          fi
+
+          if [ "$ENVIRONMENT" = "none" ]; then
+            echo "skipping gitops-update-manifests workflow because environment=$ENVIRONMENT"
+            exit 0
+          fi
+
+          gh workflow run gitops-update-manifests.yml \
+            -f service=${{ matrix.service }} \
+            -f version=${{ steps.image-tag.outputs.version }} \
+            -f environment="$ENVIRONMENT"

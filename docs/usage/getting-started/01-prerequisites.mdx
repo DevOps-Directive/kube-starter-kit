@@ -1,0 +1,126 @@
+---
+title: 'Prerequisites'
+description: 'What you need before getting started'
+icon: 'list-check'
+---
+
+## Required
+
+### AWS Account
+
+You need an AWS account where the infrastructure will be deployed. The kit uses [AWS Organizations](https://aws.amazon.com/organizations/) to manage multiple accounts (infrastructure, staging, production).
+
+<Note>
+If your AWS account is brand new, you may need to request a quota increase for AWS Organizations. The default limit is 5 accounts, which may not be sufficient. Request an increase through the [Service Quotas console](https://console.aws.amazon.com/servicequotas/).
+</Note>
+
+#### Setting Up Multiple Accounts with Control Tower
+
+You can set up your AWS accounts however you prefer. The kit just needs an management account, infrastructure account, ECR account, staging account, and production account to exist. If you already have a multi-account structure, you can skip this section.
+
+If you're starting fresh, [AWS Control Tower](https://aws.amazon.com/controltower/) is a good option. It provides:
+
+- **Account Factory:** Provision new accounts with consistent baseline configurations
+- **Guardrails:** Pre-configured governance rules (SCPs) for security and compliance
+- **IAM Identity Center (SSO):** Centralized access management across all accounts
+- **Landing Zone:** A well-architected multi-account environment out of the box
+
+To set up Control Tower:
+
+1. Enable Control Tower in your **management** account
+2. Create an **Infrastructure** account (the entrypoint and hub for IaC automations)
+3. Create an **ECR** account (for the Elastic Container Registry used by all environments)
+4. Create a **Staging** account (for the staging EKS cluster and application resources)
+5. Create a **Production** account (for the production EKS cluster and application resources)
+
+Control Tower automatically sets up AWS IAM Identity Center, which the kit uses for authenticating to each account via SSO.
+
+#### Configure IAM Identity Center for Initial Access
+
+Before you can run Terraform to bootstrap the accounts, you need at least one admin user in IAM Identity Center with access to the Infrastructure account. This is a one-time manual setup.
+
+<Steps>
+  <Step title="Enable IAM Identity Center">
+    If you used Control Tower, IAM Identity Center is already enabled. Otherwise, enable it in your management account:
+    
+    1. Navigate to [IAM Identity Center](https://console.aws.amazon.com/singlesignon/) in the AWS Console
+    2. Click **Enable** and choose your identity source (use the built-in Identity Center directory for simplicity)
+  </Step>
+
+  <Step title="Create your admin user">
+    1. Go to **Users** → **Add user**
+    2. Enter your email address and name
+    3. Complete the email verification process
+  </Step>
+
+  <Step title="Create an Admin group">
+    1. Go to **Groups** → **Create group**
+    2. Name it `Admin`
+    3. Add your user to the group
+  </Step>
+
+  <Step title="Create the AdministratorAccess permission set">
+    1. Go to **Permission sets** → **Create permission set**
+    2. Choose **Predefined permission set** → **AdministratorAccess**
+    3. Set session duration (12 hours recommended for development)
+    4. Create the permission set
+  </Step>
+
+  <Step title="Assign the Admin group to the Infrastructure account">
+    1. Go to **AWS accounts**
+    2. Select the **Infrastructure** account
+    3. Click **Assign users or groups**
+    4. Select the **Admin** group and the **AdministratorAccess** permission set
+    
+    You only need to do this for the Infrastructure account. Terraform will manage assignments to other accounts after bootstrapping.
+  </Step>
+
+  <Step title="Note the SSO portal URL">
+    Go to **Settings** and note your **AWS access portal URL** (e.g., `https://d-xxxxxxxxxx.awsapps.com/start`). You'll need this to configure Leapp.
+  </Step>
+</Steps>
+
+<Tip>
+After bootstrapping, the kit manages IAM Identity Center users, groups, and assignments via Terraform in the `user-management` stack. This initial manual setup just gets you access to run Terraform for the first time.
+</Tip>
+
+For more details, see the [AWS IAM Identity Center documentation](https://docs.aws.amazon.com/singlesignon/latest/userguide/getting-started.html).
+
+### GitHub Organization
+
+A GitHub organization where the repository will live. The CI/CD pipelines use GitHub Actions with OIDC authentication to AWS, and the Terraform GitHub provider manages org-level resources like team memberships.
+
+<Note>
+You need **Owner** permissions on the GitHub organization to complete the setup. This is required to:
+- Create and configure repositories
+- Install GitHub Apps (octo-sts for token management)
+- Manage organization members and teams
+- Configure repository secrets and OIDC settings
+</Note>
+
+### Domain Name
+
+A domain name is required for ingress routing to your services (e.g., `api.example.com`). The kit creates Route53 hosted zones and uses external-dns to automatically manage DNS records.
+
+You can either:
+- **Register a new domain** through AWS Route53 or any registrar
+- **Use a subdomain** of an existing domain by pointing nameservers to the Route53 hosted zone
+
+## Optional
+
+### SigNoz Cloud Account
+
+[SigNoz](https://signoz.io/) provides observability (traces, metrics, logs). The kit includes pre-configured OpenTelemetry collectors that ship data to SigNoz Cloud.
+
+If you don't set up SigNoz, the observability components simply won't send data anywhere. The rest of the platform works fine without it.
+
+**NOTE:** other observability providers can also be swapped in instead of Signoz.
+
+### Terramate Cloud Account
+
+[Terramate Cloud](https://terramate.io/) enhances the Terraform workflow with:
+- Drift detection dashboards
+- PR preview comments showing planned changes
+- Stack health monitoring
+
+The kit works without Terramate Cloud; you just won't get the cloud features. The CLI orchestration still functions locally and in CI.

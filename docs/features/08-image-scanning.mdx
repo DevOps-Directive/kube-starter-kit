@@ -1,0 +1,149 @@
+---
+title: "Image CVE Scanning"
+description: "Automated vulnerability scanning for container images across environments"
+icon: "shield-halved"
+---
+
+## Overview
+
+The image CVE scanning workflow automatically scans container images for known vulnerabilities:
+
+- **Scheduled scans:** Runs daily against production images to catch newly disclosed CVEs
+- **On-demand scanning:** Can be triggered manually for any environment or specific images
+- **Comprehensive coverage:** Extracts images from rendered Kubernetes manifests plus manually-specified images
+- **Detailed reporting:** Generates SBOM and vulnerability reports with severity breakdowns
+
+## What's Included
+
+### Workflow Structure
+
+```
+.github/
+├── workflows/
+│   └── security-image-cve-scan.yml  # Main scanning workflow
+├── scripts/
+│   └── extract-images.sh            # Image extraction script
+└── security/
+    └── additional-images.yaml       # Extra images to scan
+```
+
+### Scanning Process
+
+<Steps>
+  <Step title="Extract images">
+    Collects container images from rendered Kubernetes manifests for the target environment, plus any additional images from configuration.
+  </Step>
+  <Step title="Generate SBOM">
+    Creates a Software Bill of Materials (SBOM) for each image using [Syft](https://github.com/anchore/syft).
+  </Step>
+  <Step title="Scan for vulnerabilities">
+    Analyzes each SBOM with [Grype](https://github.com/anchore/grype) to identify known CVEs.
+  </Step>
+  <Step title="Aggregate report">
+    Consolidates results into a summary report with vulnerability counts by severity.
+  </Step>
+</Steps>
+
+### Image Discovery
+
+Images are extracted from multiple sources:
+
+1. **Kubernetes manifests:** Parses `image:` and `imageName:` fields from `kubernetes/rendered/<environment>/`
+2. **Additional images file:** Manual list in `.github/security/additional-images.yaml` for images not in manifests (e.g., operator-pulled images, sidecar injectors)
+3. **Workflow input:** Ad-hoc images passed via workflow dispatch
+
+```yaml
+# .github/security/additional-images.yaml
+images:
+  # Example entries for images not in standard manifests:
+  # - docker.io/library/postgres:15-alpine
+  # - gcr.io/istio-release/proxyv2:1.20.0
+```
+
+### Vulnerability Scanning
+
+Each image is scanned in a separate parallel job using GitHub Actions matrix strategy, enabling fast scans even with many images. The workflow uses the Anchore toolchain:
+
+| Tool | Purpose |
+|------|---------|
+| [Syft](https://github.com/anchore/syft) | Generates CycloneDX SBOM from container images |
+| [Grype](https://github.com/anchore/grype) | Matches SBOM packages against CVE databases |
+
+The workflow handles both public images and private ECR images (via OIDC authentication).
+
+### Report Output
+
+The workflow generates a GitHub Actions job summary with:
+
+- **Severity breakdown:** Critical, High, Medium, Low, Negligible, Unknown counts
+- **Per-image results:** Table showing vulnerability counts for each scanned image
+- **Scan artifacts:** Full Grype JSON output and SBOMs retained for 30 days
+
+<Accordion title="Example scan report">
+
+#### 🔍 CVE Scan Report
+
+**Environment:** production  
+**Scan Date:** YYYY-MM-DD HH:MM:SS UTC
+
+#### Summary
+
+| Severity | Count |
+|----------|-------|
+| 🔴 Critical | 0 |
+| 🟠 High | 0 |
+| 🟡 Medium | 8 |
+| 🔵 Low | 12 |
+| ⚪ Negligible | 24 |
+| ❓ Unknown | 0 |
+
+**Successful scans:** 5  
+**Failed scans:** 0
+
+#### Results by Image
+
+| Image | Status | Critical | High | Medium | Low |
+|-------|--------|----------|------|--------|-----|
+| `ghcr.io/cloudnative-pg/postgresql:17.2` | ✅ | 0 | 0 | 4 | 5 |
+| `<ecr>/go-backend:0.2.1` | ✅ | 0 | 0 | 2 | 3 |
+| `<ecr>/go-backend/migrations:0.2.1` | ✅ | 0 | 0 | 2 | 3 |
+| `quay.io/argoproj/argocd:v2.13.3` | ✅ | 0 | 0 | 0 | 1 |
+| `docker.io/traefik:v3.6.5` | ✅ | 0 | 0 | 0 | 0 |
+
+</Accordion>
+
+## Usage
+
+The workflow runs daily at 5 AM UTC (midnight EST) against production images. It can also be triggered manually via `workflow_dispatch` to scan a specific environment (`production`, `staging`, or `none`) or ad-hoc images.
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Daily scheduled scans** | Catch newly disclosed CVEs in existing images |
+| **Extract from rendered manifests** | Scan exactly what's deployed, not source templates |
+| **Parallel per-image jobs** | Fast scanning with isolated failures |
+| **SBOM generation** | Enables offline analysis and compliance reporting |
+| **Fail-fast disabled** | Complete scan of all images even if some fail |
+
+## Additional Configurability
+
+### Custom Severity Thresholds
+
+To fail the workflow on critical vulnerabilities, modify the `report` job:
+
+```yaml
+- name: Fail on critical vulnerabilities
+  if: steps.report.outputs.total_critical != '0'
+  run: |
+    echo "::error::Found ${{ steps.report.outputs.total_critical }} critical vulnerabilities"
+    exit 1
+```
+
+### Slack/Email Notifications
+
+Add a notification step after the report job to alert on scan results.
+
+### Vulnerability Suppression
+
+Use Grype's [ignore rules](https://github.com/anchore/grype#specifying-matches-to-ignore) for false positives or accepted risks.

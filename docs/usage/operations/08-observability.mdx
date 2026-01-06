@@ -1,0 +1,322 @@
+---
+title: 'Observability'
+description: 'Access logs, traces, and metrics with SigNoz and OpenTelemetry'
+icon: 'chart-line'
+---
+
+## Overview
+
+The kit uses [SigNoz](https://signoz.io/) for observability, with [OpenTelemetry](https://opentelemetry.io/) for instrumentation. The `signoz-k8s-infra` component deploys collectors that ship telemetry data to SigNoz Cloud.
+
+## Architecture
+
+```
+┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
+│   Application     │     │   OTel Collector  │     │   SigNoz Cloud    │
+│   (instrumented)  │────>│   (DaemonSet)     │────>│                   │
+└───────────────────┘     └───────────────────┘     └───────────────────┘
+                                   ▲
+┌───────────────────┐              │
+│   Kubernetes      │              │
+│   Metrics/Logs    │──────────────┘
+└───────────────────┘
+```
+
+## SigNoz Setup
+
+<Steps>
+  <Step title="Create a SigNoz Cloud account">
+    Sign up at [signoz.io/teams](https://signoz.io/teams/) and create a new project.
+  </Step>
+
+  <Step title="Get your ingestion key">
+    In SigNoz Cloud:
+    1. Go to **Settings → Ingestion Settings**
+    2. Copy the **Ingestion Key**
+    3. Note the **Region** (us or eu)
+  </Step>
+
+  <Step title="Store the key in AWS Secrets Manager">
+    The secret name follows the pattern `{prefix}-{region}-{env}-eks-signoz-apikey`. For example:
+
+    ```bash
+    export REGION="us-east-2"  # Your AWS region
+
+    aws secretsmanager create-secret \
+      --name "ksk-use2-staging-eks-signoz-apikey" \
+      --secret-string '{"signoz-apikey": "your-ingestion-key"}' \
+      --region ${REGION}
+    ```
+
+    Note the JSON format - the key name `signoz-apikey` must match the `apiKeyExistingSecretKey` value.
+  </Step>
+
+  <Step title="Configure signoz-k8s-infra">
+    The chart uses an umbrella wrapper around the upstream `k8s-infra` chart.
+
+    Edit `kubernetes/src/infrastructure/signoz-k8s-infra/values.yaml` (base configuration):
+
+    ```yaml
+    chartVersions:
+      k8s-infra: "0.15.0"
+
+    k8s-infra:
+      global:
+        cloud: aws
+      otelCollectorEndpoint: ingest.us.signoz.cloud:443
+      otelInsecure: false
+      apiKeyExistingSecretName: signoz-apikey
+      apiKeyExistingSecretKey: signoz-apikey
+      presets:
+        otlpExporter:
+          enabled: true
+        logsCollection:
+          enabled: true
+    ```
+
+    Then configure environment-specific values in `values.staging.yaml`:
+
+    ```yaml
+    signozApiKeyAwsSecret: ksk-use2-staging-eks-signoz-apikey
+    k8s-infra:
+      global:
+        clusterName: ksk-use2-staging-eks
+        deploymentEnvironment: staging
+    ```
+  </Step>
+
+  <Step title="Review the ExternalSecret template">
+    The ExternalSecret is already templated at `kubernetes/src/infrastructure/signoz-k8s-infra/templates/ExternalSecret.signoz-apikey.yaml`:
+
+    ```yaml
+    apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: signoz-apikey
+      namespace: {{.Release.Namespace}}
+    spec:
+      refreshInterval: 1h0m0s
+      secretStoreRef:
+        name: aws-secrets-manager
+        kind: ClusterSecretStore
+      target:
+        name: signoz-apikey
+      dataFrom:
+        - extract:
+            key: {{.Values.signozApiKeyAwsSecret}}
+    ```
+
+    This extracts the secret from AWS Secrets Manager using the path defined in `signozApiKeyAwsSecret`.
+  </Step>
+</Steps>
+
+## Instrument Your Application
+
+### Go Applications
+
+The kit's `go-backend` example includes OpenTelemetry instrumentation:
+
+```go
+import (
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+    "go.opentelemetry.io/otel/sdk/trace"
+)
+
+func initTracer() (*trace.TracerProvider, error) {
+    exporter, err := otlptracegrpc.New(ctx,
+        otlptracegrpc.WithEndpoint("k8s-infra-otel-agent.signoz.svc:4317"),
+        otlptracegrpc.WithInsecure(),
+    )
+    if err != nil {
+        return nil, err
+    }
+
+    tp := trace.NewTracerProvider(
+        trace.WithBatcher(exporter),
+        trace.WithResource(resource.NewWithAttributes(
+            semconv.ServiceNameKey.String("go-backend"),
+        )),
+    )
+    otel.SetTracerProvider(tp)
+    return tp, nil
+}
+```
+
+### Environment Variables
+
+Configure the OTel SDK via environment variables in your Deployment:
+
+```yaml
+env:
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "http://k8s-infra-otel-agent.signoz.svc:4317"
+  - name: OTEL_SERVICE_NAME
+    value: "myapp"
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: "service.namespace=myapp,deployment.environment=staging"
+```
+
+## View Telemetry in SigNoz
+
+### Traces
+
+1. Open SigNoz Cloud dashboard
+2. Navigate to **Traces**
+3. Filter by service name or trace ID
+4. Click a trace to see the waterfall view
+
+### Metrics
+
+1. Navigate to **Dashboards**
+2. Create custom dashboards or use built-in templates
+3. Query metrics using PromQL syntax
+
+### Logs
+
+1. Navigate to **Logs**
+2. Filter by service, severity, or search text
+3. Click a log line to see structured fields
+
+## Kubernetes Metrics
+
+The signoz-k8s-infra collector automatically gathers:
+
+- Node metrics (CPU, memory, disk)
+- Pod metrics (resource usage, restarts)
+- Container metrics
+- Kubernetes events
+
+View in SigNoz under **Infrastructure → Kubernetes**.
+
+## Custom Metrics
+
+Instrument your application with custom metrics:
+
+```go
+import (
+    "go.opentelemetry.io/otel/metric"
+)
+
+var (
+    requestCounter metric.Int64Counter
+    requestLatency metric.Float64Histogram
+)
+
+func initMetrics(mp metric.MeterProvider) {
+    meter := mp.Meter("myapp")
+    
+    requestCounter, _ = meter.Int64Counter("myapp.requests.total",
+        metric.WithDescription("Total number of requests"),
+    )
+    
+    requestLatency, _ = meter.Float64Histogram("myapp.request.duration",
+        metric.WithDescription("Request duration in milliseconds"),
+        metric.WithUnit("ms"),
+    )
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+    start := time.Now()
+    defer func() {
+        requestCounter.Add(r.Context(), 1)
+        requestLatency.Record(r.Context(), float64(time.Since(start).Milliseconds()))
+    }()
+    // ... handle request
+}
+```
+
+## Alerts
+
+Configure alerts in SigNoz Cloud:
+
+<Steps>
+  <Step title="Create an alert rule">
+    1. Go to **Alerts → New Alert**
+    2. Define the condition (e.g., error rate > 5%)
+    3. Set severity and notification channels
+  </Step>
+
+  <Step title="Configure notification channels">
+    Supported channels:
+    - Slack
+    - PagerDuty
+    - Email
+    - Webhooks
+  </Step>
+</Steps>
+
+## Local Development
+
+For local development with Tilt, signoz-k8s-infra is not deployed by default. You can:
+
+1. **Skip observability locally** - Traces go nowhere, which is fine for development
+
+2. **Run SigNoz locally** (optional):
+   ```bash
+   docker run -d --name signoz \
+     -p 3301:3301 -p 4317:4317 \
+     signoz/signoz:latest
+   ```
+
+3. **Configure the collector endpoint**:
+   ```yaml
+   # values.local.yaml
+   otelCollectorEndpoint: host.docker.internal:4317
+   ```
+
+## Troubleshooting
+
+### No traces appearing in SigNoz
+
+1. Verify the collector is running:
+   ```bash
+   kubectl get pods -n signoz
+   ```
+
+2. Check collector logs:
+   ```bash
+   kubectl logs -n signoz -l app.kubernetes.io/name=otel-collector
+   ```
+
+3. Verify the ingestion key secret exists:
+   ```bash
+   kubectl get secret signoz-apikey -n signoz -o yaml
+   ```
+
+4. Check application OTel configuration:
+   ```bash
+   kubectl logs -n myapp deployment/myapp | grep -i otel
+   ```
+
+### High cardinality warnings
+
+If you see cardinality warnings:
+
+1. Review your metric labels/attributes
+2. Avoid high-cardinality values (user IDs, request IDs)
+3. Use buckets for continuous values
+
+### Missing Kubernetes metrics
+
+1. Verify the kube-state-metrics pod is running
+2. Check RBAC permissions for the collector service account
+3. Review collector configuration for kubelet access
+
+## Switching Observability Providers
+
+The kit is designed to work with any OpenTelemetry-compatible backend. To switch from SigNoz:
+
+1. **Disable signoz-k8s-infra** in `kubernetes/src/argocd/infrastructure/values.yaml`
+
+2. **Add your provider's collector** (e.g., Datadog, Grafana Cloud)
+
+3. **Update application OTLP endpoints** to point to the new collector
+
+## Best Practices
+
+1. **Use semantic conventions** - Follow OpenTelemetry naming standards
+2. **Set service.name** - Always identify your service in traces
+3. **Add context** - Include request IDs, user IDs (hashed) in spans
+4. **Sample appropriately** - Use head-based sampling for high-volume services
+5. **Alert on SLOs** - Focus alerts on user-impacting metrics

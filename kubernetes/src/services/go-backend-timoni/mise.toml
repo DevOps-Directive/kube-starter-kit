@@ -1,0 +1,23 @@
+[env]
+OUTPUT_PATH = "services/go-backend-timoni"
+
+[tasks.render-cluster]
+description = "Render manifests for specified cluster"
+usage = '''
+arg "<cluster>" help="Target cluster" {
+  choices "staging" "production"
+}
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+export OUTPUT_DIR="${PWD}/../../../rendered/${usage_cluster}/${OUTPUT_PATH}"
+
+mise run //tools:render:prep-output-dir "${OUTPUT_DIR}"
+
+timoni build go-backend . -n go-backend-timoni \
+  --values values.yaml \
+  --values values.${usage_cluster}.yaml \
+  | mise run //tools:render:split-k8s-docs ${OUTPUT_DIR}
+"""

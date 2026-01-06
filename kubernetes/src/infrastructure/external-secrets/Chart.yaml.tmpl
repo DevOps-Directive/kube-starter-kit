@@ -1,0 +1,10 @@
+apiVersion: v2
+name: external-secrets-wrapper
+description: Umbrella chart that installs external-dns plus extra resources
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: external-secrets
+    repository: "https://charts.external-secrets.io"
+    version: REPLACED_BY_CHARTVERSIONS

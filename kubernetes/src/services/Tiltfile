@@ -1,0 +1,5 @@
+include('./go-backend/Tiltfile')
+
+include('./go-backend-helm/Tiltfile')
+
+include('./go-backend-timoni/Tiltfile')

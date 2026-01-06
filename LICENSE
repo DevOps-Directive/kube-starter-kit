@@ -1,0 +1,47 @@
+# Kube Starter Kit License
+
+Copyright 2025 Sid Palas (https://devopsdirective.com)
+
+## The Short Version
+
+This is a **source-available** project, not open source.
+
+- **Learning and reference?** Go for it.
+- **Using it to run your business?** Please purchase a license.
+
+I'm one person building and maintaining this. This license is not meant to be tricky or a gotcha. Use your common sense. If it feels like you're using the kit to add significant value to your company/organization, you should consider buying a license.
+
+---
+
+## What You Can Do (Without Paying)
+
+- Read the code to learn patterns and approaches
+- Reference the architecture for inspiration
+- Use it for personal projects, experimentation, or education
+
+## What Requires a Paid License
+
+- Using the kit (or substantial portions of it) to build or run infrastructure for a commercial organization
+- Copying significant parts of the code into your own commercial projects
+
+"Commercial organization" = any company, startup, or entity that generates revenue or is funded to do so. If you're getting paid to do your work, your employer should pay for the tools that make it possible.
+
+## What's Not Allowed (Even With a Paid License)
+
+- Reselling or redistributing the kit
+- Sharing access outside your organization  
+- Building a competing product or service
+
+---
+
+## No Warranty
+
+This software is provided as-is. I'm not liable for any damages from using it.
+
+---
+
+## Questions?
+
+Not sure if you need a license? Just ask: sid@devopsdirective.com
+
+I'm reasonable. If you're a tiny bootstrapped startup or have an unusual situation, reach out and we'll figure it out.

@@ -1,0 +1,385 @@
+---
+title: 'Database Operations'
+description: 'Manage CloudNativePG clusters and Atlas migrations'
+icon: 'database'
+---
+
+## Overview
+
+The kit uses two components for database management:
+
+- **[CloudNativePG](https://cloudnative-pg.io/)** - PostgreSQL operator for running databases in Kubernetes
+- **[Atlas](https://atlasgo.io/)** - Schema migration tool that runs as a Kubernetes Job with Argo CD sync wave ordering
+
+<Note>
+After Planetscale releases their [updated terraform provider](https://planetscale.com/changelog/terraform-provider-v1) (Jan 2026)
+
+I plan to replace CloudNativePG with that as the recommended approach for hosting application databases.
+</Note>
+
+## Architecture
+
+```
+┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
+│   Application     │     │   Migration Job   │     │   CloudNativePG   │
+│   Deployment      │     │   (sync-wave: -1) │     │   Cluster         │
+└───────────────────┘     └───────────────────┘     └───────────────────┘
+         │                         │                         │
+         │                         ▼                         │
+         │                 ┌───────────────┐                 │
+         └────────────────>│   PostgreSQL  │<────────────────┘
+                           │   Primary     │
+                           └───────────────┘
+                                  │
+                           ┌──────┴──────┐
+                           │             │
+                    ┌──────▼────┐ ┌──────▼────┐
+                    │  Replica  │ │  Replica  │
+                    └───────────┘ └───────────┘
+```
+
+Argo CD sync waves ensure the migration Job completes before the application Deployment starts. The migration Job uses `sync-wave: -1` (or lower) to run first.
+
+## CloudNativePG Clusters
+
+### View Existing Clusters
+
+```bash
+# List all PostgreSQL clusters
+kubectl get clusters -A
+
+# Get cluster details
+kubectl describe cluster go-backend-cluster -n go-backend
+```
+
+### Create a New Cluster
+
+Add a Cluster resource to your service's Kubernetes manifests:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: myapp-cluster
+  namespace: myapp
+spec:
+  instances: 3
+  
+  storage:
+    size: 10Gi
+    storageClass: ebs-gp3-encrypted
+  
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "256MB"
+  
+  bootstrap:
+    initdb:
+      database: myapp
+      owner: myapp
+```
+
+### Access the Database
+
+```bash
+# Get the connection password
+kubectl get secret myapp-cluster-app -n myapp -o jsonpath='{.data.password}' | base64 -d
+
+# Port-forward to the primary
+kubectl port-forward svc/myapp-cluster-rw -n myapp 5432:5432
+
+# Connect with psql
+PGPASSWORD=$(kubectl get secret myapp-cluster-app -n myapp -o jsonpath='{.data.password}' | base64 -d) \
+  psql -h localhost -U myapp -d myapp
+```
+
+### Connection Strings
+
+CloudNativePG creates services for different access patterns:
+
+| Service | Purpose |
+|---------|---------|
+| `myapp-cluster-rw` | Read-write (primary only) |
+| `myapp-cluster-ro` | Read-only (replicas) |
+| `myapp-cluster-r` | Any instance |
+
+Connection string format:
+```
+postgres://myapp:<password>@myapp-cluster-rw.myapp.svc:5432/myapp
+```
+
+## Atlas Migrations
+
+### Migration File Structure
+
+Migrations live in `services/{service}/migrations/`:
+
+```
+services/go-backend/
+├── migrations/
+│   ├── 20251022011957_initial.sql
+│   ├── 20251022013319_add_id2.sql
+│   └── ...
+└── atlas.hcl
+```
+
+### Create a New Migration
+
+<Steps>
+  <Step title="Write the migration SQL">
+    Create a new file with timestamp prefix:
+
+    ```bash
+    # Generate timestamp
+    TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    
+    # Create migration file
+    touch services/go-backend/migrations/${TIMESTAMP}_add_email_column.sql
+    ```
+
+    Write your migration:
+    ```sql
+    -- Add email column to users table
+    ALTER TABLE "users" ADD COLUMN "email" character varying;
+    CREATE INDEX "users_email_idx" ON "users" ("email");
+    ```
+  </Step>
+
+  <Step title="Test locally">
+    Run the migration against your local database:
+
+    ```bash
+    cd services/go-backend
+
+    # Start local postgres
+    mise run run-postgres
+
+    # Apply migrations
+    atlas migrate apply --env local
+    ```
+  </Step>
+
+  <Step title="Commit and deploy">
+    ```bash
+    git add services/go-backend/migrations/
+    git commit -m "feat: add email column to users"
+    git push origin main
+    ```
+
+    The migration Job runs automatically before the application starts, ordered via Argo CD sync waves.
+  </Step>
+</Steps>
+
+### Migration Job
+
+Migrations run as a Kubernetes Job before the application starts. Argo CD sync waves ensure proper ordering:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: myapp-migrations
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # Run before Deployment (wave 0)
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: arigaio/atlas:latest
+          command: ["atlas", "migrate", "apply", "--env", "kubernetes"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-cluster-app
+                  key: uri
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      volumes:
+        - name: migrations
+          configMap:
+            name: myapp-migrations
+```
+
+### Atlas Configuration
+
+Configure Atlas in `atlas.hcl`:
+
+```hcl
+env "local" {
+  url = "postgres://postgres:password@localhost:5432/myapp?sslmode=disable"
+  migration {
+    dir = "file://migrations"
+  }
+}
+
+env "kubernetes" {
+  url = getenv("DATABASE_URL")
+  migration {
+    dir = "file:///migrations"
+  }
+}
+```
+
+## Common Operations
+
+### View Migration Status
+
+```bash
+# Check migration job status
+kubectl get jobs -n myapp
+
+# View migration logs
+kubectl logs job/myapp-migrations -n myapp
+```
+
+### Rollback a Migration
+
+Atlas doesn't support automatic rollbacks. To rollback:
+
+1. Create a new "down" migration that reverses the changes
+2. Deploy the rollback migration
+
+```sql
+-- 20251023120000_rollback_email_column.sql
+DROP INDEX IF EXISTS "users_email_idx";
+ALTER TABLE "users" DROP COLUMN IF EXISTS "email";
+```
+
+### Backup and Restore
+
+CloudNativePG supports continuous backup to S3:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: myapp-cluster
+spec:
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://myapp-backups/
+      s3Credentials:
+        accessKeyId:
+          name: aws-creds
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: aws-creds
+          key: SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+    retentionPolicy: "30d"
+```
+
+Trigger a backup:
+```bash
+kubectl apply -f - <<EOF
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: myapp-backup-$(date +%Y%m%d)
+  namespace: myapp
+spec:
+  cluster:
+    name: myapp-cluster
+EOF
+```
+
+### Scale Replicas
+
+```bash
+# Scale to 3 replicas
+kubectl patch cluster myapp-cluster -n myapp --type merge -p '{"spec":{"instances":3}}'
+
+# Or edit the Cluster resource directly
+kubectl edit cluster myapp-cluster -n myapp
+```
+
+### Failover
+
+CloudNativePG automatically handles failover. To manually promote a replica:
+
+```bash
+# List instances
+kubectl get pods -n myapp -l cnpg.io/cluster=myapp-cluster
+
+# Trigger failover to a specific pod
+kubectl cnpg promote myapp-cluster myapp-cluster-2 -n myapp
+```
+
+## Troubleshooting
+
+### Migration job fails
+
+1. Check job logs:
+   ```bash
+   kubectl logs job/myapp-migrations -n myapp
+   ```
+
+2. Common issues:
+   - Database not ready (cluster still initializing)
+   - Invalid SQL syntax
+   - Missing permissions
+
+3. Retry the migration:
+   ```bash
+   kubectl delete job myapp-migrations -n myapp
+   # Redeploy to trigger a new migration job
+   ```
+
+### Database connection refused
+
+1. Check cluster status:
+   ```bash
+   kubectl get cluster myapp-cluster -n myapp
+   ```
+
+2. Verify the service exists:
+   ```bash
+   kubectl get svc -n myapp | grep myapp-cluster
+   ```
+
+3. Check pod readiness:
+   ```bash
+   kubectl get pods -n myapp -l cnpg.io/cluster=myapp-cluster
+   ```
+
+### Cluster stuck in "Setting up primary"
+
+1. Check operator logs:
+   ```bash
+   kubectl logs -n cnpg-system -l app.kubernetes.io/name=cloudnative-pg
+   ```
+
+2. Verify storage class exists:
+   ```bash
+   kubectl get storageclass ebs-gp3-encrypted
+   ```
+
+3. Check PVC status:
+   ```bash
+   kubectl get pvc -n myapp
+   ```
+
+### High latency queries
+
+1. Check connection pooling (consider PgBouncer)
+2. Review slow query logs:
+   ```bash
+   kubectl logs myapp-cluster-1 -n myapp | grep -i slow
+   ```
+3. Add indexes via a new migration
+
+## Best Practices
+
+1. **Always test migrations locally** before deploying
+2. **Make migrations idempotent** when possible (`IF NOT EXISTS`, `IF EXISTS`)
+3. **Avoid breaking changes** - add columns as nullable, then backfill
+4. **Use transactions** for multi-statement migrations
+5. **Back up before major changes** in production
+6. **Monitor replication lag** with CloudNativePG metrics

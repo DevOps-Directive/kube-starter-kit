@@ -1,0 +1,1 @@
+# kube-starter-kit eks module

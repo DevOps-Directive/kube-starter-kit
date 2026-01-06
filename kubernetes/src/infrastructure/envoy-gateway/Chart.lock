@@ -1,0 +1,9 @@
+dependencies:
+- name: gateway-helm
+  repository: oci://docker.io/envoyproxy
+  version: 1.6.0
+- name: gateway-crds-helm
+  repository: oci://docker.io/envoyproxy
+  version: 1.6.0
+digest: sha256:bca90870c3e85cab4ec76f490fc2a8fc0fc1f6a5a60aaf6c0845b6dbb2a6a6b3
+generated: "2025-11-26T14:00:27.663889-05:00"

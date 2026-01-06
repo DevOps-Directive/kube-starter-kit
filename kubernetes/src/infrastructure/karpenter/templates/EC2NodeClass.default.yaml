@@ -1,0 +1,17 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  role: {{ .Values.nodeRoleName | quote }}
+
+  amiSelectorTerms:
+{{- toYaml .Values.amiSelectorTerms | nindent 4 }}
+
+  subnetSelectorTerms:
+{{- toYaml .Values.subnetSelectorTerms | nindent 4 }}
+
+  securityGroupSelectorTerms:
+{{- toYaml .Values.securityGroupSelectorTerms | nindent 4 }}

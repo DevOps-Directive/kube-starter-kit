@@ -1,0 +1,14 @@
+# Generated variables for inline stack
+# These inject Terramate globals as Terraform variables
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = global.aws_region
+}
+
+variable "repository_read_access_arns" {
+  description = "ARNs that have read access to ECR repositories"
+  type        = list(string)
+  default     = global.ecr.repository_read_access_arns
+}

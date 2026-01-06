@@ -1,0 +1,7 @@
+# Chart dependency versions (default, can be overridden per environment)
+chartVersions:
+  reloader: "2.2.3"
+
+reloader:
+  reloader:
+    reloadStrategy: annotations

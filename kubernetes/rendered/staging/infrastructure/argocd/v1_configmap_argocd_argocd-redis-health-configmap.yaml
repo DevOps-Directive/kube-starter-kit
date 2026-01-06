@@ -1,0 +1,41 @@
+# Source: argocd-wrapper/charts/argocd/templates/redis/health-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-redis-health-configmap
+  namespace: argocd
+  labels:
+    helm.sh/chart: argocd-7.7.16
+    app.kubernetes.io/name: argocd-redis
+    app.kubernetes.io/instance: argocd
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: v2.13.3
+data:
+  redis_liveness.sh: |
+    response=$(
+      redis-cli \
+        -a "${REDIS_PASSWORD}" --no-auth-warning \
+        -h localhost \
+        -p 6379 \
+        ping
+    )
+    if [ "$response" != "PONG" ] && [ "${response:0:7}" != "LOADING" ] ; then
+      echo "$response"
+      exit 1
+    fi
+    echo "response=$response"
+  redis_readiness.sh: |
+    response=$(
+      redis-cli \
+        -a "${REDIS_PASSWORD}" --no-auth-warning \
+        -h localhost \
+        -p 6379 \
+        ping
+    )
+    if [ "$response" != "PONG" ] ; then
+      echo "$response"
+      exit 1
+    fi
+    echo "response=$response"
