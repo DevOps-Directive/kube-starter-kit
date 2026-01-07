@@ -1,0 +1,17 @@
+# Source: minimal/templates/Gateway.traefik.yaml
+# Gateway API example using Traefik as the gateway controller
+# Requires:
+#   - Gateway API CRDs installed (kubernetes/src/infrastructure/gateway-api-crds/)
+#   - Traefik with Gateway API support enabled
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: traefik
+  namespace: go-backend-helm
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - hostname: gateway-traefik-helm.staging.kubestarterkit.com
+      name: http
+      port: 80
+      protocol: HTTP
