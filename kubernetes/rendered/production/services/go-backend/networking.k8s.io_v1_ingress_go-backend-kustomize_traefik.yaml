@@ -10,6 +10,16 @@ spec:
   ingressClassName: traefik
   rules:
     - host: ingress-traefik-kustomize.production.kubestarterkit.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: go-backend
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix
   tls:
     - hosts:
         - ingress-traefik-kustomize.production.kubestarterkit.com
+      secretName: ingress-traefik-kustomize-tls

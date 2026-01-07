@@ -8,5 +8,15 @@ spec:
   tls:
     - hosts:
         - ingress-traefik-kustomize.production.kubestarterkit.com
+      secretName: ingress-traefik-kustomize-tls
   rules:
     - host: "ingress-traefik-kustomize.production.kubestarterkit.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: go-backend
+                port:
+                  number: 8080
