@@ -10,10 +10,10 @@ metadata:
   name: traefik
   namespace: go-backend-helm
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-helm.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-helm.production.kubestarterkit.com
 spec:
   hostnames:
-    - gateway-traefik-helm.staging.kubestarterkit.com
+    - gateway-traefik-helm.production.kubestarterkit.com
   parentRefs:
     - name: traefik-gateway
       namespace: traefik

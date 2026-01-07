@@ -1,0 +1,17 @@
+# Source: karpenter-wrapper/templates/EC2NodeClass.default.yaml
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  role: ksk-use2-production-eks-KarpenterNodeRole
+  amiSelectorTerms:
+    - alias: al2023@v20250920
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: ksk-use2-production-network
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: ksk-use2-production-eks

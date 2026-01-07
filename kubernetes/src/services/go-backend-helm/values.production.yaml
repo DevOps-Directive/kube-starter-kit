@@ -1,0 +1,14 @@
+db:
+  # TODO: make cnpg optional
+  image: ghcr.io/cloudnative-pg/postgresql:17.7-minimal-trixie
+  storageClass: ebs-gp3-encrypted
+replicas: 2
+image:
+  version: 0.3.0 # production_services/go-backend
+ingress:
+  traefik:
+    hostname: go-backend-helm-traefik.production.kubestarterkit.com
+    clusterIssuer: letsencrypt-prod-dns
+gateway:
+  traefik:
+    hostname: gateway-traefik-helm.production.kubestarterkit.com

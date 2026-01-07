@@ -1,15 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
-    external-dns.alpha.kubernetes.io/hostname: ingress-traefik-kustomize.production.kubestarterkit.com
   name: traefik
-  namespace: go-backend-kustomize
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: ingress-traefik-kustomize.production.kubestarterkit.com
 spec:
-  ingressClassName: traefik
-  rules:
-    - host: ingress-traefik-kustomize.production.kubestarterkit.com
   tls:
     - hosts:
         - ingress-traefik-kustomize.production.kubestarterkit.com
+  rules:
+    - host: "ingress-traefik-kustomize.production.kubestarterkit.com"

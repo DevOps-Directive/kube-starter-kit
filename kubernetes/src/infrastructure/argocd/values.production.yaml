@@ -2,6 +2,8 @@
 # chartVersions:
 #   argo-cd: ""
 
+environment: production
+
 ingress:
   hostname: argocd.production.kubestarterkit.com
 

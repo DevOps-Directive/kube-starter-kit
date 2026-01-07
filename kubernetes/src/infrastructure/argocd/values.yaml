@@ -2,6 +2,9 @@
 chartVersions:
   argo-cd: "9.2.3"
 
+# Environment name (used for AWS secret keys)
+environment: "" # Override per environment (staging, production)
+
 # Custom ingress configuration (used by templates/Ingress.argocd-server.yaml)
 ingress:
   hostname: "" # Override per environment

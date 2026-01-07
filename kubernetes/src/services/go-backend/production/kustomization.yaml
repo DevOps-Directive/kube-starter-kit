@@ -4,3 +4,5 @@ resources:
 patches:
   - path: Cluster.go-backend.yaml
   - path: Deployment.go-backend.yaml
+  - path: Ingress.traefik.yaml
+  - path: HTTPRoute.traefik.yaml

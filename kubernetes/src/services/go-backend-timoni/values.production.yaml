@@ -2,3 +2,6 @@ values:
   ingress:
     traefik:
       hostname: "ingress-traefik-timoni.production.kubestarterkit.com"
+  gateway:
+    traefik:
+      hostname: "gateway-traefik-timoni.production.kubestarterkit.com"

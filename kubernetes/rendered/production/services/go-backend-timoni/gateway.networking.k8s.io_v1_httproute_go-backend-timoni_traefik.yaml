@@ -2,7 +2,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-timoni.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-timoni.production.kubestarterkit.com
   labels:
     app.kubernetes.io/managed-by: timoni
     app.kubernetes.io/name: go-backend
@@ -11,7 +11,7 @@ metadata:
   namespace: go-backend-timoni
 spec:
   hostnames:
-    - gateway-traefik-timoni.staging.kubestarterkit.com
+    - gateway-traefik-timoni.production.kubestarterkit.com
   parentRefs:
     - name: traefik-gateway
       namespace: traefik

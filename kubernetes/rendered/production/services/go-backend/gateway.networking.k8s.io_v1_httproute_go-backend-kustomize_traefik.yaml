@@ -2,12 +2,12 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-kustomize.staging.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-kustomize.production.kubestarterkit.com
   name: traefik
   namespace: go-backend-kustomize
 spec:
   hostnames:
-    - gateway-traefik-kustomize.staging.kubestarterkit.com
+    - gateway-traefik-kustomize.production.kubestarterkit.com
   parentRefs:
     - name: traefik-gateway
       namespace: traefik

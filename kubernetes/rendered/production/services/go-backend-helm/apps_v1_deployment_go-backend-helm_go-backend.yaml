@@ -5,7 +5,7 @@ metadata:
   name: go-backend
   namespace: go-backend-helm
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: go-backend
@@ -29,7 +29,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:04e0d06-0000-g04e0d06
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:0.3.0
           ports:
             - containerPort: 8080
               protocol: TCP

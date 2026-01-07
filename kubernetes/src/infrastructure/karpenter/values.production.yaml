@@ -1,3 +1,28 @@
 # Chart dependency versions for production
 chartVersions:
   karpenter: "1.7.1"
+
+nodeRoleName: "ksk-use2-production-eks-KarpenterNodeRole"
+
+amiSelectorTerms:
+  # https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#2-set-environment-variables
+  # aws ssm get-parameter --name "/aws/service/eks/optimized-ami/1.33/amazon-linux-2023/x86_64/standard/recommended/image_id" --query Parameter.Value | xargs aws ec2 describe-images --query 'Images[0].Name' --image-ids | sed -r 's/^.*(v[[:digit:]]+).*$/\1/'
+  # OR
+  # aws ssm get-parameter --name "/aws/service/bottlerocket/aws-k8s-1.33/x86_64/latest/image_id" --region us-east-2 --query "Parameter.Value" --output text
+  - alias: "al2023@v20250920"
+
+subnetSelectorTerms:
+  - tags:
+      # Created by VPC TF module
+      karpenter.sh/discovery: "ksk-use2-production-network"
+
+securityGroupSelectorTerms:
+  - tags:
+      # Created by EKS TF module
+      karpenter.sh/discovery: "ksk-use2-production-eks"
+
+karpenter:
+  settings:
+    clusterName: "ksk-use2-production-eks"
+    clusterEndpoint: "https://PLACEHOLDER.gr7.us-east-2.eks.amazonaws.com"  # TODO: Update with actual production cluster endpoint
+    interruptionQueue: "Karpenter-ksk-use2-production-eks"
