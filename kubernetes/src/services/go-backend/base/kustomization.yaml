@@ -5,7 +5,7 @@ resources:
   - Cluster.go-backend.yaml
   - Deployment.go-backend.yaml
   - Gateway.minimal-envoy.yaml
-  - Gateway.traefik.yaml
+  - HTTPRoute.traefik.yaml
   - Ingress.traefik.yaml
   - Job.go-backend-migrator.yaml
   - Namespace.go-backend-kustomize.yaml

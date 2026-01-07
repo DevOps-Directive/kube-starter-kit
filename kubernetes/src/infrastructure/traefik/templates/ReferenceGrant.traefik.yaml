@@ -1,0 +1,23 @@
+# ReferenceGrant allows HTTPRoutes in other namespaces to reference the shared traefik-gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-httproutes-to-traefik-gateway
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: go-backend-kustomize
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: go-backend-helm
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: go-backend-timoni
+  to:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway

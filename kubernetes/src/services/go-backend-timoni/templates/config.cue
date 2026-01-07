@@ -152,6 +152,15 @@ import (
 		}
 	}
 
+	// Gateway API configuration (uses shared Traefik Gateway).
+	gateway: {
+		enabled: *true | bool
+		traefik: {
+			enabled:  *true | bool
+			hostname: *"gateway-traefik-timoni.staging.kubestarterkit.com" | string
+		}
+	}
+
 	// Test Job disabled by default.
 	test: {
 		enabled: *false | bool
@@ -176,6 +185,9 @@ import (
 		}
 		if config.ingress.enabled && config.ingress.istio.enabled {
 			ingressIstio: #IngressIstio & {#config: config}
+		}
+		if config.gateway.enabled && config.gateway.traefik.enabled {
+			httpRouteTraefik: #HTTPRouteTraefik & {#config: config}
 		}
 	}
 

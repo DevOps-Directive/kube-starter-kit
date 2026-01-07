@@ -1,4 +1,9 @@
-# Source: minimal/templates/Gateway.traefik.yaml
+# Source: minimal/templates/HTTPRoute.traefik.yaml
+# HTTPRoute using the shared Traefik Gateway
+# Requires:
+#   - Gateway API CRDs installed (kubernetes/src/infrastructure/gateway-api-crds/)
+#   - Traefik with Gateway API support enabled
+#   - ReferenceGrant in traefik namespace allowing cross-namespace references
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -10,7 +15,8 @@ spec:
   hostnames:
     - gateway-traefik-helm.staging.kubestarterkit.com
   parentRefs:
-    - name: traefik
+    - name: traefik-gateway
+      namespace: traefik
   rules:
     - backendRefs:
         - name: go-backend
