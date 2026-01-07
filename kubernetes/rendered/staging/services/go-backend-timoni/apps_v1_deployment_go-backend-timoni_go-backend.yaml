@@ -28,7 +28,7 @@ spec:
               value: signoz-k8s-infra-otel-agent.signoz:4317
             - name: OTEL_SERVICE_NAME
               value: go-backend-timoni
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:b4bbecd-0000-gb4bbecd
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:9d53d8e-0000-g9d53d8e
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3

@@ -1,0 +1,8 @@
+# Production-specific Traefik configuration
+traefik:
+  gateway:
+    listeners:
+      websecure:
+        hostname: "*.kubestarterkit.com"
+        certificateRefs:
+          - name: gateway-wildcard-production-tls

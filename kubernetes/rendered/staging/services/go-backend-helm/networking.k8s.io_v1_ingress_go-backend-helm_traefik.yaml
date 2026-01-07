@@ -6,8 +6,13 @@ metadata:
   namespace: go-backend-helm
   annotations:
     external-dns.alpha.kubernetes.io/hostname: go-backend-helm-traefik.staging.kubestarterkit.com
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - go-backend-helm-traefik.staging.kubestarterkit.com
+      secretName: go-backend-helm-traefik-staging-kubestarterkit-com-tls
   rules:
     - host: go-backend-helm-traefik.staging.kubestarterkit.com
       http:

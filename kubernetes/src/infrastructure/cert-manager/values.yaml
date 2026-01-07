@@ -5,3 +5,9 @@ chartVersions:
 cert-manager:
   crds:
     enabled: true
+  # Enable Gateway API support for automatic certificate creation from Gateway annotations
+  # https://cert-manager.io/docs/installation/configuring-components/
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true

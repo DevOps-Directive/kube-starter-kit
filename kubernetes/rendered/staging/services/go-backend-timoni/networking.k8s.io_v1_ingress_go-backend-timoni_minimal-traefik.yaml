@@ -2,6 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     external-dns.alpha.kubernetes.io/hostname: ingress-traefik-timoni.staging.kubestarterkit.com
   labels:
     app.kubernetes.io/managed-by: timoni
@@ -22,3 +23,7 @@ spec:
                   number: 8080
             path: /
             pathType: Prefix
+  tls:
+    - hosts:
+        - ingress-traefik-timoni.staging.kubestarterkit.com
+      secretName: ingress-traefik-timoni-staging-kubestarterkit-com-tls

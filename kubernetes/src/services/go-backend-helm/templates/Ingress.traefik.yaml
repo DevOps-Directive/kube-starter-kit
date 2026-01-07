@@ -5,8 +5,13 @@ metadata:
   namespace: {{.Release.Namespace}}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ .Values.ingress.traefik.hostname }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.traefik.clusterIssuer | default "letsencrypt-prod-dns" }}
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - {{ .Values.ingress.traefik.hostname }}
+      secretName: {{ .Values.ingress.traefik.tlsSecretName | default (printf "%s-tls" (replace "." "-" .Values.ingress.traefik.hostname)) }}
   rules:
     - host: {{ .Values.ingress.traefik.hostname | quote }}
       http:

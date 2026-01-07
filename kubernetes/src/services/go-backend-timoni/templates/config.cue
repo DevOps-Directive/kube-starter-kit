@@ -143,12 +143,16 @@ import (
 	ingress: {
 		enabled: *true | bool
 		traefik: {
-			enabled:  *true | bool
-			hostname: *"ingress-traefik-timoni.staging.kubestarterkit.com" | string
+			enabled:       *true | bool
+			hostname:      *"ingress-traefik-timoni.staging.kubestarterkit.com" | string
+			clusterIssuer: *"letsencrypt-prod-dns" | string
+			tlsSecretName: *"" | string // defaults to hostname with dots replaced by dashes + "-tls"
 		}
 		istio: {
-			enabled:  *false | bool
-			hostname: *"minimal-istio-timoni.staging.kubestarterkit.com" | string
+			enabled:       *false | bool
+			hostname:      *"minimal-istio-timoni.staging.kubestarterkit.com" | string
+			clusterIssuer: *"letsencrypt-prod-dns" | string
+			tlsSecretName: *"" | string
 		}
 	}
 

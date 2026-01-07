@@ -8,6 +8,8 @@ image:
 ingress:
   traefik:
     hostname: go-backend-helm-traefik.staging.kubestarterkit.com
+    clusterIssuer: letsencrypt-prod-dns
+    # tlsSecretName: optional, defaults to hostname with dots replaced by dashes + "-tls"
 gateway:
   traefik:
     hostname: gateway-traefik-helm.staging.kubestarterkit.com

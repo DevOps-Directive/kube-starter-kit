@@ -4,8 +4,13 @@ metadata:
   name: traefik
   annotations:
     external-dns.alpha.kubernetes.io/hostname: ingress-traefik-kustomize.staging.kubestarterkit.com
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - ingress-traefik-kustomize.staging.kubestarterkit.com
+      secretName: ingress-traefik-kustomize-tls
   rules:
     - host: "ingress-traefik-kustomize.staging.kubestarterkit.com"
       http:

@@ -1,0 +1,19 @@
+# Source: cert-manager-wrapper/charts/cert-manager/templates/controller-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+  labels:
+    app: cert-manager
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/instance: cert-manager
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: v1.19.1
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: cert-manager-v1.19.1
+data:
+  config.yaml: |
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    enableGatewayAPI: true
+    kind: ControllerConfiguration

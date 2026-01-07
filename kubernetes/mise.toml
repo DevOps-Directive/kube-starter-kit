@@ -1,1 +1,82 @@
 [tools]
+
+[tasks."argocd:login"]
+description = "Login to ArgoCD via SSO"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${ARGOCD_SERVER:=argocd.staging.kubestarterkit.com}"
+
+echo "Logging in to ArgoCD at $ARGOCD_SERVER..."
+argocd login "$ARGOCD_SERVER" --grpc-web --sso
+"""
+
+# Helper function to check ArgoCD authentication
+[tasks."argocd:check-auth"]
+description = "Check if authenticated to ArgoCD"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! argocd account get-user-info --grpc-web &>/dev/null; then
+  echo "Error: Not authenticated to ArgoCD. Run 'mise run argocd:login' first." >&2
+  exit 1
+fi
+
+# Display current context
+server=$(argocd context --grpc-web 2>/dev/null | grep '^\\*' | awk '{print $2}')
+user=$(argocd account get-user-info --grpc-web -o json 2>/dev/null | jq -r '.loggedIn as $l | if $l then .username else "unknown" end')
+echo "Authenticated to ArgoCD: $server (user: $user)"
+
+read -p "Continue? [y/N] " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  echo "Aborted."
+  exit 1
+fi
+"""
+
+# Disable auto-sync on all app-of-apps (useful during development/debugging)
+[tasks.disable-auto-sync]
+description = "Disable auto-sync on root, infrastructure, and services app-of-apps"
+depends = ["argocd:check-auth"]
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+apps=(
+  "argocd-app-of-apps"
+  "infrastructure-app-of-apps"
+  "services-app-of-apps"
+)
+
+for app in "${apps[@]}"; do
+  echo "Disabling auto-sync for $app..."
+  argocd app set "$app" --sync-policy none --grpc-web
+done
+
+echo "Auto-sync disabled for all app-of-apps"
+"""
+
+# Re-enable auto-sync on all app-of-apps
+[tasks.enable-auto-sync]
+description = "Re-enable auto-sync on root, infrastructure, and services app-of-apps"
+depends = ["argocd:check-auth"]
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+apps=(
+  "argocd-app-of-apps"
+  "infrastructure-app-of-apps"
+  "services-app-of-apps"
+)
+
+for app in "${apps[@]}"; do
+  echo "Enabling auto-sync for $app..."
+  argocd app set "$app" --sync-policy automated --auto-prune --grpc-web
+done
+
+echo "Auto-sync re-enabled for all app-of-apps"
+"""

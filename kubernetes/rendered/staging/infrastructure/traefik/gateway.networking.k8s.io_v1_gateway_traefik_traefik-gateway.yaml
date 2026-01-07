@@ -18,3 +18,14 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: websecure
+      port: 8443
+      protocol: HTTPS
+      hostname: '*.staging.kubestarterkit.com'
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: gateway-wildcard-staging-tls

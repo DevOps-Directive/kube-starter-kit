@@ -15,3 +15,15 @@ traefik:
         # Allow HTTPRoutes from any namespace (requires ReferenceGrant)
         namespacePolicy:
           from: All
+      # HTTPS listener with TLS termination
+      websecure:
+        port: 8443
+        protocol: HTTPS
+        # Wildcard hostname for staging environment (override per-environment)
+        hostname: "*.staging.kubestarterkit.com"
+        namespacePolicy:
+          from: All
+        # TLS configuration - cert-manager will create this secret
+        certificateRefs:
+          - name: gateway-wildcard-staging-tls
+        mode: Terminate

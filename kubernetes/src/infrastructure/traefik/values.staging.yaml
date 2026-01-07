@@ -1,0 +1,8 @@
+# Staging-specific Traefik configuration
+traefik:
+  gateway:
+    listeners:
+      websecure:
+        hostname: "*.staging.kubestarterkit.com"
+        certificateRefs:
+          - name: gateway-wildcard-staging-tls
