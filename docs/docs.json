@@ -105,7 +105,13 @@
     }
   },
   "contextual": {
-    "options": []
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity"
+    ]
   },
   "footer": {
     "socials": {
