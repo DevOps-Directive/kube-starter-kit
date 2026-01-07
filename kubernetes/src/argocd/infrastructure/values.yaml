@@ -16,8 +16,8 @@ applications:
     enabled: true
   external-secrets:
     enabled: true
-  istio:
-    enabled: false
+  gateway-api-crds:
+    enabled: true
   karpenter:
     enabled: true
   reloader:

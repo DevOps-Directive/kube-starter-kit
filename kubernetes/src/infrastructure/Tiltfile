@@ -76,6 +76,10 @@ local_resource('cloudnative-pg-wait',
 )
 ################ END CLOUDNATIVE-PG #################
 
+################ GATEWAY API CRDS #################
+k8s_yaml('./gateway-api-crds/resources/standard.yaml')
+################ END GATEWAY API CRDS #################
+
 ################ TRAEFIK #################
 local('export CHART_DIR="$PWD/traefik" && mise run //tools:render:inject-chart-versions && mise run //tools:render:helm-dep-build')
 k8s_yaml(
