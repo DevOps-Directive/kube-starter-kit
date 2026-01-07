@@ -1,14 +1,15 @@
+# Source: minimal/templates/Ingress.traefik.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: minimal-traefik
-  namespace: {{.Release.Namespace}}
+  name: traefik
+  namespace: go-backend-helm
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ .Values.ingress.traefik.hostname }}
+    external-dns.alpha.kubernetes.io/hostname: go-backend-helm-traefik.staging.kubestarterkit.com
 spec:
   ingressClassName: traefik
   rules:
-    - host: {{ .Values.ingress.traefik.hostname | quote }}
+    - host: go-backend-helm-traefik.staging.kubestarterkit.com
       http:
         paths:
           - path: /

@@ -1,0 +1,35 @@
+# Gateway API example using Traefik as the gateway controller
+# Requires:
+#   - Gateway API CRDs installed (kubernetes/src/infrastructure/gateway-api-crds/)
+#   - Traefik with Gateway API support enabled
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: traefik
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - hostname: gateway-traefik-kustomize.staging.kubestarterkit.com
+      name: http
+      port: 80
+      protocol: HTTP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: traefik
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: gateway-traefik-kustomize.staging.kubestarterkit.com
+spec:
+  hostnames:
+    - gateway-traefik-kustomize.staging.kubestarterkit.com
+  parentRefs:
+    - name: traefik
+  rules:
+    - backendRefs:
+        - name: go-backend
+          port: 8080
+      matches:
+        - path:
+            type: PathPrefix
+            value: /

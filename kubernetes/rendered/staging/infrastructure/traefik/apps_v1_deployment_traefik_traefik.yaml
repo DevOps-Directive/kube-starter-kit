@@ -102,6 +102,9 @@ spec:
             - --providers.kubernetesingress
             - --providers.kubernetesingress.allowEmptyServices=true
             - --providers.kubernetesingress.ingressendpoint.publishedservice=traefik/traefik
+            - --providers.kubernetesgateway
+            - --providers.kubernetesgateway.statusaddress.service.name=traefik
+            - --providers.kubernetesgateway.statusaddress.service.namespace=traefik
             - --entryPoints.websecure.http.tls=true
             - --log.level=INFO
           env:

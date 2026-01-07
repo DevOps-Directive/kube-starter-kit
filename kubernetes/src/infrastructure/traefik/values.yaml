@@ -1,3 +1,9 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
   traefik: "38.0.1"
+
+traefik:
+  # Enable Gateway API support
+  providers:
+    kubernetesGateway:
+      enabled: true

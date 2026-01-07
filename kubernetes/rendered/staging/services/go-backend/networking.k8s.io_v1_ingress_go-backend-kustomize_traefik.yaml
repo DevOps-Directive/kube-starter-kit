@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: ingress-traefik-kustomize.staging.kubestarterkit.com
-  name: minimal-traefik
+  name: traefik
   namespace: go-backend-kustomize
 spec:
   ingressClassName: traefik
