@@ -5,4 +5,4 @@ values:
     storageClass: ebs-gp3-encrypted
   replicas: 1
   image:
-    tag: 2d16721-0000-g2d16721 # staging_services/go-backend
+    tag: b4bbecd-0000-gb4bbecd # staging_services/go-backend

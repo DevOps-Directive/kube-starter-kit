@@ -4,7 +4,7 @@ db:
   storageClass: ebs-gp3-encrypted
 replicas: 1
 image:
-  version: 2d16721-0000-g2d16721 # staging_services/go-backend
+  version: b4bbecd-0000-gb4bbecd # staging_services/go-backend
 ingress:
   traefik:
     hostname: go-backend-helm-traefik.staging.kubestarterkit.com
