@@ -7,4 +7,4 @@ spec:
     spec:
       containers:
         - name: go-backend
-          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:addbaaa-0000-gaddbaaa # staging_services/go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:2d16721-0000-g2d16721 # staging_services/go-backend
