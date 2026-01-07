@@ -1,0 +1,5 @@
+# Source: cloudnative-pg-wrapper/templates/Namespace.cnpg-system.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-system

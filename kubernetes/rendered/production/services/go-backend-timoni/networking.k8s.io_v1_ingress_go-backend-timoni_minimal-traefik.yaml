@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    external-dns.alpha.kubernetes.io/hostname: ingress-traefik-timoni.production.kubestarterkit.com
+  labels:
+    app.kubernetes.io/managed-by: timoni
+    app.kubernetes.io/name: go-backend
+    app.kubernetes.io/version: 0.0.0-devel
+  name: minimal-traefik
+  namespace: go-backend-timoni
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ingress-traefik-timoni.production.kubestarterkit.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: go-backend
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - ingress-traefik-timoni.production.kubestarterkit.com
+      secretName: ingress-traefik-timoni-production-kubestarterkit-com-tls

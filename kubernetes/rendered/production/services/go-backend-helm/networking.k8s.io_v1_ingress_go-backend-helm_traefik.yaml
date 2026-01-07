@@ -1,0 +1,26 @@
+# Source: minimal/templates/Ingress.traefik.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: traefik
+  namespace: go-backend-helm
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: go-backend-helm-traefik.staging.kubestarterkit.com
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - go-backend-helm-traefik.staging.kubestarterkit.com
+      secretName: go-backend-helm-traefik-staging-kubestarterkit-com-tls
+  rules:
+    - host: go-backend-helm-traefik.staging.kubestarterkit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: go-backend
+                port:
+                  number: 8080

@@ -1,8 +1,12 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
+  labels:
+    app.kubernetes.io/managed-by: timoni
+    app.kubernetes.io/name: go-backend
+    app.kubernetes.io/version: 0.0.0-devel
   name: go-backend-pg
-  namespace: go-backend-kustomize
+  namespace: go-backend-timoni
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:17.7-minimal-trixie
   instances: 1

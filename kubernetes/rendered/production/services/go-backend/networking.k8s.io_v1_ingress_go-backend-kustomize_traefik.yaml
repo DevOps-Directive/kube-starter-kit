@@ -2,8 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     external-dns.alpha.kubernetes.io/hostname: ingress-traefik-kustomize.staging.kubestarterkit.com
-  name: minimal-traefik
+  name: traefik
   namespace: go-backend-kustomize
 spec:
   ingressClassName: traefik
@@ -18,3 +19,7 @@ spec:
                   number: 8080
             path: /
             pathType: Prefix
+  tls:
+    - hosts:
+        - ingress-traefik-kustomize.staging.kubestarterkit.com
+      secretName: ingress-traefik-kustomize-tls

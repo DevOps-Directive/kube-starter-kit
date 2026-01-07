@@ -1,0 +1,21 @@
+# Source: infrastructure-app-of-apps/templates/Application.argocd-app-of-apps.yaml
+# This is the entrypoint (which manages all of the other applications in this chart)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-app-of-apps
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: argocd
+  source:
+    path: kubernetes/rendered/production/argocd/argocd
+    repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

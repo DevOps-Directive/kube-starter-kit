@@ -1,0 +1,75 @@
+# Source: minimal/templates/Deployment.go-backend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend
+  namespace: go-backend-helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-backend
+  template:
+    metadata:
+      labels:
+        app: go-backend
+        # annotations:
+        #   instrumentation.opentelemetry.io/inject-go: "honeycomb/otel-autoinstrumentation"
+        #   # Go Requires an additional annotation to the path of the binary on the container
+        #   instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/bin/server"
+    spec:
+      serviceAccountName: go-backend
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: go-backend
+          image: 857059614049.dkr.ecr.us-east-2.amazonaws.com/services/go-backend:04e0d06-0000-g04e0d06
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: go-backend-pg-app
+                  key: uri
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              # The docs tell you to ship directly to signoz cloud... but then every pod needs the api key 🤔
+              value: signoz-k8s-infra-otel-agent.signoz:4317
+            - name: OTEL_SERVICE_NAME
+              value: go-backend-helm
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

@@ -1,0 +1,20 @@
+# Source: infrastructure-app-of-apps/templates/Application.GENERATOR.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: infrastructure
+  source:
+    path: kubernetes/rendered/production/infrastructure/traefik
+    repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

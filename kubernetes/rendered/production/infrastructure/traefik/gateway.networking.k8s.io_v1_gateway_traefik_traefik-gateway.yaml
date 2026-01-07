@@ -1,0 +1,31 @@
+# Source: traefik-wrapper/charts/traefik/templates/gateway.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: traefik-gateway
+  namespace: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/instance: traefik-traefik
+    helm.sh/chart: traefik-38.0.1
+    app.kubernetes.io/managed-by: Helm
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: web
+      port: 8000
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: websecure
+      port: 8443
+      protocol: HTTPS
+      hostname: '*.kubestarterkit.com'
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: gateway-wildcard-production-tls

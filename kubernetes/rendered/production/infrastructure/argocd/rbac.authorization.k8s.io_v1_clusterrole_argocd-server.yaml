@@ -1,0 +1,58 @@
+# Source: argocd-wrapper/charts/argo-cd/templates/argocd-server/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-server
+  labels:
+    helm.sh/chart: argo-cd-9.2.3
+    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/instance: argocd
+    app.kubernetes.io/component: server
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: v3.2.3
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - delete # supports deletion a live object in UI
+      - get # supports viewing live object manifest in UI
+      - patch # supports `argocd app patch`
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list # supports listing events in UI
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/log
+    verbs:
+      - get # supports viewing pod logs from UI
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - applications
+      - applicationsets
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+    verbs:
+      - create

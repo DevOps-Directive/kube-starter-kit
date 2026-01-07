@@ -1,0 +1,133 @@
+# Source: argocd-wrapper/charts/argo-cd/templates/argocd-notifications/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-notifications-controller
+  namespace: argocd
+  labels:
+    helm.sh/chart: argo-cd-9.2.3
+    app.kubernetes.io/name: argocd-notifications-controller
+    app.kubernetes.io/instance: argocd
+    app.kubernetes.io/component: notifications-controller
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/version: v3.2.3
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-notifications-controller
+      app.kubernetes.io/instance: argocd
+  template:
+    metadata:
+      annotations:
+        checksum/cmd-params: cbd1ca3ab4f2122ec7aab52eba087e9f0b3b8813ea2c1b042c0eed6c961ea467
+      labels:
+        helm.sh/chart: argo-cd-9.2.3
+        app.kubernetes.io/name: argocd-notifications-controller
+        app.kubernetes.io/instance: argocd
+        app.kubernetes.io/component: notifications-controller
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: argocd
+        app.kubernetes.io/version: v3.2.3
+    spec:
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: argocd-notifications-controller
+      automountServiceAccountToken: true
+      containers:
+        - name: notifications-controller
+          image: quay.io/argoproj/argocd:v3.2.3
+          imagePullPolicy: IfNotPresent
+          args:
+            - /usr/local/bin/argocd-notifications
+            - --metrics-port=9001
+            - --namespace=argocd
+            - --argocd-repo-server=argocd-repo-server:8081
+            - --secret-name=argocd-notifications-secret
+          env:
+            - name: ARGOCD_NOTIFICATIONS_CONTROLLER_LOGLEVEL
+              valueFrom:
+                configMapKeyRef:
+                  key: notificationscontroller.log.level
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_NOTIFICATIONS_CONTROLLER_LOGFORMAT
+              valueFrom:
+                configMapKeyRef:
+                  key: notificationscontroller.log.format
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_LOG_FORMAT_TIMESTAMP
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: log.format.timestamp
+                  optional: true
+            - name: ARGOCD_APPLICATION_NAMESPACES
+              valueFrom:
+                configMapKeyRef:
+                  key: application.namespaces
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_NOTIFICATION_CONTROLLER_SELF_SERVICE_NOTIFICATION_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  key: notificationscontroller.selfservice.enabled
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_NOTIFICATION_CONTROLLER_REPO_SERVER_PLAINTEXT
+              valueFrom:
+                configMapKeyRef:
+                  key: notificationscontroller.repo.server.plaintext
+                  name: argocd-cmd-params-cm
+                  optional: true
+          ports:
+            - name: metrics
+              containerPort: 9001
+              protocol: TCP
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          workingDir: /app
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /app/config/tls
+            - name: argocd-repo-server-tls
+              mountPath: /app/config/reposerver/tls
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: argocd-notifications-controller
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        kubernetes.io/os: linux
+      volumes:
+        - name: tls-certs
+          configMap:
+            name: argocd-tls-certs-cm
+        - name: argocd-repo-server-tls
+          secret:
+            secretName: argocd-repo-server-tls
+            optional: true
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
+      dnsPolicy: ClusterFirst

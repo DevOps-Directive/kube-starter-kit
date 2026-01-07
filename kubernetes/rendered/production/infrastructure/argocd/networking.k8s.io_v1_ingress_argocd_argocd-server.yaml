@@ -1,0 +1,25 @@
+# Source: argocd-wrapper/templates/Ingress.argocd-server.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - argocd.production.kubestarterkit.com
+      secretName: argocd-server-tls
+  rules:
+    - host: argocd.production.kubestarterkit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  name: http # Use port 80 (http), not 443
