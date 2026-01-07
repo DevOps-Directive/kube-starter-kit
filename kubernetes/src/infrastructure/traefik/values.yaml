@@ -7,3 +7,11 @@ traefik:
   providers:
     kubernetesGateway:
       enabled: true
+
+  # Configure the shared Gateway to accept HTTPRoutes from all namespaces
+  gateway:
+    listeners:
+      web:
+        # Allow HTTPRoutes from any namespace (requires ReferenceGrant)
+        namespacePolicy:
+          from: All
