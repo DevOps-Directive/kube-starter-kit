@@ -26,3 +26,10 @@ applications:
     enabled: true
   traefik:
     enabled: true
+    # Gateway certificateRefs get default group/kind added by the API server
+    ignoreDifferences:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        jsonPointers:
+          - /spec/listeners/1/tls/certificateRefs/0/group
+          - /spec/listeners/1/tls/certificateRefs/0/kind

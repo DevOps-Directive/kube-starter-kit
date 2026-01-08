@@ -1,8 +1,14 @@
+# Source: traefik-wrapper/charts/traefik-crds/templates/crds.yaml
+# source: crds-files/traefik/traefik.io_middlewares.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    app.kubernetes.io/managed-by: Helm
     controller-gen.kubebuilder.io/version: v0.16.1
+    helm.sh/resource-policy: keep
+  labels:
+    app.kubernetes.io/managed-by: Helm
   name: middlewares.traefik.io
 spec:
   group: traefik.io

@@ -1,6 +1,13 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
   traefik: "38.0.2"
+  traefik-crds: "1.13.1"
+
+# Traefik CRDs chart - only install Traefik-specific CRDs, not Gateway API
+traefik-crds:
+  traefik: true
+  gatewayAPI: false
+  hub: false
 
 traefik:
   # Enable Gateway API support

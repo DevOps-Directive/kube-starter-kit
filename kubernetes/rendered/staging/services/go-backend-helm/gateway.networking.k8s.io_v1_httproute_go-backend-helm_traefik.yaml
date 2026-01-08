@@ -15,7 +15,9 @@ spec:
   hostnames:
     - gateway-traefik-helm.staging.kubestarterkit.com
   parentRefs:
-    - name: traefik-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
       namespace: traefik
   rules:
     - backendRefs:

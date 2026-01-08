@@ -12,6 +12,12 @@ spec:
     path: kubernetes/rendered/staging/infrastructure/traefik
     repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
     targetRevision: main
+  ignoreDifferences:
+    - group: gateway.networking.k8s.io
+      jsonPointers:
+        - /spec/listeners/1/tls/certificateRefs/0/group
+        - /spec/listeners/1/tls/certificateRefs/0/kind
+      kind: Gateway
   syncPolicy:
     automated:
       prune: true

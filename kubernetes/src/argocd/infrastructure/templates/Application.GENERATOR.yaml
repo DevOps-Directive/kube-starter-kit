@@ -14,6 +14,10 @@ spec:
     path: kubernetes/rendered/{{ $.Values.cluster }}/infrastructure/{{ $name }}
     repoURL: git@github.com:DevOps-Directive/kube-starter-kit.git
     targetRevision: main
+  {{- with $config.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   syncPolicy:
     automated:
       prune: true

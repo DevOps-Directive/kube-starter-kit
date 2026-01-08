@@ -20,6 +20,8 @@ package templates
 	spec: {
 		hostnames: [#config.gateway.traefik.hostname]
 		parentRefs: [{
+			group:     "gateway.networking.k8s.io"
+			kind:      "Gateway"
 			name:      "traefik-gateway"
 			namespace: "traefik"
 		}]

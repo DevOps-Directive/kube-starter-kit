@@ -25,7 +25,6 @@ mise run //tools:render:inject-chart-versions \
 
 CHART_DIR="$PWD" mise run //tools:render:helm-dep-build
 helm template --release-name traefik . \
-  --include-crds \
   --skip-tests \
   --namespace traefik \
   --values values.yaml \
