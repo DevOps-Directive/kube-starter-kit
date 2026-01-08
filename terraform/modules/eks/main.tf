@@ -58,29 +58,29 @@ module "eks" {
 
   addons = {
     coredns = {
-      addon_version               = var.eks_addon_versions.coredns
+      addon_version               = local.eks_addon_versions.coredns
       resolve_conflicts_on_update = "OVERWRITE"
     }
 
     eks-pod-identity-agent = {
       before_compute              = true
-      addon_version               = var.eks_addon_versions.eks_pod_identity_agent
+      addon_version               = local.eks_addon_versions.eks_pod_identity_agent
       resolve_conflicts_on_update = "OVERWRITE"
     }
 
     kube-proxy = {
-      addon_version               = var.eks_addon_versions.kube_proxy
+      addon_version               = local.eks_addon_versions.kube_proxy
       resolve_conflicts_on_update = "OVERWRITE"
     }
 
     vpc-cni = {
       before_compute              = true
-      addon_version               = var.eks_addon_versions.vpc_cni
+      addon_version               = local.eks_addon_versions.vpc_cni
       resolve_conflicts_on_update = "OVERWRITE"
     }
 
     aws-ebs-csi-driver = {
-      addon_version               = var.eks_addon_versions.aws_ebs_csi_driver
+      addon_version               = local.eks_addon_versions.aws_ebs_csi_driver
       resolve_conflicts_on_update = "OVERWRITE"
     }
 

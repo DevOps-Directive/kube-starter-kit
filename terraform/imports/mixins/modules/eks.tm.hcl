@@ -16,6 +16,7 @@
 #
 # Optional globals:
 #   - global.eks.base_node_group_ami_release_version (defaults to null - uses latest)
+#   - global.eks.eks_addon_versions (defaults to null - uses module defaults)
 #
 # Required inputs (from outputs sharing):
 #   - vpc_id (from networking stack)
@@ -66,6 +67,7 @@ generate_hcl "_main.tf" {
       endpoint_public_access              = global.eks.endpoint_public_access
       endpoint_private_access             = global.eks.endpoint_private_access
       argocd_hostname                     = global.eks.argocd_hostname
+      eks_addon_versions                  = tm_try(global.eks.eks_addon_versions, null)
     }
   }
 }
