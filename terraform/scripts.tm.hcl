@@ -101,6 +101,7 @@ script "drift" "detect" {
       ["terraform", "plan", "-out", "out.tfplan", "-detailed-exitcode", "-lock=false", {
         sync_drift_status   = true
         terraform_plan_file = "out.tfplan"
+        enable_sharing      = true
       }],
     ]
   }
