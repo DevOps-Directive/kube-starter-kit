@@ -7,7 +7,7 @@ image:
   version: 31fa9ba-0000-g31fa9ba # staging_services/go-backend
 ingress:
   traefik:
-    hostname: go-backend-helm-traefik.staging.kubestarterkit.com
+    hostname: ingress-traefik-helm.staging.kubestarterkit.com
     clusterIssuer: letsencrypt-prod-dns
     # tlsSecretName: optional, defaults to hostname with dots replaced by dashes + "-tls"
 gateway:

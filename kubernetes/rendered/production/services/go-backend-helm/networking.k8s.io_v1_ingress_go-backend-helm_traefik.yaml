@@ -5,16 +5,16 @@ metadata:
   name: traefik
   namespace: go-backend-helm
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: go-backend-helm-traefik.production.kubestarterkit.com
+    external-dns.alpha.kubernetes.io/hostname: ingress-traefik-helm.production.kubestarterkit.com
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - go-backend-helm-traefik.production.kubestarterkit.com
-      secretName: go-backend-helm-traefik-production-kubestarterkit-com-tls
+        - ingress-traefik-helm.production.kubestarterkit.com
+      secretName: ingress-traefik-helm-production-kubestarterkit-com-tls
   rules:
-    - host: go-backend-helm-traefik.production.kubestarterkit.com
+    - host: ingress-traefik-helm.production.kubestarterkit.com
       http:
         paths:
           - path: /
