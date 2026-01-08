@@ -27,8 +27,11 @@ package templates
 		}]
 		rules: [{
 			backendRefs: [{
-				name: "go-backend"
-				port: #config.service.port
+				group:  ""
+				kind:   "Service"
+				name:   "go-backend"
+				port:   #config.service.port
+				weight: 1
 			}]
 			matches: [{
 				path: {

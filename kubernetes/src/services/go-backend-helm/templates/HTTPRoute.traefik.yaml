@@ -20,8 +20,11 @@ spec:
       namespace: traefik
   rules:
     - backendRefs:
-        - name: go-backend
+        - group: ""
+          kind: Service
+          name: go-backend
           port: 8080
+          weight: 1
       matches:
         - path:
             type: PathPrefix
