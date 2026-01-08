@@ -8,7 +8,5 @@ globals "eks" {
 
   # EKS addon version overrides (merged with module defaults)
   # Only specify addons you want to upgrade
-  eks_addon_versions = {
-
-  }
+  eks_addon_versions = {}
 }

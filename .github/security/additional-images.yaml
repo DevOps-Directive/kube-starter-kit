@@ -16,3 +16,4 @@ images: []
   # Example entries:
   # - docker.io/library/postgres:15-alpine
   # - gcr.io/istio-release/proxyv2:1.20.0
+  # TODO: add images used by EKS addons
