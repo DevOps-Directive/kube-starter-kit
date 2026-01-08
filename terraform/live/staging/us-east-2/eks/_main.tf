@@ -6,18 +6,23 @@ module "eks" {
   aws_region                          = "us-east-2"
   base_node_group_ami_release_version = null
   base_node_group_kubernetes_version  = "1.34"
-  eks_addon_versions                  = {}
-  endpoint_private_access             = true
-  endpoint_public_access              = false
-  environment                         = "use2"
-  kubernetes_version                  = "1.34"
-  name                                = "eks"
-  namespace                           = "ksk"
-  private_subnets                     = var.private_subnets
-  route53_zone_arn                    = var.route53_zone_arn
-  source                              = "../../../../../terraform/modules//eks"
-  stage                               = "staging"
-  terraform_iam_role_arn              = "arn:aws:iam::038198578795:role/ksk-gbl-staging-bootstrap-admin"
-  vpc_cidr                            = var.vpc_cidr
-  vpc_id                              = var.vpc_id
+  eks_addon_versions = {
+    aws_ebs_csi_driver     = "v1.54.0-eksbuild.1"
+    eks_pod_identity_agent = "v1.3.10-eksbuild.2"
+    kube_proxy             = "v1.34.1-eksbuild.2"
+    vpc_cni                = "v1.21.1-eksbuild.1"
+  }
+  endpoint_private_access = true
+  endpoint_public_access  = false
+  environment             = "use2"
+  kubernetes_version      = "1.34"
+  name                    = "eks"
+  namespace               = "ksk"
+  private_subnets         = var.private_subnets
+  route53_zone_arn        = var.route53_zone_arn
+  source                  = "../../../../../terraform/modules//eks"
+  stage                   = "staging"
+  terraform_iam_role_arn  = "arn:aws:iam::038198578795:role/ksk-gbl-staging-bootstrap-admin"
+  vpc_cidr                = var.vpc_cidr
+  vpc_id                  = var.vpc_id
 }
