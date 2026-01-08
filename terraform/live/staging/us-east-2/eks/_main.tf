@@ -6,6 +6,7 @@ module "eks" {
   aws_region                          = "us-east-2"
   base_node_group_ami_release_version = null
   base_node_group_kubernetes_version  = "1.34"
+  eks_addon_versions                  = {}
   endpoint_private_access             = true
   endpoint_public_access              = false
   environment                         = "use2"

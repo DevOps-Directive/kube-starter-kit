@@ -43,21 +43,31 @@ variable "base_node_group_ami_release_version" {
 }
 
 variable "eks_addon_versions" {
-  description = "Pinned versions for EKS managed addons (addon_version strings)."
+  description = "Override versions for EKS managed addons. Partial overrides are supported - only specify the addons you want to change."
   type = object({
-    coredns                = string
-    eks_pod_identity_agent = string
-    kube_proxy             = string
-    vpc_cni                = string
-    aws_ebs_csi_driver     = string
+    coredns                = optional(string)
+    eks_pod_identity_agent = optional(string)
+    kube_proxy             = optional(string)
+    vpc_cni                = optional(string)
+    aws_ebs_csi_driver     = optional(string)
   })
+  default = {}
+}
 
-  default = {
+locals {
+  # Default addon versions - update these when upgrading
+  eks_addon_version_defaults = {
     coredns                = "v1.12.4-eksbuild.1"
     eks_pod_identity_agent = "v1.3.10-eksbuild.1"
     kube_proxy             = "v1.33.5-eksbuild.2"
     vpc_cni                = "v1.20.5-eksbuild.1"
     aws_ebs_csi_driver     = "v1.53.0-eksbuild.1"
+  }
+
+  # Merge overrides with defaults (overrides take precedence)
+  eks_addon_versions = {
+    for k, v in local.eks_addon_version_defaults :
+    k => coalesce(try(var.eks_addon_versions[k], null), v)
   }
 }
 
