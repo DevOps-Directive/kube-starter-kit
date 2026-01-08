@@ -1,6 +1,6 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
-  karpenter: "1.7.1"
+  karpenter: "1.8.3"
 
 karpenter:
   nodeSelector:

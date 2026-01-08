@@ -1,6 +1,6 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
-  traefik: "38.0.1"
+  traefik: "38.0.2"
 
 traefik:
   # Enable Gateway API support

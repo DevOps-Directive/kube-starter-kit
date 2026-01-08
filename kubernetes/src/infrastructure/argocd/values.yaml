@@ -1,6 +1,6 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
-  argo-cd: "9.2.3"
+  argo-cd: "9.2.4"
 
 # Environment name (used for AWS secret keys)
 environment: "" # Override per environment (staging, production)

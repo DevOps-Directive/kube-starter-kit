@@ -1,6 +1,6 @@
 # Chart dependency versions (default, can be overridden per environment)
 chartVersions:
-  reloader: "2.2.3"
+  reloader: "2.2.7"
 
 reloader:
   reloader:
