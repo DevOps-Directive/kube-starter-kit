@@ -113,7 +113,9 @@ script "destroy" {
     name = "terraform destroy"
     commands = [
       ["terraform", "init", "-lock-timeout=5m"],
-      ["terraform", "destroy", "-auto-approve", "-lock-timeout=5m"],
+      ["terraform", "destroy", "-auto-approve", "-lock-timeout=5m",{
+        enable_sharing      = true
+      }],
     ]
   }
 }

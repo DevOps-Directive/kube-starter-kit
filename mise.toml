@@ -54,6 +54,10 @@ CMD=$(printf 'mise run %q' "$TASK")
 
 echo "$CMD"
 
+# Print the task's usage/help
+echo ""
+mise run "$TASK" --help 2>/dev/null || true
+
 copy_to_clipboard() {
   if command -v pbcopy >/dev/null 2>&1; then
     pbcopy
