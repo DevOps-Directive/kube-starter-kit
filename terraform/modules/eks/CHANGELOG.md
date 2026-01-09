@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/DevOps-Directive/kube-starter-kit/compare/terraform/modules/eks@0.2.0...terraform/modules/eks@0.2.1) (2026-01-09)
+
+
+### Chores
+
+* support specifying addon version per cluster ([#135](https://github.com/DevOps-Directive/kube-starter-kit/issues/135)) ([76e37ec](https://github.com/DevOps-Directive/kube-starter-kit/commit/76e37ec0a06d1f83abc5f2fb4153ab42f4859d67))
+
 ## [0.2.0](https://github.com/DevOps-Directive/kube-starter-kit/compare/terraform/modules/eks@0.1.0...terraform/modules/eks@0.2.0) (2026-01-05)
 
 
