@@ -3,7 +3,8 @@ name: Terraform Deployment
 on:
   push:
     branches:
-      - main
+      - foobarbaz # auto-deploy current disabled
+      # - main
 
 jobs:
   deploy:
