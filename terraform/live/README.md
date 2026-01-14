@@ -6,15 +6,23 @@ This directory contains the **actively deployed** Terragrunt configurations for 
 
 ```
 live/
-├── root.hcl                 # Shared Terragrunt config (backend, common inputs)
+├── config.tm.hcl            # Shared Terramate config
 ├── shared/                  # Shared AWS account (ECR, state bucket, IAM)
-│   ├── stage.hcl
+│   ├── config.tm.hcl        # Stage Terramate config
+│   ├── global/              # Account-wide resources
+│   └── us-east-2/           # Regional resources (ECR repos)
+│       ├── app-resources/   # Application specific resourecs IAM, S3, RDS
+│       ├── networking/      # VPC, subnets, NAT gateways
+│       └── eks/             # EKS cluster, Karpenter, add-ons
+├── shared/                  # Shared AWS accounts (ECR, state bucket, IAM)
+│   ├── config.tm.hcl        # Stage Terramate config
 │   ├── global/              # Account-wide resources
 │   └── us-east-2/           # Regional resources (ECR repos)
 └── staging/                 # Staging AWS account
-    ├── stage.hcl
+    ├── config.tm.hcl        # Stage Terramate config
     ├── global/              # Account-wide resources (Route53, IAM)
     └── us-east-2/           # Regional resources
+        ├── app-resources/   # Application specific resourecs IAM, S3, RDS
         ├── networking/      # VPC, subnets, NAT gateways
         └── eks/             # EKS cluster, Karpenter, add-ons
 ```
