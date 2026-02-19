@@ -4,6 +4,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// This raw Secret is for demonstration only; replace it with an ExternalSecret in real environments.
 #DBSecret: corev1.#Secret & {
 	#config:    #Config
 	apiVersion: "v1"
